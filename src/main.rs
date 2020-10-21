@@ -44,38 +44,53 @@ impl CharGrid {
             .for_each(|(i, c)| self.put([x + i as u32, y], c));
     }
 
-    fn draw<C, G>(&self, font_size: u32, cache: &mut C, transform: [[f64; 3]; 2], g: &mut G)
-    where
-        C: character::CharacterCache,
+    fn draw<G, C>(
+        &self,
+        font_size: u32,
+        cache: &mut C,
+        draw_state: &DrawState,
+        transform: [[f64; 3]; 2],
+        g: &mut G,
+    ) where
+        G: Graphics,
+        C: character::CharacterCache<Texture = G::Texture>,
         <C as character::CharacterCache>::Error: std::fmt::Debug,
-        G: Graphics<Texture = <C as character::CharacterCache>::Texture>,
     {
+        let char_image = Image::new();
         let char_width = cache.width(font_size, "W").unwrap();
 
         for y in 0..self.size[1] {
             for x in 0..self.size[0] {
-                let index: usize = (y * self.size[0] + x).try_into().unwrap();
+                let index = (y * self.size[0] + x) as usize;
                 let px = x as f64 * char_width;
                 let py = (y * font_size) as f64;
 
                 // Draw grid cell background.
-                rectangle(
-                    self.bg[index],
+                Rectangle::new(self.bg[index]).draw(
                     [px, py, char_width, font_size as f64],
+                    draw_state,
                     transform,
                     g,
                 );
 
                 // Draw text character.
-                text(
-                    self.fg[index],
-                    font_size,
-                    &self.chars[index].to_string(),
-                    cache,
-                    transform.trans(px, py),
-                    g,
-                )
-                .unwrap();
+                if let Ok(char_glyph) = cache.character(font_size, self.chars[index]) {
+                    let char_x = px + char_glyph.left();
+                    let char_y = py - char_glyph.top();
+                    let char_image = char_image.color(self.fg[index]).src_rect([
+                        char_glyph.atlas_offset[0],
+                        char_glyph.atlas_offset[1],
+                        char_glyph.atlas_size[0],
+                        char_glyph.atlas_size[1],
+                    ]);
+
+                    char_image.draw(
+                        char_glyph.texture,
+                        draw_state,
+                        transform.trans(char_x, char_y),
+                        g,
+                    );
+                }
             }
         }
     }
@@ -99,7 +114,7 @@ fn main() {
         window.draw_2d(&e, |c, g, d| {
             clear([0., 0., 1., 1.], g);
 
-            grid.draw(font_size, &mut glyph_cache, c.transform, g);
+            grid.draw(font_size, &mut glyph_cache, &c.draw_state, c.transform, g);
 
             // Update glyphs before rendering.
             glyph_cache.factory.encoder.flush(d);
