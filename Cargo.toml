@@ -1,0 +1,14 @@
+[package]
+name = "ruggle"
+version = "0.1.0"
+authors = ["Tung Nguyen <tungtn3@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+piston_window = "0.113.0"
+
+[dependencies.piston2d-graphics]
+version = "0.37.0"
+features = ["glyph_cache_rusttype"]
