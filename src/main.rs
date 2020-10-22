@@ -1,11 +1,17 @@
 use glutin_window::GlutinWindow;
 use opengl_graphics::{Filter, GlGraphics, GlyphCache, OpenGL, TextureSettings};
 use piston::event_loop::{EventLoop, EventSettings, Events};
-use piston::input::RenderEvent;
+use piston::input::{Button, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
 use std::path::PathBuf;
 
 use ruggle::CharGrid;
+
+fn update(grid: &mut CharGrid, x: i32, y: i32) {
+    grid.clear();
+    grid.print([34, 21], "Hello world!");
+    grid.put([x as u32, y as u32], '@');
+}
 
 fn main() {
     let opengl = OpenGL::V3_2;
@@ -23,9 +29,28 @@ fn main() {
     let mut glyphs = GlyphCache::new(font_path, (), texture_settings).expect("Could not load font");
 
     let mut grid = CharGrid::new([80, 43]);
-    grid.print([34, 21], "Hello world!");
+    let mut x: i32 = 40;
+    let mut y: i32 = 25;
+
+    update(&mut grid, x, y);
 
     while let Some(e) = events.next(&mut window) {
+        if let Some(Button::Keyboard(key)) = e.press_args() {
+            let mut do_update = true;
+
+            match key {
+                Key::Up => y -= 1,
+                Key::Down => y += 1,
+                Key::Left => x -= 1,
+                Key::Right => x += 1,
+                _ => do_update = false,
+            }
+
+            if do_update {
+                update(&mut grid, x, y);
+            }
+        }
+
         if let Some(args) = e.render_args() {
             gl.draw(args.viewport(), |c, g| {
                 use graphics::clear;

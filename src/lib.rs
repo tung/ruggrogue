@@ -29,6 +29,20 @@ impl CharGrid {
         }
     }
 
+    pub fn clear(&mut self) {
+        for e in self.chars.iter_mut() {
+            *e = ' ';
+        }
+
+        for e in self.fg.iter_mut() {
+            *e = [1.; 4];
+        }
+
+        for e in self.bg.iter_mut() {
+            *e = [0., 0., 0., 1.];
+        }
+    }
+
     pub fn put(&mut self, [x, y]: Position, c: char) {
         let w = self.size[0];
 
