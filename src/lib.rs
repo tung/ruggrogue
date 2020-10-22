@@ -67,6 +67,20 @@ impl CharGrid {
 
         let char_image = Image::new();
         let char_width = cache.width(font_size, "W").unwrap();
+        let mut char_bg = Rectangle::new([0., 0., 0., 1.]);
+
+        // Draw default background color.
+        char_bg.draw(
+            [
+                0.,
+                0.,
+                self.size[0] as f64 * char_width,
+                (self.size[1] * font_size) as f64,
+            ],
+            &c.draw_state,
+            c.transform,
+            g,
+        );
 
         for y in 0..self.size[1] {
             for x in 0..self.size[0] {
@@ -74,13 +88,20 @@ impl CharGrid {
                 let px = x as f64 * char_width;
                 let py = (y * font_size) as f64;
 
-                // Draw grid cell background.
-                Rectangle::new(self.bg[index]).draw(
-                    [px, py, char_width, font_size as f64],
-                    &c.draw_state,
-                    c.transform,
-                    g,
-                );
+                // Draw cell background color if it differs from the default.
+                if self.bg[index][0] > f32::EPSILON
+                    || self.bg[index][1] > f32::EPSILON
+                    || self.bg[index][2] > f32::EPSILON
+                    || 1. - self.bg[index][3] > f32::EPSILON
+                {
+                    char_bg.color = self.bg[index];
+                    char_bg.draw(
+                        [px, py, char_width, font_size as f64],
+                        &c.draw_state,
+                        c.transform,
+                        g,
+                    );
+                }
 
                 // Draw text character.
                 if let Ok(char_glyph) = cache.character(font_size, self.chars[index]) {
