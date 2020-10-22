@@ -7,8 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-piston_window = "0.113.0"
-
-[dependencies.piston2d-graphics]
-version = "0.37.0"
-features = ["glyph_cache_rusttype"]
+piston = "0.52.0"
+pistoncore-glutin_window = "0.67.0"
+piston2d-graphics = "0.37.0"
+piston2d-opengl_graphics = "0.74.0"

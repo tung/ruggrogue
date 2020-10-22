@@ -1,8 +1,13 @@
-use piston_window::*;
-use std::convert::TryInto;
+use glutin_window::GlutinWindow;
+use graphics::character::CharacterCache;
+use graphics::types::Color;
+use graphics::{Context, Graphics};
+use opengl_graphics::{Filter, GlGraphics, GlyphCache, OpenGL, TextureSettings};
+use piston::event_loop::{EventLoop, EventSettings, Events};
+use piston::input::RenderEvent;
+use piston::window::WindowSettings;
 use std::path::PathBuf;
 
-type Color = [f32; 4];
 type Position = [u32; 2];
 type Size = [u32; 2];
 
@@ -20,7 +25,7 @@ impl CharGrid {
         assert_ne!(0, width);
         assert_ne!(0, height);
 
-        let vec_size: usize = (width * height).try_into().unwrap();
+        let vec_size = (width * height) as usize;
 
         CharGrid {
             size,
@@ -44,18 +49,14 @@ impl CharGrid {
             .for_each(|(i, c)| self.put([x + i as u32, y], c));
     }
 
-    fn draw<G, C>(
-        &self,
-        font_size: u32,
-        cache: &mut C,
-        draw_state: &DrawState,
-        transform: [[f64; 3]; 2],
-        g: &mut G,
-    ) where
+    fn draw<G, C>(&self, font_size: u32, cache: &mut C, c: &Context, g: &mut G)
+    where
         G: Graphics,
-        C: character::CharacterCache<Texture = G::Texture>,
-        <C as character::CharacterCache>::Error: std::fmt::Debug,
+        C: CharacterCache<Texture = G::Texture>,
+        C::Error: std::fmt::Debug,
     {
+        use graphics::{Image, Rectangle, Transformed};
+
         let char_image = Image::new();
         let char_width = cache.width(font_size, "W").unwrap();
 
@@ -68,8 +69,8 @@ impl CharGrid {
                 // Draw grid cell background.
                 Rectangle::new(self.bg[index]).draw(
                     [px, py, char_width, font_size as f64],
-                    draw_state,
-                    transform,
+                    &c.draw_state,
+                    c.transform,
                     g,
                 );
 
@@ -86,8 +87,8 @@ impl CharGrid {
 
                     char_image.draw(
                         char_glyph.texture,
-                        draw_state,
-                        transform.trans(char_x, char_y),
+                        &c.draw_state,
+                        c.transform.trans(char_x, char_y),
                         g,
                     );
                 }
@@ -97,27 +98,31 @@ impl CharGrid {
 }
 
 fn main() {
-    let mut window: PistonWindow = WindowSettings::new("Ruggle", [640, 480])
-        .exit_on_esc(true)
-        .build()
-        .unwrap();
-    window.set_lazy(true);
+    let opengl = OpenGL::V3_2;
+    let settings = WindowSettings::new("Ruggle", [640, 480])
+        .graphics_api(opengl)
+        .exit_on_esc(true);
+    let mut window: GlutinWindow = settings.build().expect("Could not create window");
+
+    let mut events = Events::new(EventSettings::new().lazy(true));
+    let mut gl = GlGraphics::new(opengl);
 
     let font_path = PathBuf::from("assets/LiberationMono-Regular.ttf");
     let font_size: u32 = 11;
-    let mut glyph_cache = window.load_font(font_path).unwrap();
+    let texture_settings = TextureSettings::new().filter(Filter::Linear);
+    let mut glyphs = GlyphCache::new(font_path, (), texture_settings).expect("Could not load font");
 
     let mut grid = CharGrid::new([80, 43]);
     grid.print([34, 21], "Hello world!");
 
-    while let Some(e) = window.next() {
-        window.draw_2d(&e, |c, g, d| {
-            clear([0., 0., 1., 1.], g);
+    while let Some(e) = events.next(&mut window) {
+        if let Some(args) = e.render_args() {
+            gl.draw(args.viewport(), |c, g| {
+                use graphics::clear;
 
-            grid.draw(font_size, &mut glyph_cache, &c.draw_state, c.transform, g);
-
-            // Update glyphs before rendering.
-            glyph_cache.factory.encoder.flush(d);
-        });
+                clear([0., 0., 1., 1.], g);
+                grid.draw(font_size, &mut glyphs, &c, g);
+            });
+        }
     }
 }
