@@ -70,7 +70,10 @@ impl CharGrid {
         use graphics::{Image, Rectangle, Transformed};
 
         let char_image = Image::new();
-        let char_width = cache.width(font_size, "W").unwrap();
+        let sample_char = cache.character(font_size, '@').unwrap();
+        let char_width = sample_char.atlas_size[0].ceil();
+        let char_height = sample_char.atlas_size[1].ceil();
+        let char_y_offset = sample_char.top();
         let mut char_bg = Rectangle::new([0., 0., 0., 1.]);
 
         // Draw default background color.
@@ -79,7 +82,7 @@ impl CharGrid {
                 0.,
                 0.,
                 self.size[0] as f64 * char_width,
-                (self.size[1] * font_size) as f64,
+                self.size[1] as f64 * char_height,
             ],
             &c.draw_state,
             c.transform,
@@ -90,7 +93,7 @@ impl CharGrid {
             for x in 0..self.size[0] {
                 let index = (y * self.size[0] + x) as usize;
                 let px = x as f64 * char_width;
-                let py = (y * font_size) as f64;
+                let py = y as f64 * char_height;
 
                 // Draw cell background color if it differs from the default.
                 if self.bg[index][0] > f32::EPSILON
@@ -100,7 +103,7 @@ impl CharGrid {
                 {
                     char_bg.color = self.bg[index];
                     char_bg.draw(
-                        [px, py, char_width, font_size as f64],
+                        [px, py, char_width, char_height],
                         &c.draw_state,
                         c.transform,
                         g,
@@ -110,7 +113,7 @@ impl CharGrid {
                 // Draw text character.
                 if let Ok(char_glyph) = cache.character(font_size, self.chars[index]) {
                     let char_x = px + char_glyph.left();
-                    let char_y = py - char_glyph.top();
+                    let char_y = py + char_y_offset - char_glyph.top();
                     let char_image = char_image.color(self.fg[index]).src_rect([
                         char_glyph.atlas_offset[0],
                         char_glyph.atlas_offset[1],

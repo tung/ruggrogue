@@ -9,13 +9,13 @@ use ruggle::CharGrid;
 
 fn update(grid: &mut CharGrid, x: i32, y: i32) {
     grid.clear();
-    grid.print([34, 21], "Hello world!");
+    grid.print([30, 17], &format!("Hello world! {} {}", x, y));
     grid.put([x as u32, y as u32], '@');
 }
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let settings = WindowSettings::new("Ruggle", [640, 480])
+    let settings = WindowSettings::new("Ruggle", [810, 510])
         .graphics_api(opengl)
         .exit_on_esc(true);
     let mut window: GlutinWindow = settings.build().expect("Could not create window");
@@ -28,9 +28,9 @@ fn main() {
     let texture_settings = TextureSettings::new().filter(Filter::Linear);
     let mut glyphs = GlyphCache::new(font_path, (), texture_settings).expect("Could not load font");
 
-    let mut grid = CharGrid::new([80, 43]);
-    let mut x: i32 = 40;
-    let mut y: i32 = 25;
+    let mut grid = CharGrid::new([80, 36]);
+    let mut x: i32 = 39;
+    let mut y: i32 = 20;
 
     update(&mut grid, x, y);
 
