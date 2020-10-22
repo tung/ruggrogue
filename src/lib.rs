@@ -44,6 +44,10 @@ impl CharGrid {
     }
 
     pub fn put(&mut self, [x, y]: Position, c: char) {
+        if x >= self.size[0] || y >= self.size[1] {
+            return;
+        }
+
         let w = self.size[0];
 
         self.chars[(y * w + x) as usize] = c;
