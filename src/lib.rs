@@ -5,11 +5,20 @@ use graphics::{Context, Graphics};
 type Position = [u32; 2];
 type Size = [u32; 2];
 
+fn eq_color(a: Color, b: Color) -> bool {
+    (a[0] - b[0]).abs() <= f32::EPSILON
+        && (a[1] - b[1]).abs() <= f32::EPSILON
+        && (a[2] - b[2]).abs() <= f32::EPSILON
+        && (a[3] - b[3]).abs() <= f32::EPSILON
+}
+
 pub struct CharGrid {
     size: Size,
+    default_fg: Color,
+    default_bg: Color,
     chars: Vec<char>,
-    fg: Vec<Color>,
-    bg: Vec<Color>,
+    fg: Vec<Option<Color>>,
+    bg: Vec<Option<Color>>,
 }
 
 impl CharGrid {
@@ -23,9 +32,11 @@ impl CharGrid {
 
         CharGrid {
             size,
+            default_fg: [1.; 4],
+            default_bg: [0., 0., 0., 1.],
             chars: vec![' '; vec_size],
-            fg: vec![[1.; 4]; vec_size],
-            bg: vec![[0., 0., 0., 1.]; vec_size],
+            fg: vec![None; vec_size],
+            bg: vec![None; vec_size],
         }
     }
 
@@ -35,30 +46,40 @@ impl CharGrid {
         }
 
         for e in self.fg.iter_mut() {
-            *e = [1.; 4];
+            *e = None;
         }
 
         for e in self.bg.iter_mut() {
-            *e = [0., 0., 0., 1.];
+            *e = None;
         }
     }
 
-    pub fn put(&mut self, [x, y]: Position, c: char) {
+    pub fn put(&mut self, pos: Position, c: char) {
+        self.put_color(pos, None, None, c);
+    }
+
+    pub fn put_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         if x >= self.size[0] || y >= self.size[1] {
             return;
         }
 
-        let w = self.size[0];
+        let index = (y * self.size[0] + x) as usize;
 
-        self.chars[(y * w + x) as usize] = c;
+        self.chars[index] = c;
+        self.fg[index] = fg;
+        self.bg[index] = bg;
     }
 
-    pub fn print(&mut self, [x, y]: Position, s: &str) {
+    pub fn print(&mut self, pos: Position, s: &str) {
+        self.print_color(pos, None, None, s);
+    }
+
+    pub fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
         let width = self.size[0];
 
         s.char_indices()
             .take_while(|(i, _)| x + (*i as u32) < width)
-            .for_each(|(i, c)| self.put([x + i as u32, y], c));
+            .for_each(|(i, c)| self.put_color([x + i as u32, y], fg, bg, c));
     }
 
     pub fn draw<G, C>(&self, font_size: u32, cache: &mut C, c: &Context, g: &mut G)
@@ -74,7 +95,7 @@ impl CharGrid {
         let char_width = sample_char.atlas_size[0].ceil();
         let char_height = sample_char.atlas_size[1].ceil();
         let char_y_offset = sample_char.top();
-        let mut char_bg = Rectangle::new([0., 0., 0., 1.]);
+        let mut char_bg = Rectangle::new(self.default_bg);
 
         // Draw default background color.
         char_bg.draw(
@@ -96,30 +117,30 @@ impl CharGrid {
                 let py = y as f64 * char_height;
 
                 // Draw cell background color if it differs from the default.
-                if self.bg[index][0] > f32::EPSILON
-                    || self.bg[index][1] > f32::EPSILON
-                    || self.bg[index][2] > f32::EPSILON
-                    || 1. - self.bg[index][3] > f32::EPSILON
-                {
-                    char_bg.color = self.bg[index];
-                    char_bg.draw(
-                        [px, py, char_width, char_height],
-                        &c.draw_state,
-                        c.transform,
-                        g,
-                    );
+                if let Some(bg_color) = self.bg[index] {
+                    if !eq_color(bg_color, self.default_bg) {
+                        char_bg.color = bg_color;
+                        char_bg.draw(
+                            [px, py, char_width, char_height],
+                            &c.draw_state,
+                            c.transform,
+                            g,
+                        );
+                    }
                 }
 
                 // Draw text character.
                 if let Ok(char_glyph) = cache.character(font_size, self.chars[index]) {
                     let char_x = px + char_glyph.left();
                     let char_y = py + char_y_offset - char_glyph.top();
-                    let char_image = char_image.color(self.fg[index]).src_rect([
-                        char_glyph.atlas_offset[0],
-                        char_glyph.atlas_offset[1],
-                        char_glyph.atlas_size[0],
-                        char_glyph.atlas_size[1],
-                    ]);
+                    let char_image = char_image
+                        .color(self.fg[index].unwrap_or(self.default_fg))
+                        .src_rect([
+                            char_glyph.atlas_offset[0],
+                            char_glyph.atlas_offset[1],
+                            char_glyph.atlas_size[0],
+                            char_glyph.atlas_size[1],
+                        ]);
 
                     char_image.draw(
                         char_glyph.texture,

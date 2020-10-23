@@ -9,8 +9,13 @@ use ruggle::CharGrid;
 
 fn update(grid: &mut CharGrid, x: i32, y: i32) {
     grid.clear();
-    grid.print([30, 17], &format!("Hello world! {} {}", x, y));
-    grid.put([x as u32, y as u32], '@');
+    grid.print_color(
+        [30, 17],
+        Some([1., 1., 0., 1.]),
+        None,
+        &format!("Hello world! {} {}", x, y),
+    );
+    grid.put_color([x as u32, y as u32], None, Some([0.5, 0.5, 0.5, 1.]), '@');
 }
 
 fn main() {
