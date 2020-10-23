@@ -12,6 +12,13 @@ fn eq_color(a: Color, b: Color) -> bool {
         && (a[3] - b[3]).abs() <= f32::EPSILON
 }
 
+#[derive(Clone, Copy)]
+pub enum CellColorArg {
+    Pass,
+    Default,
+    Color(Color),
+}
+
 pub struct CharGrid {
     size: Size,
     default_fg: Color,
@@ -55,10 +62,10 @@ impl CharGrid {
     }
 
     pub fn put(&mut self, pos: Position, c: char) {
-        self.put_color(pos, None, None, c);
+        self.put_color(pos, CellColorArg::Pass, CellColorArg::Pass, c);
     }
 
-    pub fn put_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
+    pub fn put_color(&mut self, [x, y]: Position, fg: CellColorArg, bg: CellColorArg, c: char) {
         if x >= self.size[0] || y >= self.size[1] {
             return;
         }
@@ -66,15 +73,25 @@ impl CharGrid {
         let index = (y * self.size[0] + x) as usize;
 
         self.chars[index] = c;
-        self.fg[index] = fg;
-        self.bg[index] = bg;
+
+        match fg {
+            CellColorArg::Pass => {}
+            CellColorArg::Default => self.fg[index] = None,
+            CellColorArg::Color(c) => self.fg[index] = Some(c),
+        }
+
+        match bg {
+            CellColorArg::Pass => {}
+            CellColorArg::Default => self.bg[index] = None,
+            CellColorArg::Color(c) => self.bg[index] = Some(c),
+        }
     }
 
     pub fn print(&mut self, pos: Position, s: &str) {
-        self.print_color(pos, None, None, s);
+        self.print_color(pos, CellColorArg::Pass, CellColorArg::Pass, s);
     }
 
-    pub fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
+    pub fn print_color(&mut self, [x, y]: Position, fg: CellColorArg, bg: CellColorArg, s: &str) {
         let width = self.size[0];
 
         s.char_indices()
