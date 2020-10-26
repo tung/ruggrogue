@@ -1,8 +1,10 @@
 use glutin_window::GlutinWindow;
-use opengl_graphics::{Filter, GlGraphics, GlyphCache, OpenGL, TextureSettings};
+use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::{Button, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
+use rusttype::Font;
+use std::fs;
 use std::path::PathBuf;
 
 use ruggle::CharGrid;
@@ -10,17 +12,17 @@ use ruggle::CharGrid;
 fn update(grid: &mut CharGrid, x: i32, y: i32) {
     grid.clear();
     grid.print_color(
-        [30, 17],
+        [36, 17],
         Some([1., 1., 0., 1.]),
-        None,
+        Some([0.3, 0.3, 0.3, 1.]),
         &format!("Hello world! {} {}", x, y),
     );
-    grid.put_color([x as u32, y as u32], None, Some([0.5, 0.5, 0.5, 1.]), '@');
+    grid.put([x as u32, y as u32], '@');
 }
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let settings = WindowSettings::new("Ruggle", [810, 510])
+    let settings = WindowSettings::new("Ruggle", [730, 590])
         .graphics_api(opengl)
         .exit_on_esc(true);
     let mut window: GlutinWindow = settings.build().expect("Could not create window");
@@ -29,12 +31,11 @@ fn main() {
     let mut gl = GlGraphics::new(opengl);
 
     let font_path = PathBuf::from("assets/LiberationMono-Regular.ttf");
-    let font_size: u32 = 11;
-    let texture_settings = TextureSettings::new().filter(Filter::Linear);
-    let mut glyphs = GlyphCache::new(font_path, (), texture_settings).expect("Could not load font");
+    let font_data = fs::read(font_path).unwrap();
+    let font = Font::try_from_vec(font_data).unwrap();
 
-    let mut grid = CharGrid::new([80, 36]);
-    let mut x: i32 = 39;
+    let mut grid = CharGrid::new([90, 36], &font, 14.0);
+    let mut x: i32 = 45;
     let mut y: i32 = 20;
 
     update(&mut grid, x, y);
@@ -58,10 +59,10 @@ fn main() {
 
         if let Some(args) = e.render_args() {
             gl.draw(args.viewport(), |c, g| {
-                use graphics::clear;
+                use graphics::Graphics;
 
-                clear([0., 0., 1., 1.], g);
-                grid.draw(font_size, &mut glyphs, &c, g);
+                g.clear_color([0., 0., 1., 1.]);
+                grid.draw(&c, g);
             });
         }
     }
