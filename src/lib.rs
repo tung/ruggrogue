@@ -49,16 +49,23 @@ impl CharGrid {
 
     /// Clear the entire CharGrid.
     pub fn clear(&mut self) {
+        self.clear_color(None, None);
+    }
+
+    /// Clear the entire CharGrid, optionally changing the foreground and/or background colors.
+    pub fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
         for e in self.chars.iter_mut() {
             *e = ' ';
         }
 
+        let fg: Color = fg.unwrap_or([1.; 4]);
         for e in self.fg.iter_mut() {
-            *e = [1.; 4];
+            *e = fg;
         }
 
+        let bg: Color = bg.unwrap_or([0., 0., 0., 1.]);
         for e in self.bg.iter_mut() {
-            *e = [0., 0., 0., 1.];
+            *e = bg;
         }
     }
 
