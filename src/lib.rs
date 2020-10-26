@@ -12,38 +12,20 @@ fn eq_color(a: Color, b: Color) -> bool {
         && (a[3] - b[3]).abs() <= f32::EPSILON
 }
 
-/// A color argument for CharGrid functions that want to set the colors of cells as an option when
-/// writing characters into the grid.
-#[derive(Clone, Copy)]
-pub enum CellColorArg {
-    /// Don't change color.
-    Pass,
-    /// Set the cell to use the CharGrid default color.
-    Default,
-    /// Set a specific color.
-    Color(Color),
-}
-
 /// A CharGrid is a grid of characters that can be drawn onto, and afterwards the whole grid can be
-/// drawn on screen.  The whole CharGrid has default foreground and background colors that cells
-/// can take advantage of, and individual cells can also have custom foreground and background
-/// colors.
+/// drawn on screen.  Each cell has a foreground and background color.
 ///
 /// To use a CharGrid, create a new one, put and print characters and colors to it, then call draw
 /// to put it all on screen.
 pub struct CharGrid {
     /// Dimensions of the grid in characters: [width, height].
     size: Size,
-    /// Default foreground color for cells.
-    default_fg: Color,
-    /// Default background color for cells.
-    default_bg: Color,
     /// Text character in each cell.
     chars: Vec<char>,
-    /// Foreground in each cell; `None` means use default foreground color when drawing.
-    fg: Vec<Option<Color>>,
-    /// Background in each cell; `None` means use default background color when drawing.
-    bg: Vec<Option<Color>>,
+    /// Foreground in each cell.
+    fg: Vec<Color>,
+    /// Background in each cell.
+    bg: Vec<Color>,
 }
 
 impl CharGrid {
@@ -59,11 +41,9 @@ impl CharGrid {
 
         CharGrid {
             size,
-            default_fg: [1.; 4],
-            default_bg: [0., 0., 0., 1.],
             chars: vec![' '; vec_size],
-            fg: vec![None; vec_size],
-            bg: vec![None; vec_size],
+            fg: vec![[1.; 4]; vec_size],
+            bg: vec![[0., 0., 0., 1.]; vec_size],
         }
     }
 
@@ -74,22 +54,22 @@ impl CharGrid {
         }
 
         for e in self.fg.iter_mut() {
-            *e = None;
+            *e = [1.; 4];
         }
 
         for e in self.bg.iter_mut() {
-            *e = None;
+            *e = [0., 0., 0., 1.];
         }
     }
 
     /// Put a single character in a given position.
     pub fn put(&mut self, pos: Position, c: char) {
-        self.put_color(pos, CellColorArg::Pass, CellColorArg::Pass, c);
+        self.put_color(pos, None, None, c);
     }
 
     /// Put a single character in a given position, optionally changing the foreground and/or
     /// background colors.
-    pub fn put_color(&mut self, [x, y]: Position, fg: CellColorArg, bg: CellColorArg, c: char) {
+    pub fn put_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         if x >= self.size[0] || y >= self.size[1] {
             return;
         }
@@ -98,29 +78,25 @@ impl CharGrid {
 
         self.chars[index] = c;
 
-        match fg {
-            CellColorArg::Pass => {}
-            CellColorArg::Default => self.fg[index] = None,
-            CellColorArg::Color(c) => self.fg[index] = Some(c),
+        if let Some(c) = fg {
+            self.fg[index] = c;
         }
 
-        match bg {
-            CellColorArg::Pass => {}
-            CellColorArg::Default => self.bg[index] = None,
-            CellColorArg::Color(c) => self.bg[index] = Some(c),
+        if let Some(c) = bg {
+            self.bg[index] = c;
         }
     }
 
     /// Print a string on the CharGrid starting at the given position.  If the string goes past the
     /// right edge of the CharGrid it will be truncated.
     pub fn print(&mut self, pos: Position, s: &str) {
-        self.print_color(pos, CellColorArg::Pass, CellColorArg::Pass, s);
+        self.print_color(pos, None, None, s);
     }
 
     /// Print a string on the CharGrid starting at the given position, optionally changing the
     /// foreground and/or background colors.  If the string goes past the right edge of the
     /// CharGrid it will be truncated.
-    pub fn print_color(&mut self, [x, y]: Position, fg: CellColorArg, bg: CellColorArg, s: &str) {
+    pub fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
         let width = self.size[0];
 
         s.char_indices()
@@ -142,7 +118,7 @@ impl CharGrid {
         let char_width = sample_char.atlas_size[0].ceil();
         let char_height = sample_char.atlas_size[1].ceil();
         let char_y_offset = sample_char.top();
-        let mut char_bg = Rectangle::new(self.default_bg);
+        let mut char_bg = Rectangle::new([0., 0., 0., 1.]);
 
         // Draw default background color.
         char_bg.draw(
@@ -164,30 +140,26 @@ impl CharGrid {
                 let py = y as f64 * char_height;
 
                 // Draw cell background color if it differs from the default.
-                if let Some(bg_color) = self.bg[index] {
-                    if !eq_color(bg_color, self.default_bg) {
-                        char_bg.color = bg_color;
-                        char_bg.draw(
-                            [px, py, char_width, char_height],
-                            &c.draw_state,
-                            c.transform,
-                            g,
-                        );
-                    }
+                if !eq_color(self.bg[index], [0., 0., 0., 1.]) {
+                    char_bg.color = self.bg[index];
+                    char_bg.draw(
+                        [px, py, char_width, char_height],
+                        &c.draw_state,
+                        c.transform,
+                        g,
+                    );
                 }
 
                 // Draw text character.
                 if let Ok(char_glyph) = cache.character(font_size, self.chars[index]) {
                     let char_x = px + char_glyph.left();
                     let char_y = py + char_y_offset - char_glyph.top();
-                    let char_image = char_image
-                        .color(self.fg[index].unwrap_or(self.default_fg))
-                        .src_rect([
-                            char_glyph.atlas_offset[0],
-                            char_glyph.atlas_offset[1],
-                            char_glyph.atlas_size[0],
-                            char_glyph.atlas_size[1],
-                        ]);
+                    let char_image = char_image.color(self.fg[index]).src_rect([
+                        char_glyph.atlas_offset[0],
+                        char_glyph.atlas_offset[1],
+                        char_glyph.atlas_size[0],
+                        char_glyph.atlas_size[1],
+                    ]);
 
                     char_image.draw(
                         char_glyph.texture,

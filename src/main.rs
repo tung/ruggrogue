@@ -5,22 +5,17 @@ use piston::input::{Button, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
 use std::path::PathBuf;
 
-use ruggle::{CellColorArg, CharGrid};
+use ruggle::CharGrid;
 
 fn update(grid: &mut CharGrid, x: i32, y: i32) {
     grid.clear();
     grid.print_color(
         [30, 17],
-        CellColorArg::Color([1., 1., 0., 1.]),
-        CellColorArg::Pass,
+        Some([1., 1., 0., 1.]),
+        None,
         &format!("Hello world! {} {}", x, y),
     );
-    grid.put_color(
-        [x as u32, y as u32],
-        CellColorArg::Pass,
-        CellColorArg::Color([0.5, 0.5, 0.5, 1.]),
-        '@',
-    );
+    grid.put_color([x as u32, y as u32], None, Some([0.5, 0.5, 0.5, 1.]), '@');
 }
 
 fn main() {
