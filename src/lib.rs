@@ -251,7 +251,7 @@ impl<'f> CharGrid<'f> {
                             (fbg[0] * 255.0) as u8,
                             (fbg[1] * 255.0) as u8,
                             (fbg[2] * 255.0) as u8,
-                            255,
+                            (fbg[3] * 255.0) as u8,
                         ]);
 
                         self.buffer.put_pixel(x, y, c);
@@ -279,7 +279,7 @@ impl<'f> CharGrid<'f> {
                                 ((v * ffg[0] + (1. - v) * fbg[0]) * 255.0) as u8,
                                 ((v * ffg[1] + (1. - v) * fbg[1]) * 255.0) as u8,
                                 ((v * ffg[2] + (1. - v) * fbg[2]) * 255.0) as u8,
-                                255,
+                                ((v * ffg[3] + (1. - v) * fbg[3]) * 255.0) as u8,
                             ]);
 
                             self.buffer.put_pixel(
