@@ -298,11 +298,13 @@ impl<'f> CharGrid<'f> {
         buffer_updated
     }
 
-    /// Draw the CharGrid onto the screen.
+    /// Draw the CharGrid onto the screen.  Giving a position offsets drawing from the top-left.
+    /// Giving a size will scale the CharGrid to fit within the size, maintaining its aspect ratio
+    /// and centering it in the process.
     ///
     /// A CharGrid maintains internal buffers to track changes since the last draw, so it needs to
     /// be mutable in order to update those buffers when these changes are detected.
-    pub fn draw<G>(&mut self, c: &Context, g: &mut G)
+    pub fn draw<G>(&mut self, pos: Option<Position>, size: Option<[f64; 2]>, c: &Context, g: &mut G)
     where
         G: Graphics<Texture = opengl_graphics::Texture>,
     {
@@ -320,9 +322,37 @@ impl<'f> CharGrid<'f> {
         }
 
         if let Some(texture) = &self.texture {
-            use graphics::Image;
+            use graphics::{Image, Transformed};
 
-            Image::new().draw(texture, &c.draw_state, c.transform, g);
+            let mut transform = c.transform;
+
+            if let Some(pos) = pos {
+                transform = transform.trans(pos[0] as f64, pos[1] as f64);
+            }
+
+            if let Some(size) = size {
+                let grid_size = self.size();
+                let grid_size = [grid_size[0] as f64, grid_size[1] as f64];
+
+                // Compare fractions by multiplying both sides by the product of denominators.
+                // a / b = x / y  --->  ay = xb
+                if size[0] * grid_size[1] > size[1] * grid_size[0] {
+                    // size wider than aspect of grid
+                    let factor = size[1] / grid_size[1];
+                    let h_diff = size[0] - grid_size[0] * factor;
+                    transform = transform.trans(h_diff / 2., 0.).zoom(factor);
+                } else if size[0] * grid_size[1] < size[1] * grid_size[0] {
+                    // size taller than aspect of grid
+                    let factor = size[0] / grid_size[0];
+                    let v_diff = size[1] - grid_size[1] * factor;
+                    transform = transform.trans(0., v_diff / 2.).zoom(factor);
+                } else if (size[0] - grid_size[0]).abs() > f64::EPSILON {
+                    let factor = size[0] / grid_size[0];
+                    transform = transform.zoom(factor);
+                }
+            }
+
+            Image::new().draw(texture, &c.draw_state, transform, g);
         }
     }
 }

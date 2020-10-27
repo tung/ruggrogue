@@ -3,6 +3,7 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::{Button, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
+use piston::Window;
 use rusttype::Font;
 use std::fs;
 use std::path::PathBuf;
@@ -61,8 +62,10 @@ fn main() {
             gl.draw(args.viewport(), |c, g| {
                 use graphics::Graphics;
 
+                let window_size = window.size();
+
                 g.clear_color([0.3, 0.3, 0.3, 1.]);
-                grid.draw(&c, g);
+                grid.draw(None, Some([window_size.width, window_size.height]), &c, g);
             });
         }
     }
