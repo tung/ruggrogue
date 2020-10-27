@@ -36,7 +36,7 @@ fn main() {
         .exit_on_esc(true);
     let mut window: GlutinWindow = settings.build().expect("Could not create window");
 
-    let mut events = Events::new(EventSettings::new().lazy(true));
+    let mut events = Events::new(EventSettings::new().lazy(true).max_fps(30));
     let mut gl = GlGraphics::new(opengl);
 
     update(&mut grid, x, y);
