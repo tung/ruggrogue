@@ -1,6 +1,6 @@
 use graphics::types::Color;
 use graphics::{Context, Graphics};
-use image::{GenericImageView, ImageBuffer, Rgba, RgbaImage};
+use image::{ImageBuffer, Rgba, RgbaImage};
 use opengl_graphics::{Texture, TextureSettings};
 use rusttype::{Font, Scale};
 
@@ -271,8 +271,20 @@ impl<'f> CharGrid<'f> {
                     .positioned(point);
 
                 if let Some(pbb) = glyph.pixel_bounding_box() {
+                    let cell_min_x = px as i32;
+                    let cell_min_y = py as i32;
+                    let cell_max_x = (px + cell_width) as i32;
+                    let cell_max_y = (py + cell_height) as i32;
+
                     glyph.draw(|x, y, v| {
-                        if self.buffer.in_bounds(x, y) {
+                        let draw_x = pbb.min.x + x as i32;
+                        let draw_y = pbb.min.y + y as i32;
+
+                        if draw_x >= cell_min_x
+                            && draw_x < cell_max_x
+                            && draw_y >= cell_min_y
+                            && draw_y < cell_max_y
+                        {
                             // Exaggerate font pixels so they stand out more.
                             let v = 1.0f32 - (1.0f32 - v) * (1.0f32 - v);
                             let c = Rgba([
@@ -282,11 +294,7 @@ impl<'f> CharGrid<'f> {
                                 ((v * ffg[3] + (1. - v) * fbg[3]) * 255.0) as u8,
                             ]);
 
-                            self.buffer.put_pixel(
-                                (pbb.min.x + x as i32) as u32,
-                                (pbb.min.y + y as i32) as u32,
-                                c,
-                            );
+                            self.buffer.put_pixel(draw_x as u32, draw_y as u32, c);
                         }
                     });
 
