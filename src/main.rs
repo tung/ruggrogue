@@ -12,7 +12,7 @@ use ruggle::CharGrid;
 fn update(grid: &mut CharGrid, x: i32, y: i32) {
     grid.clear();
     grid.print_color(
-        [36, 17],
+        [32, 16],
         Some([1., 1., 0., 1.]),
         Some([0.3, 0.3, 0.3, 1.]),
         &format!("Hello world! {} {}", x, y),
@@ -22,7 +22,7 @@ fn update(grid: &mut CharGrid, x: i32, y: i32) {
 
 fn main() {
     let opengl = OpenGL::V3_2;
-    let settings = WindowSettings::new("Ruggle", [730, 590])
+    let settings = WindowSettings::new("Ruggle", [724, 580])
         .graphics_api(opengl)
         .exit_on_esc(true);
     let mut window: GlutinWindow = settings.build().expect("Could not create window");
@@ -30,13 +30,13 @@ fn main() {
     let mut events = Events::new(EventSettings::new().lazy(true));
     let mut gl = GlGraphics::new(opengl);
 
-    let font_path = PathBuf::from("assets/LiberationMono-Regular.ttf");
+    let font_path = PathBuf::from("assets/gohufont-uni-14.ttf");
     let font_data = fs::read(font_path).unwrap();
     let font = Font::try_from_vec(font_data).unwrap();
 
-    let mut grid = CharGrid::new([90, 36], &font, 14.0);
-    let mut x: i32 = 45;
-    let mut y: i32 = 20;
+    let mut grid = CharGrid::new([80, 36], &font, 14.0);
+    let mut x: i32 = 40;
+    let mut y: i32 = 18;
 
     update(&mut grid, x, y);
 
