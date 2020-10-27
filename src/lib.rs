@@ -158,6 +158,14 @@ impl<'f> CharGrid<'f> {
         }
     }
 
+    /// The pixel width and height of the full CharGrid.
+    pub fn size(&self) -> Size {
+        [
+            self.front.size[0] * self.cell_size[0],
+            self.front.size[1] * self.cell_size[1],
+        ]
+    }
+
     /// Clear the entire CharGrid.
     pub fn clear(&mut self) {
         self.clear_color(None, None);

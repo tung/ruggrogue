@@ -3,6 +3,7 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::{Button, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
+use piston::AdvancedWindow;
 use rusttype::Font;
 use std::fs;
 use std::path::PathBuf;
@@ -37,6 +38,8 @@ fn main() {
     let mut grid = CharGrid::new([80, 36], &font, 14.0);
     let mut x: i32 = 40;
     let mut y: i32 = 18;
+
+    window.set_size(grid.size());
 
     update(&mut grid, x, y);
 
