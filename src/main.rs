@@ -3,7 +3,6 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::{Button, Key, PressEvent, RenderEvent};
 use piston::window::WindowSettings;
-use piston::AdvancedWindow;
 use rusttype::Font;
 use std::fs;
 use std::path::PathBuf;
@@ -22,15 +21,6 @@ fn update(grid: &mut CharGrid, x: i32, y: i32) {
 }
 
 fn main() {
-    let opengl = OpenGL::V3_2;
-    let settings = WindowSettings::new("Ruggle", [724, 580])
-        .graphics_api(opengl)
-        .exit_on_esc(true);
-    let mut window: GlutinWindow = settings.build().expect("Could not create window");
-
-    let mut events = Events::new(EventSettings::new().lazy(true));
-    let mut gl = GlGraphics::new(opengl);
-
     let font_path = PathBuf::from("assets/gohufont-uni-14.ttf");
     let font_data = fs::read(font_path).unwrap();
     let font = Font::try_from_vec(font_data).unwrap();
@@ -39,7 +29,14 @@ fn main() {
     let mut x: i32 = 40;
     let mut y: i32 = 18;
 
-    window.set_size(grid.size());
+    let opengl = OpenGL::V3_2;
+    let settings = WindowSettings::new("Ruggle", grid.size())
+        .graphics_api(opengl)
+        .exit_on_esc(true);
+    let mut window: GlutinWindow = settings.build().expect("Could not create window");
+
+    let mut events = Events::new(EventSettings::new().lazy(true));
+    let mut gl = GlGraphics::new(opengl);
 
     update(&mut grid, x, y);
 
@@ -64,7 +61,7 @@ fn main() {
             gl.draw(args.viewport(), |c, g| {
                 use graphics::Graphics;
 
-                g.clear_color([0., 0., 1., 1.]);
+                g.clear_color([0.3, 0.3, 0.3, 1.]);
                 grid.draw(&c, g);
             });
         }
