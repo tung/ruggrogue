@@ -14,25 +14,14 @@ fn eq_color(a: &Color, b: &Color) -> bool {
         && (a[3] - b[3]).abs() <= f32::EPSILON
 }
 
-/// A CharGrid is a grid of characters that can be drawn onto, and afterwards the whole grid can be
-/// drawn on screen.  Each cell has a foreground and background color.
-///
-/// To use a CharGrid, create a new one, put and print characters and colors to it, then call draw
-/// to put it all on screen.
 struct RawCharGrid {
-    /// Dimensions of the grid in characters: [width, height].
     size: Size,
-    /// Text character in each cell.
     chars: Vec<char>,
-    /// Foreground in each cell.
     fg: Vec<Color>,
-    /// Background in each cell.
     bg: Vec<Color>,
 }
 
 impl RawCharGrid {
-    /// Create a new CharGrid with a given [width, height].  Sets white and black as the default
-    /// foreground and background colors respectively.
     fn new(size: Size) -> RawCharGrid {
         let [width, height] = size;
 
@@ -49,12 +38,6 @@ impl RawCharGrid {
         }
     }
 
-    /// Clear the entire CharGrid.
-    fn clear(&mut self) {
-        self.clear_color(None, None);
-    }
-
-    /// Clear the entire CharGrid, optionally changing the foreground and/or background colors.
     fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
         for e in self.chars.iter_mut() {
             *e = ' ';
@@ -71,13 +54,6 @@ impl RawCharGrid {
         }
     }
 
-    /// Put a single character in a given position.
-    fn put(&mut self, pos: Position, c: char) {
-        self.put_color(pos, None, None, c);
-    }
-
-    /// Put a single character in a given position, optionally changing the foreground and/or
-    /// background colors.
     fn put_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         if x >= self.size[0] || y >= self.size[1] {
             return;
@@ -96,15 +72,6 @@ impl RawCharGrid {
         }
     }
 
-    /// Print a string on the CharGrid starting at the given position.  If the string goes past the
-    /// right edge of the CharGrid it will be truncated.
-    fn print(&mut self, pos: Position, s: &str) {
-        self.print_color(pos, None, None, s);
-    }
-
-    /// Print a string on the CharGrid starting at the given position, optionally changing the
-    /// foreground and/or background colors.  If the string goes past the right edge of the
-    /// CharGrid it will be truncated.
     fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
         let width = self.size[0];
 
@@ -114,6 +81,9 @@ impl RawCharGrid {
     }
 }
 
+/// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
+/// color.  To use a CharGrid, create a new one, plot characters and colors onto it, and draw it to
+/// the screen.
 pub struct CharGrid<'f> {
     front: RawCharGrid,
     back: RawCharGrid,
@@ -127,6 +97,8 @@ pub struct CharGrid<'f> {
 }
 
 impl<'f> CharGrid<'f> {
+    /// Create a new CharGrid with a given [width, height].  White is the default foreground color
+    /// and black is the default background color.
     pub fn new(grid_size: Size, font: &'f Font, font_size: f32) -> CharGrid<'f> {
         // Calculate the cell size based on font metrics in the desired size.
         let code_page_437 = "☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
@@ -186,31 +158,38 @@ impl<'f> CharGrid<'f> {
         }
     }
 
+    /// Clear the entire CharGrid.
     pub fn clear(&mut self) {
-        self.front.clear();
-        self.needs_render = true;
+        self.clear_color(None, None);
     }
 
+    /// Clear the entire CharGrid, optionally changing the foreground and/or background colors.
     pub fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
         self.front.clear_color(fg, bg);
         self.needs_render = true;
     }
 
+    /// Put a single character in a given position.
     pub fn put(&mut self, pos: Position, c: char) {
-        self.front.put(pos, c);
-        self.needs_render = true;
+        self.put_color(pos, None, None, c);
     }
 
+    /// Put a single character in a given position, optionally changing the foreground and/or
+    /// background colors.
     pub fn put_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         self.front.put_color(pos, fg, bg, c);
         self.needs_render = true;
     }
 
+    /// Print a string on the CharGrid starting at the given position.  If the string goes past the
+    /// right edge of the CharGrid it will be truncated.
     pub fn print(&mut self, pos: Position, s: &str) {
-        self.front.print(pos, s);
-        self.needs_render = true;
+        self.print_color(pos, None, None, s);
     }
 
+    /// Print a string on the CharGrid starting at the given position, optionally changing the
+    /// foreground and/or background colors.  If the string goes past the right edge of the
+    /// CharGrid it will be truncated.
     pub fn print_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
         self.front.print_color(pos, fg, bg, s);
         self.needs_render = true;
@@ -311,6 +290,10 @@ impl<'f> CharGrid<'f> {
         buffer_updated
     }
 
+    /// Draw the CharGrid onto the screen.
+    ///
+    /// A CharGrid maintains internal buffers to track changes since the last draw, so it needs to
+    /// be mutable in order to update those buffers when these changes are detected.
     pub fn draw<G>(&mut self, c: &Context, g: &mut G)
     where
         G: Graphics<Texture = opengl_graphics::Texture>,
