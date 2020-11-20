@@ -1,4 +1,4 @@
-use glutin_window::GlutinWindow;
+use sdl2_window::Sdl2Window;
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::{Button, Key, RenderEvent};
@@ -55,7 +55,7 @@ fn main() {
     let settings = WindowSettings::new("Ruggle", grid.size())
         .graphics_api(opengl)
         .exit_on_esc(true);
-    let mut window: GlutinWindow = settings.build().expect("Could not create window");
+    let mut window: Sdl2Window = settings.build().expect("Could not create window");
 
     let mut need_active = false;
     let mut active_events = false;

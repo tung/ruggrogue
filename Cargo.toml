@@ -8,8 +8,11 @@ edition = "2018"
 
 [dependencies]
 piston = "0.52.0"
-pistoncore-glutin_window = "0.67.0"
+pistoncore-sdl2_window = "0.66.0"
 piston2d-graphics = "0.37.0"
 piston2d-opengl_graphics = "0.74.0"
 image = "0.23.11"
 rusttype = "0.9.2"
+
+[patch.crates-io]
+pistoncore-sdl2_window = { path = "../sdl2_window" }
