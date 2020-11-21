@@ -3,6 +3,7 @@ use graphics::{Context, Graphics};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use opengl_graphics::{Texture, TextureSettings};
 use rusttype::{Font, Scale};
+use std::collections::HashMap;
 
 type Position = [u32; 2];
 type Size = [u32; 2];
@@ -90,10 +91,53 @@ pub struct CharGrid<'f> {
     font: &'f Font<'f>,
     font_scale: Scale,
     font_offset_y: u32,
+    glyph_cache: HashMap<char, Option<Vec<f32>>>,
     cell_size: Size,
     needs_render: bool,
     buffer: RgbaImage,
     texture: Option<Texture>,
+}
+
+/// Pre-calculate the intensity values for each pixel of a grid cell for a rendered glyph.
+/// The output starts at the top-left of the cell and is row-major ordered.
+/// A character without a glyph returns None.
+fn prerender_glyph(
+    c: char,
+    font: &Font,
+    scale: &Scale,
+    width: u32,
+    height: u32,
+    offset_y: f32,
+) -> Option<Vec<f32>> {
+    let glyph = font
+        .glyph(c)
+        .scaled(*scale)
+        .positioned(rusttype::point(0.0, offset_y));
+
+    if let Some(pbb) = glyph.pixel_bounding_box() {
+        let mut buf: Vec<f32> = Vec::new();
+        let size = (width * height) as usize;
+
+        buf.reserve_exact(size);
+        buf.resize(size, 0.);
+
+        let width = width as i32;
+        let height = height as i32;
+
+        glyph.draw(|x, y, v| {
+            let draw_x = pbb.min.x + x as i32;
+            let draw_y = pbb.min.y + y as i32;
+
+            if draw_x >= 0 && draw_x < width && draw_y >= 0 && draw_y < height {
+                // Exaggerate font pixels so they stand out more.
+                buf[(draw_y * width + draw_x) as usize] = 1. - (1. - v) * (1. - v);
+            }
+        });
+
+        Some(buf)
+    } else {
+        None
+    }
 }
 
 impl<'f> CharGrid<'f> {
@@ -151,6 +195,7 @@ impl<'f> CharGrid<'f> {
             font,
             font_scale,
             font_offset_y: (-min_y) as u32,
+            glyph_cache: HashMap::new(),
             cell_size: [cell_width, cell_height],
             needs_render: true,
             buffer: ImageBuffer::new(cell_width * grid_size[0], cell_height * grid_size[1]),
@@ -221,7 +266,6 @@ impl<'f> CharGrid<'f> {
             let fg_diff = force || !eq_color(&ffg, &bfg);
             let bg_diff = force || !eq_color(&fbg, &bbg);
             let f_space = !force && fc == ' ';
-            let b_space = !force && bc == ' ';
 
             // Update the back data with the front data.
             if char_diff {
@@ -242,64 +286,56 @@ impl<'f> CharGrid<'f> {
             let px = grid_x * cell_width;
             let py = grid_y * cell_height;
 
-            // Render background if chars differ, backgrounds differ or foregrounds differ and
-            // either the front or back chars were non-space.
-            if char_diff || bg_diff || (fg_diff && (!f_space || !b_space)) {
-                for y in py..py + cell_height {
-                    for x in px..px + cell_width {
-                        let c = Rgba([
-                            (fbg[0] * 255.0) as u8,
-                            (fbg[1] * 255.0) as u8,
-                            (fbg[2] * 255.0) as u8,
-                            (fbg[3] * 255.0) as u8,
-                        ]);
+            // Render cell if a visible change has occurred.
+            if char_diff || (fg_diff && !f_space) || bg_diff {
+                let cached_glyph = match self.glyph_cache.get(&fc) {
+                    Some(data) => data,
+                    None => {
+                        self.glyph_cache.insert(
+                            fc,
+                            prerender_glyph(
+                                fc,
+                                &self.font,
+                                &self.font_scale,
+                                cell_width,
+                                cell_height,
+                                self.font_offset_y as f32,
+                            ),
+                        );
+                        self.glyph_cache.get(&fc).unwrap()
+                    }
+                };
 
-                        self.buffer.put_pixel(x, y, c);
+                if let Some(data) = cached_glyph {
+                    for y in 0..cell_height {
+                        for x in 0..cell_width {
+                            let v = data[(y * cell_width + x) as usize];
+                            let c = Rgba([
+                                ((v * ffg[0] + (1. - v) * fbg[0]) * 255.) as u8,
+                                ((v * ffg[1] + (1. - v) * fbg[1]) * 255.) as u8,
+                                ((v * ffg[2] + (1. - v) * fbg[2]) * 255.) as u8,
+                                ((v * ffg[3] + (1. - v) * fbg[3]) * 255.) as u8,
+                            ]);
+
+                            self.buffer.put_pixel(px + x, py + y, c);
+                        }
+                    }
+                } else {
+                    let c = Rgba([
+                        (fbg[0] * 255.) as u8,
+                        (fbg[1] * 255.) as u8,
+                        (fbg[2] * 255.) as u8,
+                        (fbg[3] * 255.) as u8,
+                    ]);
+
+                    for y in py..py + cell_height {
+                        for x in px..px + cell_width {
+                            self.buffer.put_pixel(x, y, c);
+                        }
                     }
                 }
 
                 buffer_updated = true;
-            }
-
-            // Render the char if it's not space and anything changed at all.
-            if !f_space && (char_diff || fg_diff || bg_diff) {
-                let point = rusttype::point(px as f32, (py + self.font_offset_y) as f32);
-                let glyph = self
-                    .font
-                    .glyph(fc)
-                    .scaled(self.font_scale)
-                    .positioned(point);
-
-                if let Some(pbb) = glyph.pixel_bounding_box() {
-                    let cell_min_x = px as i32;
-                    let cell_min_y = py as i32;
-                    let cell_max_x = (px + cell_width) as i32;
-                    let cell_max_y = (py + cell_height) as i32;
-
-                    glyph.draw(|x, y, v| {
-                        let draw_x = pbb.min.x + x as i32;
-                        let draw_y = pbb.min.y + y as i32;
-
-                        if draw_x >= cell_min_x
-                            && draw_x < cell_max_x
-                            && draw_y >= cell_min_y
-                            && draw_y < cell_max_y
-                        {
-                            // Exaggerate font pixels so they stand out more.
-                            let v = 1.0f32 - (1.0f32 - v) * (1.0f32 - v);
-                            let c = Rgba([
-                                ((v * ffg[0] + (1. - v) * fbg[0]) * 255.0) as u8,
-                                ((v * ffg[1] + (1. - v) * fbg[1]) * 255.0) as u8,
-                                ((v * ffg[2] + (1. - v) * fbg[2]) * 255.0) as u8,
-                                ((v * ffg[3] + (1. - v) * fbg[3]) * 255.0) as u8,
-                            ]);
-
-                            self.buffer.put_pixel(draw_x as u32, draw_y as u32, c);
-                        }
-                    });
-
-                    buffer_updated = true;
-                }
             }
         }
 
