@@ -65,7 +65,7 @@ fn main() {
 
     let mut gl = GlGraphics::new(opengl);
 
-    let mut inputs = InputBuffer::new(20);
+    let mut inputs = InputBuffer::new();
 
     update(&mut grid, &mut x, &mut y, &mut inputs);
 
