@@ -1,10 +1,10 @@
-use sdl2_window::Sdl2Window;
 use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::{Button, Key, RenderEvent};
 use piston::window::WindowSettings;
 use piston::{UpdateEvent, Window};
 use rusttype::Font;
+use sdl2_window::Sdl2Window;
 use std::fs;
 use std::path::PathBuf;
 
@@ -23,9 +23,9 @@ fn update(grid: &mut CharGrid, x: &mut i32, y: &mut i32, inputs: &mut InputBuffe
                     Key::Left => *x -= 1,
                     Key::Right => *x += 1,
                     _ => {}
-                }
+                },
                 _ => {}
-            }
+            },
             _ => {}
         }
     }
