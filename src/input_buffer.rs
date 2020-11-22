@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 pub enum InputEvent {
     Nothing,
     Press(Button),
+    Release(Button),
 }
 
 /// An InputBuffer maintains a queue of input events that occur so that they can be handled later.
@@ -48,6 +49,9 @@ impl InputBuffer {
     pub fn handle_event<E: GenericEvent>(&mut self, e: &E) {
         if let Some(args) = e.press_args() {
             self.buffer.push_back(InputEvent::Press(args));
+        }
+        if let Some(args) = e.release_args() {
+            self.buffer.push_back(InputEvent::Release(args));
         }
     }
 
