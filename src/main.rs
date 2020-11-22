@@ -1,7 +1,7 @@
 use piston::input::{Button, Key};
 use std::path::PathBuf;
 
-use ruggle::{App, AppContext, AppSettings, InputEvent};
+use ruggle::{App, AppContext, AppSettings, InputEvent, KeyMods};
 
 struct Game {
     x: i32,
@@ -13,13 +13,23 @@ impl App for Game {
     fn update(&mut self, ctx: &mut AppContext) -> bool {
         ctx.inputs.prepare_input();
         if let Some(e) = ctx.inputs.get_input() {
+            let dist = if ctx.inputs.get_mods(KeyMods::SHIFT) {
+                2
+            } else if ctx.inputs.get_mods(KeyMods::CTRL) {
+                3
+            } else if ctx.inputs.get_mods(KeyMods::ALT) {
+                5
+            } else {
+                1
+            };
+
             match e {
                 InputEvent::Press(button) => match button {
                     Button::Keyboard(key) => match key {
-                        Key::Up => self.y -= 1,
-                        Key::Down => self.y += 1,
-                        Key::Left => self.x -= 1,
-                        Key::Right => self.x += 1,
+                        Key::Up => self.y -= dist,
+                        Key::Down => self.y += dist,
+                        Key::Left => self.x -= dist,
+                        Key::Right => self.x += dist,
                         _ => {}
                     },
                     _ => {}

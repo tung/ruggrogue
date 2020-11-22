@@ -541,6 +541,7 @@ checksum = "9f4c8858baa4ad3c8bcc156ae91a0ffe22b76a3975c40c49b4f04c15c6bce0da"
 name = "ruggle"
 version = "0.1.0"
 dependencies = [
+ "bitflags",
  "image",
  "piston",
  "piston2d-graphics",
