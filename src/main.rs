@@ -1,11 +1,25 @@
+mod map;
+
 use piston::input::{Button, Key};
 use std::path::PathBuf;
 
+use map::Map;
 use ruggle::{App, AppContext, AppSettings, InputEvent, KeyMods};
 
 struct Game {
     x: i32,
     y: i32,
+    map: Map,
+}
+
+impl Game {
+    fn new() -> Self {
+        let mut map = Map::new(80, 36);
+
+        map.generate();
+
+        Self { x: 40, y: 18, map }
+    }
 }
 
 impl App for Game {
@@ -39,20 +53,30 @@ impl App for Game {
         }
 
         ctx.grid.clear();
+
+        for (x, y, ch, color) in self.map.iter() {
+            ctx.grid.put_color([x, y], Some(color), None, ch);
+        }
+
         ctx.grid.print_color(
-            [32, 16],
+            [32, 0],
             Some([1., 1., 0., 1.]),
             Some([0.3, 0.3, 0.3, 1.]),
             &format!("Hello world! {} {}", self.x, self.y),
         );
-        ctx.grid.put([self.x as u32, self.y as u32], '@');
+        ctx.grid.put_color(
+            [self.x as u32, self.y as u32],
+            Some([1., 1., 0., 1.]),
+            None,
+            '@',
+        );
 
         false
     }
 }
 
 fn main() {
-    let game = Game { x: 40, y: 18 };
+    let game = Game::new();
     let settings = AppSettings {
         title: "Ruggle".to_string(),
         grid_size: [80, 36],
