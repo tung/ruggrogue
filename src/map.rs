@@ -131,18 +131,30 @@ impl Map {
 
         // 25% pillars.
         for y in 1..=8 {
-            for x in 1..=14 {
+            for x in 1..=7 {
                 self.set_tile(x * 2, y * 2, Tile::Wall);
             }
         }
 
         // Diagonal grid.
-        for y in 20..34 {
-            for x in 2..29 {
+        for y in 2..17 {
+            for x in 16..29 {
                 if (x + y) % 2 == 0 {
                     self.set_tile(x, y, Tile::Wall);
                 }
             }
+        }
+
+        // 2-wide diagonal walls.
+        for i in 1..8 {
+            self.set_tile(15 - i, 26 - i, Tile::Wall);
+            self.set_tile(15 - (i + 1), 26 - i, Tile::Wall);
+            self.set_tile(15 + i, 26 - i, Tile::Wall);
+            self.set_tile(15 + (i + 1), 26 - i, Tile::Wall);
+            self.set_tile(15 - i, 26 + i, Tile::Wall);
+            self.set_tile(15 - (i + 1), 26 + i, Tile::Wall);
+            self.set_tile(15 + i, 26 + i, Tile::Wall);
+            self.set_tile(15 + (i + 1), 26 + i, Tile::Wall);
         }
 
         // Oblique intersecting corridors.
