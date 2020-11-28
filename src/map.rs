@@ -23,6 +23,10 @@ impl Map {
         y as usize * self.width as usize + x as usize
     }
 
+    pub fn get_tile(&self, x: u32, y: u32) -> &Tile {
+        &self.tiles[self.idx(x, y)]
+    }
+
     pub fn set_tile(&mut self, x: u32, y: u32, tile: Tile) {
         let idx = self.idx(x, y);
         self.tiles[idx] = tile;
@@ -196,5 +200,19 @@ impl Map {
 
             (x as u32, y as u32, ch, color)
         })
+    }
+}
+
+impl ruggle::ViewableField for Map {
+    fn bounds(&self) -> (i32, i32, i32, i32) {
+        (0, 0, self.width as i32 - 1, self.height as i32 - 1)
+    }
+
+    fn is_opaque(&self, x: i32, y: i32) -> bool {
+        matches!(self.get_tile(x as u32, y as u32), Tile::Wall)
+    }
+
+    fn is_asymetrically_visible(&self, x: i32, y: i32) -> bool {
+        matches!(self.get_tile(x as u32, y as u32), Tile::Wall)
     }
 }

@@ -1,15 +1,17 @@
 mod map;
 
 use piston::input::{Button, Key};
+use std::collections::HashSet;
 use std::path::PathBuf;
 
 use map::Map;
-use ruggle::{App, AppContext, AppSettings, InputEvent, KeyMods};
+use ruggle::{App, AppContext, AppSettings, FovShape, InputEvent, KeyMods};
 
 struct Game {
     x: i32,
     y: i32,
     map: Map,
+    fov: HashSet<(i32, i32)>,
 }
 
 impl Game {
@@ -18,7 +20,12 @@ impl Game {
 
         map.generate();
 
-        Self { x: 40, y: 18, map }
+        Self {
+            x: 40,
+            y: 18,
+            map,
+            fov: HashSet::new(),
+        }
     }
 }
 
@@ -39,13 +46,37 @@ impl App for Game {
 
             match e {
                 InputEvent::Press(button) => match button {
-                    Button::Keyboard(key) => match key {
-                        Key::Up => self.y -= dist,
-                        Key::Down => self.y += dist,
-                        Key::Left => self.x -= dist,
-                        Key::Right => self.x += dist,
-                        _ => {}
-                    },
+                    Button::Keyboard(key) => {
+                        let mut moved = true;
+
+                        match key {
+                            Key::Up => self.y -= dist,
+                            Key::Down => self.y += dist,
+                            Key::Left => self.x -= dist,
+                            Key::Right => self.x += dist,
+                            _ => moved = false,
+                        }
+
+                        if moved {
+                            let mut new_fov = HashSet::new();
+
+                            ruggle::field_of_view(
+                                &self.map,
+                                (self.x, self.y),
+                                8,
+                                FovShape::CirclePlus,
+                                |x, y, _| {
+                                    new_fov.insert((x, y));
+                                },
+                            )
+                            .unwrap();
+
+                            self.fov.clear();
+                            for coord in new_fov.iter() {
+                                self.fov.insert(*coord);
+                            }
+                        }
+                    }
                     _ => {}
                 },
                 _ => {}
@@ -55,6 +86,12 @@ impl App for Game {
         ctx.grid.clear();
 
         for (x, y, ch, color) in self.map.iter() {
+            let color = if self.fov.contains(&(x as i32, y as i32)) {
+                color
+            } else {
+                let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
+                [v, v, v, color[3]]
+            };
             ctx.grid.put_color([x, y], Some(color), None, ch);
         }
 
