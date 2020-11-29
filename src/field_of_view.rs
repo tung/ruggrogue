@@ -16,90 +16,213 @@ pub trait ViewableField {
 
     /// Returns `true` if the tile at the given coordinates is opaque.
     fn is_opaque(&self, x: i32, y: i32) -> bool;
-
-    /// Returns `true` if the tile should be visible even if its center point is not within the field
-    /// of view.
-    fn is_asymetrically_visible(&self, x: i32, y: i32) -> bool;
 }
 
-/// Scan a column of tiles for visibility according to `current` sights, populating `next` sights
-/// for subsequent column scans.
-#[allow(clippy::too_many_arguments)]
-#[allow(clippy::type_complexity)]
-fn field_of_view_scan<T, U, V>(
-    map: &T,
+/// Iterator returned by [field_of_view] that iterates over each tile in the field of view.
+///
+/// Each call to [FovIter::next] returns `x`, `y` and `symmetric`, the last of which is `true` if
+/// the starting position and tile in question are in each other's fields of view.
+pub struct FovIter<'a, T: ViewableField> {
+    map: &'a T,
     start_pos: (i32, i32),
-    fov_shape: &FovShape,
-    visit: &mut U,
-    in_bounds: V,
+    range: i32,
+    fov_shape: FovShape,
+
+    out_pos: (i32, i32),
+    out_symmetric: bool,
+
+    bounds: (i32, i32, i32, i32), // min_x, min_y, max_x, max_y
     max_dist2: i32,
-    x: i32,
-    (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y): (i32, i32, i32, i32),
-    include_edges: bool,
-    current: &mut Vec<((i32, i32), (i32, i32))>,
-    next: &mut Vec<((i32, i32), (i32, i32))>,
-) where
-    T: ViewableField,
-    U: FnMut(i32, i32, bool),
-    V: Fn(i32, i32) -> bool,
-{
-    let angle_lt_or_eq = |(a_n, a_d), (b_n, b_d)| a_n * b_d <= b_n * a_d;
+    sights_even: Vec<((i32, i32), (i32, i32))>, // ((low_dy, low_dx), (high_dy, high_dx))
+    sights_odd: Vec<((i32, i32), (i32, i32))>,  // ^
+    low_y: i32,
+    high_y: i32,
+    low_sight_angle: Option<(i32, i32)>,
 
-    for (low_angle, high_angle) in current.iter() {
-        // Calculate the low and high tiles whose middle lines are cut by the angles.
-        let low_y = (2 * x * low_angle.0 / low_angle.1 + 1) / 2;
-        let high_y = (2 * x * high_angle.0 / high_angle.1 + 1) / 2;
+    octant: Option<i32>,
+    x: Option<i32>,
+    s: Option<usize>,
+    y: Option<i32>,
+}
 
-        // Sight to populate the next sequence of sights with.
-        let mut low_sight_angle = None;
-
-        for y in low_y..=high_y {
-            // Distance culling.
-            match fov_shape {
-                FovShape::Circle | FovShape::CirclePlus => {
-                    if x * x + y * y > max_dist2 {
-                        continue;
-                    }
-                }
-                FovShape::Square => {}
-            }
-
-            let real_x = start_pos.0 + real_x_from_x * x + real_x_from_y * y;
-            let real_y = start_pos.1 + real_y_from_x * x + real_y_from_y * y;
-
-            // The slope of the center of the bottom edge.
-            let low_mid_angle = (y * 2 - 1, x * 2);
-
-            if in_bounds(real_x, real_y) && map.is_opaque(real_x, real_y) {
-                // Finish the current sight when hitting an opaque tile.
-                if low_sight_angle.is_some() {
-                    next.push((low_sight_angle.unwrap(), low_mid_angle));
-                    low_sight_angle = None;
-                }
-            } else if low_sight_angle.is_none() {
-                // Begin a new sight with the higher of the bottom center of the current tile and
-                // the low angle.
-                low_sight_angle = if angle_lt_or_eq(*low_angle, low_mid_angle) {
-                    Some(low_mid_angle)
-                } else {
-                    Some(*low_angle)
-                };
-            }
-
-            // Visit the tile.
-            if (include_edges || (y > 0 && y < x)) && in_bounds(real_x, real_y) {
-                let symmetric =
-                    angle_lt_or_eq(*low_angle, (y, x)) && angle_lt_or_eq((y, x), *high_angle);
-
-                if symmetric || map.is_asymetrically_visible(real_x, real_y) {
-                    visit(real_x, real_y, symmetric);
-                }
+impl<T: ViewableField> FovIter<'_, T> {
+    /// Advance through tiles with (almost) no consideration of bounds, except to prevent panics.
+    ///
+    /// Iterates through the starting position, then each octant, x, sight and y; the last four are
+    /// all nested iterations with pre-loop setups, but no actual looping allowed, so the logic is
+    /// pretty complicated.  At least it's relatively fast.
+    fn advance(&mut self) {
+        if self.octant.is_none() {
+            // Exit early if field of view doesn't intersect map.
+            if self.start_pos.0 + self.range < self.bounds.0
+                || self.start_pos.0 - self.range > self.bounds.2
+                || self.start_pos.1 + self.range < self.bounds.1
+                || self.start_pos.1 - self.range > self.bounds.3
+            {
+                self.octant = Some(8);
+            } else {
+                // Visit the starting position.
+                self.octant = Some(-1);
             }
         }
 
-        // Finish any sight left dangling.
-        if let Some(low_sight_angle) = low_sight_angle {
-            next.push((low_sight_angle, *high_angle));
+        let octant = self.octant.unwrap();
+
+        if octant == -1 {
+            self.out_pos = self.start_pos;
+            self.out_symmetric = true;
+            self.octant = Some(octant + 1);
+        } else if octant < 8 {
+            if self.x.is_none() {
+                // Kick off with sight of the full octant.
+                self.sights_odd.clear();
+                self.sights_odd.push(((0, 1), (1, 1)));
+                self.x = Some(1);
+            }
+
+            let x = self.x.unwrap();
+
+            if x <= self.range {
+                let (min_x, min_y, max_x, max_y) = self.bounds;
+
+                // Flip between using even and odd sights for current and next.
+                let (current, next) = if x % 2 == 0 {
+                    (&mut self.sights_even, &mut self.sights_odd)
+                } else {
+                    (&mut self.sights_odd, &mut self.sights_even)
+                };
+
+                if self.s.is_none() {
+                    next.clear();
+                    self.s = Some(0);
+                }
+
+                let s = self.s.unwrap();
+
+                if s < current.len() {
+                    let (low_angle, high_angle) = current[s];
+
+                    if self.y.is_none() {
+                        // Calculate the low and high tiles whose middle lines are cut by the angles.
+                        self.low_y = (2 * x * low_angle.0 / low_angle.1 + 1) / 2;
+                        self.high_y = (2 * x * high_angle.0 / high_angle.1 + 1) / 2;
+
+                        // Sight to populate the next sequence of sights with.
+                        self.low_sight_angle = None;
+
+                        self.y = Some(self.low_y);
+                    }
+
+                    let y = self.y.unwrap();
+
+                    if y <= self.high_y {
+                        let octant_data = [
+                            (1, 0, 0, 1, true),
+                            (0, 1, 1, 0, false),
+                            (0, -1, 1, 0, true),
+                            (-1, 0, 0, 1, false),
+                            (-1, 0, 0, -1, true),
+                            (0, -1, -1, 0, false),
+                            (0, 1, -1, 0, true),
+                            (1, 0, 0, -1, false),
+                        ];
+                        let (
+                            real_x_from_x,
+                            real_x_from_y,
+                            real_y_from_x,
+                            real_y_from_y,
+                            include_edges,
+                        ) = octant_data[octant as usize];
+
+                        let real_x = self.start_pos.0 + x * real_x_from_x + y * real_x_from_y;
+                        let real_y = self.start_pos.1 + x * real_y_from_x + y * real_y_from_y;
+
+                        // The slope of the center of the bottom edge.
+                        let low_mid_angle = (y * 2 - 1, x * 2);
+
+                        let in_bounds = |x, y| x >= min_x && x <= max_x && y >= min_y && y <= max_y;
+                        let angle_lt_or_eq = |(a_n, a_d), (b_n, b_d)| a_n * b_d <= b_n * a_d;
+
+                        if in_bounds(real_x, real_y) && self.map.is_opaque(real_x, real_y) {
+                            // Finish the current sight when hitting an opaque tile.
+                            if self.low_sight_angle.is_some() {
+                                next.push((self.low_sight_angle.unwrap(), low_mid_angle));
+                                self.low_sight_angle = None;
+                            }
+                        } else if self.low_sight_angle.is_none() {
+                            // Begin a new sight with the higher of the bottom center of the
+                            // current tile and the low angle.
+                            self.low_sight_angle = if angle_lt_or_eq(low_angle, low_mid_angle) {
+                                Some(low_mid_angle)
+                            } else {
+                                Some(low_angle)
+                            };
+                        }
+
+                        // Visit the tile.
+                        if (include_edges || (y > 0 && y < x)) && in_bounds(real_x, real_y) {
+                            self.out_pos = (real_x, real_y);
+                            self.out_symmetric = angle_lt_or_eq(low_angle, (y, x))
+                                && angle_lt_or_eq((y, x), high_angle);
+                        }
+
+                        self.y = Some(y + 1);
+                    } else {
+                        // Finish any sight left dangling.
+                        if let Some(low_sight_angle) = self.low_sight_angle {
+                            next.push((low_sight_angle, high_angle));
+                        }
+
+                        self.s = Some(s + 1);
+                        self.y = None;
+                    }
+                } else {
+                    self.x = Some(x + 1);
+                    self.s = None;
+                }
+            } else {
+                self.octant = Some(octant + 1);
+                self.x = None;
+            }
+        }
+    }
+}
+
+impl<T: ViewableField> Iterator for FovIter<'_, T> {
+    type Item = (i32, i32, bool);
+
+    /// Returns the next `(x, y, symmetric)` tuple, where `symmetric` means that the starting
+    /// position and tile in question are in each other's fields of view.
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.octant.unwrap_or(0) < 8 {
+            self.advance();
+
+            // Skip out-of-bounds tiles.
+            let (min_x, min_y, max_x, max_y) = self.bounds;
+            let in_bounds = |x, y| x >= min_x && x <= max_x && y >= min_y && y <= max_y;
+            let in_shape = match self.fov_shape {
+                FovShape::Square => |_, _, _| true,
+                FovShape::Circle | FovShape::CirclePlus => |a, b, c| a * a + b * b <= c,
+            };
+
+            while self.octant.unwrap() < 8
+                && !(in_bounds(self.out_pos.0, self.out_pos.1)
+                    && in_shape(
+                        self.out_pos.0 - self.start_pos.0,
+                        self.out_pos.1 - self.start_pos.1,
+                        self.max_dist2,
+                    ))
+            {
+                self.advance();
+            }
+
+            if self.octant.unwrap() < 8 {
+                Some((self.out_pos.0, self.out_pos.1, self.out_symmetric))
+            } else {
+                None
+            }
+        } else {
+            None
         }
     }
 }
@@ -107,119 +230,46 @@ fn field_of_view_scan<T, U, V>(
 /// Calculate field of view with center-to-center visibility and diamond-shaped walls.  This
 /// function uses fixed-point iterative shadow-casting approach, so it should be pretty fast.
 ///
-/// `start_pos` are the (x, y) coordinates to calculate field of view from.  `range` must be
-/// non-negative.  `visit` is a callback that takes `x`, `y` and `symmetric`, the last of which is
-/// `true` when vision is symmetric at that tile, meaning that `start_pos` would be visible if
-/// field of view was calculated from that tile.
-pub fn field_of_view<T, U>(
-    map: &T,
+/// `start_pos` are the (x, y) coordinates to calculate field of view from.
+///
+/// `range` must be non-negative.
+pub fn field_of_view<T>(
+    map: &'_ T,
     start_pos: (i32, i32),
     range: i32,
     fov_shape: FovShape,
-    mut visit: U,
-) -> Result<(), &'static str>
+) -> FovIter<'_, T>
 where
     T: ViewableField,
-    U: FnMut(i32, i32, bool),
 {
-    if range < 0 {
-        return Err("invalid range");
-    }
+    assert!(range >= 0);
 
-    let bounds = map.bounds();
-
-    if start_pos.0 + range < bounds.0
-        || start_pos.0 - range > bounds.2
-        || start_pos.1 + range < bounds.1
-        || start_pos.1 - range > bounds.3
-    {
-        // Exit early if field of view doesn't intersect map.
-        return Ok(());
-    }
-
-    let in_bounds = |x, y| x >= bounds.0 && x <= bounds.2 && y >= bounds.1 && y <= bounds.3;
-
-    // Squared maximum range for distance comparisons.
     let max_dist2 = match fov_shape {
         FovShape::Square => 0, // unused
         FovShape::Circle => range * range,
         FovShape::CirclePlus => range * (range + 1),
     };
 
-    // real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y, include_edges
-    let octant_data = [
-        (1, 0, 0, 1, true),
-        (0, 1, 1, 0, false),
-        (0, -1, 1, 0, true),
-        (-1, 0, 0, 1, false),
-        (-1, 0, 0, -1, true),
-        (0, -1, -1, 0, false),
-        (0, 1, -1, 0, true),
-        (1, 0, 0, -1, false),
-    ];
+    FovIter {
+        map,
+        start_pos,
+        range,
+        fov_shape,
 
-    // Low and high sight angles for the current scan and next scan using page flipping.
-    // Angles are y change over x change.
-    let mut sights_even: Vec<((i32, i32), (i32, i32))> = Vec::with_capacity(range as usize);
-    let mut sights_odd: Vec<((i32, i32), (i32, i32))> = Vec::with_capacity(range as usize);
+        out_pos: (0, 0),
+        out_symmetric: false,
 
-    // Visit the starting position.
-    if in_bounds(start_pos.0, start_pos.1) {
-        visit(start_pos.0, start_pos.1, true);
+        bounds: map.bounds(),
+        max_dist2,
+        sights_even: Vec::with_capacity(range as usize),
+        sights_odd: Vec::with_capacity(range as usize),
+        low_y: 0,
+        high_y: 0,
+        low_sight_angle: None,
+
+        octant: None,
+        x: None,
+        s: None,
+        y: None,
     }
-
-    for (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y, include_edges) in
-        octant_data.iter()
-    {
-        // Kick off with sight of the full octant.
-        sights_odd.clear();
-        sights_odd.push(((0, 1), (1, 1)));
-
-        for x in 1..=range {
-            // Flip between using even and odd sights for current and next.
-            if x % 2 == 0 {
-                sights_odd.clear();
-                field_of_view_scan(
-                    map,
-                    start_pos,
-                    &fov_shape,
-                    &mut visit,
-                    in_bounds,
-                    max_dist2,
-                    x,
-                    (
-                        *real_x_from_x,
-                        *real_x_from_y,
-                        *real_y_from_x,
-                        *real_y_from_y,
-                    ),
-                    *include_edges,
-                    &mut sights_even,
-                    &mut sights_odd,
-                );
-            } else {
-                sights_even.clear();
-                field_of_view_scan(
-                    map,
-                    start_pos,
-                    &fov_shape,
-                    &mut visit,
-                    in_bounds,
-                    max_dist2,
-                    x,
-                    (
-                        *real_x_from_x,
-                        *real_x_from_y,
-                        *real_y_from_x,
-                        *real_y_from_y,
-                    ),
-                    *include_edges,
-                    &mut sights_odd,
-                    &mut sights_even,
-                );
-            }
-        }
-    }
-
-    Ok(())
 }

@@ -211,8 +211,4 @@ impl ruggle::ViewableField for Map {
     fn is_opaque(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x as u32, y as u32), Tile::Wall)
     }
-
-    fn is_asymetrically_visible(&self, x: i32, y: i32) -> bool {
-        matches!(self.get_tile(x as u32, y as u32), Tile::Wall)
-    }
 }

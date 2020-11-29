@@ -4,7 +4,7 @@ use piston::input::{Button, Key};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
-use map::Map;
+use map::{Map, Tile};
 use ruggle::{App, AppContext, AppSettings, FovShape, InputEvent, KeyMods};
 
 struct Game {
@@ -58,22 +58,18 @@ impl App for Game {
                         }
 
                         if moved {
-                            let mut new_fov = HashSet::new();
-
-                            ruggle::field_of_view(
+                            self.fov.clear();
+                            for (x, y, symmetric) in ruggle::field_of_view(
                                 &self.map,
                                 (self.x, self.y),
                                 8,
                                 FovShape::CirclePlus,
-                                |x, y, _| {
-                                    new_fov.insert((x, y));
-                                },
-                            )
-                            .unwrap();
-
-                            self.fov.clear();
-                            for coord in new_fov.iter() {
-                                self.fov.insert(*coord);
+                            ) {
+                                if symmetric
+                                    || matches!(self.map.get_tile(x as u32, y as u32), &Tile::Wall)
+                                {
+                                    self.fov.insert((x, y));
+                                }
                             }
                         }
                     }
