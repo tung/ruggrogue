@@ -28,9 +28,6 @@ pub struct FovIter<'a, T: ViewableField> {
     range: i32,
     fov_shape: FovShape,
 
-    out_pos: (i32, i32),
-    out_symmetric: bool,
-
     bounds: (i32, i32, i32, i32), // min_x, min_y, max_x, max_y
     max_dist2: i32,
     sights_even: Vec<((i32, i32), (i32, i32))>, // ((low_dy, low_dx), (high_dy, high_dx))
@@ -46,12 +43,16 @@ pub struct FovIter<'a, T: ViewableField> {
 }
 
 impl<T: ViewableField> FovIter<'_, T> {
-    /// Advance through tiles with (almost) no consideration of bounds, except to prevent panics.
+    /// Advance one step through the field of view calculation.  Returns `x`, `y` and `symmetric` if
+    /// this step contains a tile in the field of view.
     ///
     /// Iterates through the starting position, then each octant, x, sight and y; the last four are
     /// all nested iterations with pre-loop setups, but no actual looping allowed, so the logic is
     /// pretty complicated.  At least it's relatively fast.
-    fn advance(&mut self) {
+    fn advance(&mut self) -> Option<(i32, i32, bool)> {
+        let mut out_pos = None;
+        let mut out_symmetric = false;
+
         if self.octant.is_none() {
             // Exit early if field of view doesn't intersect map.
             if self.start_pos.0 + self.range < self.bounds.0
@@ -69,8 +70,8 @@ impl<T: ViewableField> FovIter<'_, T> {
         let octant = self.octant.unwrap();
 
         if octant == -1 {
-            self.out_pos = self.start_pos;
-            self.out_symmetric = true;
+            out_pos = Some(self.start_pos);
+            out_symmetric = true;
             self.octant = Some(octant + 1);
         } else if octant < 8 {
             if self.x.is_none() {
@@ -115,7 +116,12 @@ impl<T: ViewableField> FovIter<'_, T> {
 
                     let y = self.y.unwrap();
 
-                    if y <= self.high_y {
+                    let in_shape = match self.fov_shape {
+                        FovShape::Square => true,
+                        FovShape::Circle | FovShape::CirclePlus => x * x + y * y <= self.max_dist2,
+                    };
+
+                    if in_shape && y <= self.high_y {
                         let octant_data = [
                             (1, 0, 0, 1, true),
                             (0, 1, 1, 0, false),
@@ -161,8 +167,8 @@ impl<T: ViewableField> FovIter<'_, T> {
 
                         // Visit the tile.
                         if (include_edges || (y > 0 && y < x)) && in_bounds(real_x, real_y) {
-                            self.out_pos = (real_x, real_y);
-                            self.out_symmetric = angle_lt_or_eq(low_angle, (y, x))
+                            out_pos = Some((real_x, real_y));
+                            out_symmetric = angle_lt_or_eq(low_angle, (y, x))
                                 && angle_lt_or_eq((y, x), high_angle);
                         }
 
@@ -185,6 +191,12 @@ impl<T: ViewableField> FovIter<'_, T> {
                 self.x = None;
             }
         }
+
+        if let Some(pos) = out_pos {
+            Some((pos.0, pos.1, out_symmetric))
+        } else {
+            None
+        }
     }
 }
 
@@ -194,41 +206,32 @@ impl<T: ViewableField> Iterator for FovIter<'_, T> {
     /// Returns the next `(x, y, symmetric)` tuple, where `symmetric` means that the starting
     /// position and tile in question are in each other's fields of view.
     fn next(&mut self) -> Option<Self::Item> {
-        if self.octant.unwrap_or(0) < 8 {
-            self.advance();
+        let mut item;
 
-            // Skip out-of-bounds tiles.
-            let (min_x, min_y, max_x, max_y) = self.bounds;
-            let in_bounds = |x, y| x >= min_x && x <= max_x && y >= min_y && y <= max_y;
-            let in_shape = match self.fov_shape {
-                FovShape::Square => |_, _, _| true,
-                FovShape::Circle | FovShape::CirclePlus => |a, b, c| a * a + b * b <= c,
-            };
+        loop {
+            item = self.advance();
 
-            while self.octant.unwrap() < 8
-                && !(in_bounds(self.out_pos.0, self.out_pos.1)
-                    && in_shape(
-                        self.out_pos.0 - self.start_pos.0,
-                        self.out_pos.1 - self.start_pos.1,
-                        self.max_dist2,
-                    ))
-            {
-                self.advance();
+            if let Some((x, y, _)) = item {
+                if x >= self.bounds.0
+                    && x <= self.bounds.2
+                    && y >= self.bounds.1
+                    && y <= self.bounds.3
+                {
+                    // Valid position.
+                    break;
+                }
+            } else if self.octant.unwrap() >= 8 {
+                // The field of view has been completely iterated over.
+                break;
             }
-
-            if self.octant.unwrap() < 8 {
-                Some((self.out_pos.0, self.out_pos.1, self.out_symmetric))
-            } else {
-                None
-            }
-        } else {
-            None
         }
+
+        item
     }
 }
 
 /// Calculate field of view with center-to-center visibility and diamond-shaped walls.  This
-/// function uses fixed-point iterative shadow-casting approach, so it should be pretty fast.
+/// function uses fixed-point iterative shadow-casting, so it should be pretty fast.
 ///
 /// `start_pos` are the (x, y) coordinates to calculate field of view from.
 ///
@@ -255,9 +258,6 @@ where
         start_pos,
         range,
         fov_shape,
-
-        out_pos: (0, 0),
-        out_symmetric: false,
 
         bounds: map.bounds(),
         max_dist2,
