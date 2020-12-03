@@ -66,14 +66,22 @@ fn main() {
 
         grid.clear();
 
-        for (x, y, ch, color) in map.iter() {
-            let color = if fov.contains(&(x as i32, y as i32)) {
-                color
-            } else {
-                let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
-                [v, v, v, color[3]]
-            };
-            grid.put_color([x, y], Some(color), None, ch);
+        for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
+            if let Some((ch, color)) = tile {
+                let color = if fov.contains(&(tx, ty)) {
+                    color
+                } else {
+                    let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
+                    [v, v, v, color[3]]
+                };
+
+                grid.put_color(
+                    [(tx - x + 40) as u32, (ty - y + 18) as u32],
+                    Some(color),
+                    None,
+                    ch,
+                );
+            }
         }
 
         grid.print_color(
@@ -82,7 +90,7 @@ fn main() {
             Some([0.3, 0.3, 0.3, 1.]),
             &format!("Hello world! {} {}", x, y),
         );
-        grid.put_color([x as u32, y as u32], Some([1., 1., 0., 1.]), None, '@');
+        grid.put_color([40, 18], Some([1., 1., 0., 1.]), None, '@');
 
         false
     });

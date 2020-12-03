@@ -4,6 +4,15 @@ pub enum Tile {
     Wall,
 }
 
+impl Tile {
+    pub fn appearance(&self) -> (char, [f32; 4]) {
+        match *self {
+            Tile::Floor => ('∙', [0.3, 0.3, 0.3, 1.]),
+            Tile::Wall => ('#', [0.7, 0.4, 0.1, 1.]),
+        }
+    }
+}
+
 pub struct Map {
     width: u32,
     height: u32,
@@ -189,16 +198,34 @@ impl Map {
         self.set_tile(65, 24, Tile::Wall);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (u32, u32, char, [f32; 4])> + '_ {
-        self.tiles.iter().enumerate().map(move |(i, tile)| {
-            let x = i % self.width as usize;
-            let y = i / self.width as usize;
-            let (ch, color) = match tile {
-                Tile::Floor => ('∙', [0.3, 0.3, 0.3, 1.]),
-                Tile::Wall => ('#', [0.7, 0.4, 0.1, 1.]),
-            };
+    pub fn iter_bounds(
+        &self,
+        x1: i32,
+        y1: i32,
+        x2: i32,
+        y2: i32,
+    ) -> impl Iterator<Item = (i32, i32, Option<(char, [f32; 4])>)> + '_ {
+        let xs = if x1 <= x2 { x1..=x2 } else { x2..=x1 };
 
-            (x as u32, y as u32, ch, color)
+        xs.flat_map(move |x| {
+            let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
+
+            std::iter::repeat(x).zip(ys)
+        })
+        .map(move |(x, y)| {
+            if x < 0 || y < 0 {
+                (x, y, None)
+            } else {
+                let ux = x as u32;
+                let uy = y as u32;
+                if ux >= self.width || uy >= self.height {
+                    (x, y, None)
+                } else {
+                    let (ch, color) = self.get_tile(ux, uy).appearance();
+
+                    (x, y, Some((ch, color)))
+                }
+            }
         })
     }
 }
