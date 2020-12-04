@@ -55,25 +55,32 @@ fn calculate_player_fov(
 }
 
 fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
-    world.run(|players: View<Player>, mut positions: ViewMut<Position>| {
-        let mut moved = false;
+    world.run(
+        |map: UniqueView<Map>, players: View<Player>, mut positions: ViewMut<Position>| {
+            let mut moved = false;
 
-        for (_, pos) in (&players, &mut positions).iter() {
-            let new_x = pos.x + dx;
-            let new_y = pos.y + dy;
+            for (_, pos) in (&players, &mut positions).iter() {
+                let new_x = pos.x + dx;
+                let new_y = pos.y + dy;
 
-            if dx != 0 && new_x >= 0 && new_x < 80 {
-                pos.x = new_x;
-                moved = true;
+                if new_x >= 0
+                    && new_y >= 0
+                    && !matches!(map.get_tile(new_x as u32, new_y as u32), &Tile::Wall)
+                {
+                    if dx != 0 && new_x < 80 {
+                        pos.x = new_x;
+                        moved = true;
+                    }
+                    if dy != 0 && new_y < 36 {
+                        pos.y = new_y;
+                        moved = true;
+                    }
+                }
             }
-            if dy != 0 && new_y >= 0 && new_y < 36 {
-                pos.y = new_y;
-                moved = true;
-            }
-        }
 
-        moved
-    })
+            moved
+        },
+    )
 }
 
 fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
