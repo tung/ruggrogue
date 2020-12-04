@@ -118,6 +118,48 @@ fn left_move(left_movers: View<LeftMover>, mut positions: ViewMut<Position>) {
     }
 }
 
+fn spawn_player(
+    mut entities: EntitiesViewMut,
+    mut positions: ViewMut<Position>,
+    mut renderables: ViewMut<Renderable>,
+    mut players: ViewMut<Player>,
+) -> EntityId {
+    entities.add_entity(
+        (&mut positions, &mut renderables, &mut players),
+        (
+            Position { x: 40, y: 18 },
+            Renderable {
+                ch: '@',
+                fg: [1., 1., 0., 1.],
+                bg: [0., 0., 0., 1.],
+            },
+            Player {},
+        ),
+    )
+}
+
+fn spawn_monsters(
+    mut entities: EntitiesViewMut,
+    mut positions: ViewMut<Position>,
+    mut renderables: ViewMut<Renderable>,
+    mut left_movers: ViewMut<LeftMover>,
+) {
+    for i in 0..10 {
+        entities.add_entity(
+            (&mut positions, &mut renderables, &mut left_movers),
+            (
+                Position { x: i * 7, y: 15 },
+                Renderable {
+                    ch: 'g',
+                    fg: [1., 0., 0., 1.],
+                    bg: [0., 0., 0., 1.],
+                },
+                LeftMover {},
+            ),
+        );
+    }
+}
+
 fn draw_map(world: &World, grid: &mut CharGrid) {
     world.run(
         |map: UniqueView<Map>,
@@ -175,54 +217,12 @@ fn main() {
     world.add_unique(Map::new(80, 36));
     world.run(|mut map: UniqueViewMut<Map>| map.generate());
 
+    world.add_unique(PlayerId(world.run(spawn_player)));
+
     world.add_unique(FieldOfView(HashSet::new()));
-
-    // Add player.
-    let player = world.run(
-        |mut entities: EntitiesViewMut,
-         mut positions: ViewMut<Position>,
-         mut renderables: ViewMut<Renderable>,
-         mut players: ViewMut<Player>| {
-            entities.add_entity(
-                (&mut positions, &mut renderables, &mut players),
-                (
-                    Position { x: 40, y: 18 },
-                    Renderable {
-                        ch: '@',
-                        fg: [1., 1., 0., 1.],
-                        bg: [0., 0., 0., 1.],
-                    },
-                    Player {},
-                ),
-            )
-        },
-    );
-    world.add_unique(PlayerId(player));
-
     world.run(calculate_player_fov);
 
-    // Add creatures.
-    world.run(
-        |mut entities: EntitiesViewMut,
-         mut positions: ViewMut<Position>,
-         mut renderables: ViewMut<Renderable>,
-         mut left_movers: ViewMut<LeftMover>| {
-            for i in 0..10 {
-                entities.add_entity(
-                    (&mut positions, &mut renderables, &mut left_movers),
-                    (
-                        Position { x: i * 7, y: 15 },
-                        Renderable {
-                            ch: 'g',
-                            fg: [1., 0., 0., 1.],
-                            bg: [0., 0., 0., 1.],
-                        },
-                        LeftMover {},
-                    ),
-                );
-            }
-        },
-    );
+    world.run(spawn_monsters);
 
     let settings = RunSettings {
         title: "Ruggle".to_string(),
