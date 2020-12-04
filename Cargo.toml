@@ -18,3 +18,6 @@ shipyard = "0.4"
 
 [patch.crates-io]
 pistoncore-sdl2_window = { path = "../sdl2_window" }
+
+[lib]
+path = "src/lib/lib.rs"
