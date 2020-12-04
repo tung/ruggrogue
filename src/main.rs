@@ -183,6 +183,7 @@ fn main() {
         font_size: 14.0,
         min_fps: 30,
         max_fps: 60,
+        start_inactive: true,
     };
 
     ruggle::run(settings, |mut inputs, grid| {

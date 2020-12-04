@@ -27,6 +27,8 @@ pub struct RunSettings {
     /// FPS limit when continuous updates are needed.  This occurs automatically when the input
     /// buffer is non-empty, but can also be requested by returning `true` from `update`.
     pub max_fps: u64,
+    /// Start [run] by waiting for an event instead of updating continuously.
+    pub start_inactive: bool,
 }
 
 /// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.  The loop
@@ -53,7 +55,11 @@ where
         .ups(settings.max_fps)
         .max_fps(settings.max_fps);
     let inactive_event_settings = EventSettings::new().lazy(true).max_fps(settings.min_fps);
-    let mut events = Events::new(inactive_event_settings);
+    let mut events = Events::new(if settings.start_inactive {
+        inactive_event_settings
+    } else {
+        active_event_settings
+    });
 
     let mut inputs = InputBuffer::new();
 
