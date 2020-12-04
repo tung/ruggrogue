@@ -1,12 +1,16 @@
 mod map;
 
 use piston::input::{Button, Key};
-use shipyard::{EntitiesViewMut, EntityId, Get, IntoIter, View, ViewMut, World};
+use shipyard::{
+    EntitiesViewMut, EntityId, Get, IntoIter, UniqueView, UniqueViewMut, View, ViewMut, World,
+};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
 use map::{Map, Tile};
-use ruggle::{FovShape, InputBuffer, InputEvent, KeyMods, RunSettings};
+use ruggle::{CharGrid, FovShape, InputBuffer, InputEvent, KeyMods, RunSettings};
+
+struct FieldOfView(HashSet<(i32, i32)>);
 
 struct Position {
     x: i32,
@@ -21,14 +25,33 @@ struct Renderable {
 
 struct Player;
 
+struct PlayerId(EntityId);
+
 struct LeftMover;
 
-fn get_player_position(world: &World, player: &EntityId) -> (i32, i32) {
-    world.run(|positions: View<Position>| {
-        let p = positions.get(*player);
+fn get_player_position(player: &UniqueView<PlayerId>, positions: &View<Position>) -> (i32, i32) {
+    let player_pos = positions.get(player.0);
 
-        (p.x, p.y)
-    })
+    (player_pos.x, player_pos.y)
+}
+
+fn calculate_player_fov(
+    map: UniqueView<Map>,
+    player: UniqueView<PlayerId>,
+    mut fov: UniqueViewMut<FieldOfView>,
+    positions: View<Position>,
+) {
+    fov.0.clear();
+    for (x, y, symmetric) in ruggle::field_of_view(
+        &*map,
+        get_player_position(&player, &positions),
+        8,
+        FovShape::CirclePlus,
+    ) {
+        if symmetric || matches!(map.get_tile(x as u32, y as u32), &Tile::Wall) {
+            fov.0.insert((x, y));
+        }
+    }
 }
 
 fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
@@ -53,13 +76,7 @@ fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
     })
 }
 
-fn player_input(
-    world: &World,
-    inputs: &mut InputBuffer,
-    player: &EntityId,
-    map: &Map,
-    fov: &mut HashSet<(i32, i32)>,
-) -> bool {
+fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
     let mut time_passed = false;
 
     inputs.prepare_input();
@@ -85,18 +102,7 @@ fn player_input(
 
         if moved {
             time_passed = true;
-
-            fov.clear();
-            for (x, y, symmetric) in ruggle::field_of_view(
-                map,
-                get_player_position(world, player),
-                8,
-                FovShape::CirclePlus,
-            ) {
-                if symmetric || matches!(map.get_tile(x as u32, y as u32), &Tile::Wall) {
-                    fov.insert((x, y));
-                }
-            }
+            world.run(calculate_player_fov);
         }
     }
 
@@ -112,13 +118,64 @@ fn left_move(left_movers: View<LeftMover>, mut positions: ViewMut<Position>) {
     }
 }
 
+fn draw_map(world: &World, grid: &mut CharGrid) {
+    world.run(
+        |map: UniqueView<Map>,
+         player: UniqueView<PlayerId>,
+         fov: UniqueView<FieldOfView>,
+         positions: View<Position>| {
+            let (x, y) = get_player_position(&player, &positions);
+
+            for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
+                if let Some((ch, color)) = tile {
+                    let color = if fov.0.contains(&(tx, ty)) {
+                        color
+                    } else {
+                        let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
+                        [v, v, v, color[3]]
+                    };
+
+                    grid.put_color(
+                        [(tx - x + 40) as u32, (ty - y + 18) as u32],
+                        Some(color),
+                        None,
+                        ch,
+                    );
+                }
+            }
+        },
+    );
+}
+
+fn draw_renderables(world: &World, grid: &mut CharGrid) {
+    world.run(
+        |player: UniqueView<PlayerId>, positions: View<Position>, renderables: View<Renderable>| {
+            let (x, y) = get_player_position(&player, &positions);
+
+            for (pos, render) in (&positions, &renderables).iter() {
+                let rx = pos.x - x + 40;
+                let ry = pos.y - y + 18;
+
+                if rx >= 0 && ry >= 0 {
+                    grid.put_color(
+                        [rx as u32, ry as u32],
+                        Some(render.fg),
+                        Some(render.bg),
+                        render.ch,
+                    );
+                }
+            }
+        },
+    );
+}
+
 fn main() {
-    let mut map = Map::new(80, 36);
-    let mut fov = HashSet::new();
-
-    map.generate();
-
     let world = World::new();
+
+    world.add_unique(Map::new(80, 36));
+    world.run(|mut map: UniqueViewMut<Map>| map.generate());
+
+    world.add_unique(FieldOfView(HashSet::new()));
 
     // Add player.
     let player = world.run(
@@ -140,18 +197,9 @@ fn main() {
             )
         },
     );
+    world.add_unique(PlayerId(player));
 
-    // Calculate initial field of view.
-    for (x, y, symmetric) in ruggle::field_of_view(
-        &map,
-        get_player_position(&world, &player),
-        8,
-        FovShape::CirclePlus,
-    ) {
-        if symmetric || matches!(map.get_tile(x as u32, y as u32), &Tile::Wall) {
-            fov.insert((x, y));
-        }
-    }
+    world.run(calculate_player_fov);
 
     // Add creatures.
     world.run(
@@ -186,50 +234,14 @@ fn main() {
         start_inactive: true,
     };
 
-    ruggle::run(settings, |mut inputs, grid| {
-        if player_input(&world, &mut inputs, &player, &map, &mut fov) {
+    ruggle::run(settings, |mut inputs, mut grid| {
+        if player_input(&world, &mut inputs) {
             world.run(left_move);
         }
 
-        let (x, y) = get_player_position(&world, &player);
-
         grid.clear();
-
-        // Draw the map.
-        for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
-            if let Some((ch, color)) = tile {
-                let color = if fov.contains(&(tx, ty)) {
-                    color
-                } else {
-                    let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
-                    [v, v, v, color[3]]
-                };
-
-                grid.put_color(
-                    [(tx - x + 40) as u32, (ty - y + 18) as u32],
-                    Some(color),
-                    None,
-                    ch,
-                );
-            }
-        }
-
-        // Draw renderables.
-        world.run(|positions: View<Position>, renderables: View<Renderable>| {
-            for (pos, render) in (&positions, &renderables).iter() {
-                let rx = pos.x - x + 40;
-                let ry = pos.y - y + 18;
-
-                if rx >= 0 && ry >= 0 {
-                    grid.put_color(
-                        [rx as u32, ry as u32],
-                        Some(render.fg),
-                        Some(render.bg),
-                        render.ch,
-                    );
-                }
-            }
-        });
+        draw_map(&world, &mut grid);
+        draw_renderables(&world, &mut grid);
 
         false
     });
