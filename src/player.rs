@@ -44,17 +44,19 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
                 let new_x = pos.x + dx;
                 let new_y = pos.y + dy;
 
-                if new_x >= 0
-                    && new_y >= 0
-                    && !matches!(map.get_tile(new_x as u32, new_y as u32), &Tile::Wall)
-                {
-                    if dx != 0 && new_x < 80 {
-                        pos.x = new_x;
-                        moved = true;
-                    }
-                    if dy != 0 && new_y < 36 {
-                        pos.y = new_y;
-                        moved = true;
+                if new_x >= 0 && new_y >= 0 {
+                    let new_x = new_x as u32;
+                    let new_y = new_y as u32;
+
+                    if !matches!(map.get_tile(new_x, new_y), &Tile::Wall) {
+                        if dx != 0 && new_x < map.width {
+                            pos.x = new_x as i32;
+                            moved = true;
+                        }
+                        if dy != 0 && new_y < map.height {
+                            pos.y = new_y as i32;
+                            moved = true;
+                        }
                     }
                 }
             }
