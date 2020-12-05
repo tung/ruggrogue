@@ -1,3 +1,11 @@
+use shipyard::{UniqueView, View, World};
+
+use crate::{
+    components::{FieldOfView, PlayerId, Position},
+    player::get_player_position,
+};
+use ruggle::CharGrid;
+
 #[derive(Clone, Copy)]
 pub enum Tile {
     Floor,
@@ -238,4 +246,33 @@ impl ruggle::ViewableField for Map {
     fn is_opaque(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x as u32, y as u32), Tile::Wall)
     }
+}
+
+pub fn draw_map(world: &World, grid: &mut CharGrid) {
+    world.run(
+        |map: UniqueView<Map>,
+         player: UniqueView<PlayerId>,
+         fov: UniqueView<FieldOfView>,
+         positions: View<Position>| {
+            let (x, y) = get_player_position(&player, &positions);
+
+            for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
+                if let Some((ch, color)) = tile {
+                    let color = if fov.0.contains(&(tx, ty)) {
+                        color
+                    } else {
+                        let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
+                        [v, v, v, color[3]]
+                    };
+
+                    grid.put_color(
+                        [(tx - x + 40) as u32, (ty - y + 18) as u32],
+                        Some(color),
+                        None,
+                        ch,
+                    );
+                }
+            }
+        },
+    );
 }
