@@ -1,7 +1,10 @@
 mod components;
 mod map;
 mod player;
+mod rect;
 
+use rand::{thread_rng, SeedableRng};
+use rand_pcg::Pcg64Mcg;
 use shipyard::{EntitiesViewMut, EntityId, IntoIter, UniqueView, View, ViewMut, World};
 use std::collections::HashSet;
 use std::path::PathBuf;
@@ -13,6 +16,8 @@ use crate::{
 };
 use ruggle::{CharGrid, RunSettings};
 
+pub struct RuggleRng(Pcg64Mcg);
+
 fn spawn_player(
     mut entities: EntitiesViewMut,
     mut positions: ViewMut<Position>,
@@ -22,7 +27,7 @@ fn spawn_player(
     entities.add_entity(
         (&mut positions, &mut renderables, &mut players),
         (
-            Position { x: 40, y: 18 },
+            Position { x: 0, y: 0 },
             Renderable {
                 ch: '@',
                 fg: [1., 1., 0., 1.],
@@ -58,10 +63,13 @@ fn draw_renderables(world: &World, grid: &mut CharGrid) {
 fn main() {
     let world = World::new();
 
-    world.add_unique(Map::new(80, 36));
-    world.run(map::generate_test_pattern);
+    world.add_unique(RuggleRng(Pcg64Mcg::from_rng(thread_rng()).unwrap()));
+
+    world.add_unique(Map::new(80, 50));
+    world.run(map::generate_rooms_and_corridors);
 
     world.add_unique(PlayerId(world.run(spawn_player)));
+    world.run(map::place_player_in_first_room);
 
     world.add_unique(FieldOfView(HashSet::new()));
     world.run(calculate_player_fov);

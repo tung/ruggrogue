@@ -1,8 +1,11 @@
-use shipyard::{UniqueView, UniqueViewMut, View, World};
+use rand::Rng;
+use shipyard::{Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 
 use crate::{
     components::{FieldOfView, PlayerId, Position},
     player::get_player_position,
+    rect::Rect,
+    RuggleRng,
 };
 use ruggle::CharGrid;
 
@@ -22,9 +25,10 @@ impl Tile {
 }
 
 pub struct Map {
-    width: u32,
-    height: u32,
+    pub width: u32,
+    pub height: u32,
     tiles: Vec<Tile>,
+    rooms: Vec<Rect>,
 }
 
 impl Map {
@@ -33,6 +37,7 @@ impl Map {
             width,
             height,
             tiles: vec![Tile::Floor; (width * height) as usize],
+            rooms: Vec::new(),
         }
     }
 
@@ -47,6 +52,46 @@ impl Map {
     pub fn set_tile(&mut self, x: u32, y: u32, tile: Tile) {
         let idx = self.idx(x, y);
         self.tiles[idx] = tile;
+    }
+
+    pub fn set_rect(&mut self, rect: &Rect, tile: Tile) {
+        assert!(rect.x1 >= 0);
+        assert!(rect.y1 >= 0);
+
+        let x1 = rect.x1 as u32;
+        let y1 = rect.y1 as u32;
+        let x2 = rect.x2 as u32;
+        let y2 = rect.y2 as u32;
+
+        for y in y1..=y2 {
+            for x in x1..=x2 {
+                self.set_tile(x, y, tile);
+            }
+        }
+    }
+
+    pub fn set_hline(&mut self, x1: u32, x2: u32, y: u32, tile: Tile) {
+        assert!(x1 < self.width);
+        assert!(x2 < self.width);
+        assert!(y < self.height);
+
+        let (x1, x2) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
+
+        for x in x1..=x2 {
+            self.set_tile(x, y, tile);
+        }
+    }
+
+    pub fn set_vline(&mut self, y1: u32, y2: u32, x: u32, tile: Tile) {
+        assert!(y1 < self.height);
+        assert!(y2 < self.height);
+        assert!(x < self.width);
+
+        let (y1, y2) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
+
+        for y in y1..=y2 {
+            self.set_tile(x, y, tile);
+        }
     }
 
     pub fn iter_bounds(
@@ -91,6 +136,48 @@ impl ruggle::ViewableField for Map {
     }
 }
 
+pub fn generate_rooms_and_corridors(
+    mut map: UniqueViewMut<Map>,
+    mut rng: UniqueViewMut<RuggleRng>,
+) {
+    {
+        let w = map.width as i32;
+        let h = map.height as i32;
+        map.set_rect(&Rect::new(0, 0, w, h), Tile::Wall);
+    }
+
+    for _ in 0..30 {
+        let w: i32 = rng.0.gen_range(6, 15);
+        let h: i32 = rng.0.gen_range(6, 11);
+        let x: i32 = rng.0.gen_range(1, map.width as i32 - w - 1);
+        let y: i32 = rng.0.gen_range(1, map.height as i32 - h - 1);
+        let new_room = Rect::new(x, y, w, h);
+
+        if !map.rooms.iter().any(|r| new_room.intersects(&r, 1)) {
+            map.set_rect(&new_room, Tile::Floor);
+
+            // Connect the new room to the last-added room.
+            if !map.rooms.is_empty() {
+                let (new_x, new_y) = new_room.center();
+                let (new_x, new_y) = (new_x as u32, new_y as u32);
+                let (last_x, last_y) = map.rooms.last().unwrap().center();
+                let (last_x, last_y) = (last_x as u32, last_y as u32);
+
+                if rng.0.gen() {
+                    map.set_hline(last_x, new_x, last_y, Tile::Floor);
+                    map.set_vline(last_y, new_y, new_x, Tile::Floor);
+                } else {
+                    map.set_vline(last_y, new_y, last_x, Tile::Floor);
+                    map.set_hline(last_x, new_x, new_y, Tile::Floor);
+                }
+            }
+
+            map.rooms.push(new_room);
+        }
+    }
+}
+
+#[allow(dead_code)]
 pub fn generate_test_pattern(mut map: UniqueViewMut<Map>) {
     let width = map.width;
     let height = map.height;
@@ -249,6 +336,18 @@ pub fn generate_test_pattern(mut map: UniqueViewMut<Map>) {
 
     // A pillar in an otherwise open space.
     map.set_tile(65, 24, Tile::Wall);
+}
+
+pub fn place_player_in_first_room(
+    map: UniqueView<Map>,
+    player: UniqueView<PlayerId>,
+    mut positions: ViewMut<Position>,
+) {
+    let (room_center_x, room_center_y) = map.rooms.first().unwrap().center();
+    let mut player_pos = (&mut positions).get(player.0);
+
+    player_pos.x = room_center_x;
+    player_pos.y = room_center_y;
 }
 
 pub fn draw_map(world: &World, grid: &mut CharGrid) {
