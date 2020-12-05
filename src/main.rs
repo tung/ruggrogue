@@ -2,9 +2,7 @@ mod components;
 mod map;
 mod player;
 
-use shipyard::{
-    EntitiesViewMut, EntityId, IntoIter, UniqueView, UniqueViewMut, View, ViewMut, World,
-};
+use shipyard::{EntitiesViewMut, EntityId, IntoIter, UniqueView, View, ViewMut, World};
 use std::collections::HashSet;
 use std::path::PathBuf;
 
@@ -61,7 +59,7 @@ fn main() {
     let world = World::new();
 
     world.add_unique(Map::new(80, 36));
-    world.run(|mut map: UniqueViewMut<Map>| map.generate());
+    world.run(map::generate_test_pattern);
 
     world.add_unique(PlayerId(world.run(spawn_player)));
 
