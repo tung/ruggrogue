@@ -27,8 +27,6 @@ struct Player;
 
 struct PlayerId(EntityId);
 
-struct LeftMover;
-
 fn get_player_position(player: &UniqueView<PlayerId>, positions: &View<Position>) -> (i32, i32) {
     let player_pos = positions.get(player.0);
 
@@ -116,15 +114,6 @@ fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
     time_passed
 }
 
-fn left_move(left_movers: View<LeftMover>, mut positions: ViewMut<Position>) {
-    for (_, pos) in (&left_movers, &mut positions).iter() {
-        pos.x -= 1;
-        if pos.x < 0 {
-            pos.x = 79;
-        }
-    }
-}
-
 fn spawn_player(
     mut entities: EntitiesViewMut,
     mut positions: ViewMut<Position>,
@@ -143,28 +132,6 @@ fn spawn_player(
             Player {},
         ),
     )
-}
-
-fn spawn_monsters(
-    mut entities: EntitiesViewMut,
-    mut positions: ViewMut<Position>,
-    mut renderables: ViewMut<Renderable>,
-    mut left_movers: ViewMut<LeftMover>,
-) {
-    for i in 0..10 {
-        entities.add_entity(
-            (&mut positions, &mut renderables, &mut left_movers),
-            (
-                Position { x: i * 7, y: 15 },
-                Renderable {
-                    ch: 'g',
-                    fg: [1., 0., 0., 1.],
-                    bg: [0., 0., 0., 1.],
-                },
-                LeftMover {},
-            ),
-        );
-    }
 }
 
 fn draw_map(world: &World, grid: &mut CharGrid) {
@@ -229,8 +196,6 @@ fn main() {
     world.add_unique(FieldOfView(HashSet::new()));
     world.run(calculate_player_fov);
 
-    world.run(spawn_monsters);
-
     let settings = RunSettings {
         title: "Ruggle".to_string(),
         grid_size: [80, 36],
@@ -242,9 +207,7 @@ fn main() {
     };
 
     ruggle::run(settings, |mut inputs, mut grid| {
-        if player_input(&world, &mut inputs) {
-            world.run(left_move);
-        }
+        player_input(&world, &mut inputs);
 
         grid.clear();
         draw_map(&world, &mut grid);
