@@ -2,7 +2,7 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::RenderEvent;
 use piston::window::WindowSettings;
-use piston::{UpdateEvent, Window};
+use piston::{MouseCursorEvent, PressEvent, UpdateEvent, Window};
 use rusttype::Font;
 use sdl2_window::Sdl2Window;
 use std::fs;
@@ -53,6 +53,7 @@ where
         .exit_on_esc(true);
     let mut window: Sdl2Window = window_settings.build().unwrap();
     let mut gl = GlGraphics::new(opengl);
+    let mut mouse_shown = true;
 
     let mut need_active = false;
     let mut active_events = false;
@@ -71,6 +72,15 @@ where
     update(&mut inputs, &mut grid);
 
     while let Some(e) = events.next(&mut window) {
+        // Show or hide mouse cursor based on keyboard and mouse input.
+        if !mouse_shown && e.mouse_cursor_args().is_some() {
+            mouse_shown = true;
+            window.sdl_context.mouse().show_cursor(true);
+        } else if mouse_shown && e.press_args().is_some() {
+            mouse_shown = false;
+            window.sdl_context.mouse().show_cursor(false);
+        }
+
         inputs.handle_event(&e);
 
         // Update for buffered inputs and update events.
