@@ -5,7 +5,7 @@ use crate::{
     components::{FieldOfView, Player, PlayerId, Position},
     map::{Map, Tile},
 };
-use ruggle::{FovShape, InputBuffer, InputEvent, KeyMods};
+use ruggle::{FovShape, InputBuffer, InputEvent};
 
 pub fn get_player_position(
     player: &UniqueView<PlayerId>,
@@ -71,27 +71,19 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
 
     inputs.prepare_input();
     if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-        let dist = if inputs.get_mods(KeyMods::SHIFT) {
-            2
-        } else if inputs.get_mods(KeyMods::CTRL) {
-            3
-        } else if inputs.get_mods(KeyMods::ALT) {
-            5
-        } else {
-            1
+        time_passed = match key {
+            Key::H | Key::NumPad4 | Key::Left => try_move_player(world, -1, 0),
+            Key::J | Key::NumPad2 | Key::Down => try_move_player(world, 0, 1),
+            Key::K | Key::NumPad8 | Key::Up => try_move_player(world, 0, -1),
+            Key::L | Key::NumPad6 | Key::Right => try_move_player(world, 1, 0),
+            Key::Y | Key::NumPad7 => try_move_player(world, -1, -1),
+            Key::U | Key::NumPad9 => try_move_player(world, 1, -1),
+            Key::B | Key::NumPad1 => try_move_player(world, -1, 1),
+            Key::N | Key::NumPad3 => try_move_player(world, 1, 1),
+            _ => false,
         };
-        let mut moved = false;
 
-        match key {
-            Key::Up => moved = try_move_player(world, 0, -dist),
-            Key::Down => moved = try_move_player(world, 0, dist),
-            Key::Left => moved = try_move_player(world, -dist, 0),
-            Key::Right => moved = try_move_player(world, dist, 0),
-            _ => {}
-        }
-
-        if moved {
-            time_passed = true;
+        if time_passed {
             world.run(calculate_player_fov);
         }
     }
