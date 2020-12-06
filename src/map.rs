@@ -367,12 +367,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
                         [v, v, v, color[3]]
                     };
 
-                    grid.put_color(
-                        [(tx - x + 40) as u32, (ty - y + 18) as u32],
-                        Some(color),
-                        None,
-                        ch,
-                    );
+                    grid.put_color([tx - x + 40, ty - y + 18], Some(color), None, ch);
                 }
             }
         },

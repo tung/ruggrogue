@@ -44,17 +44,12 @@ fn draw_renderables(world: &World, grid: &mut CharGrid) {
             let (x, y) = get_player_position(&player, &positions);
 
             for (pos, render) in (&positions, &renderables).iter() {
-                let rx = pos.x - x + 40;
-                let ry = pos.y - y + 18;
-
-                if rx >= 0 && ry >= 0 {
-                    grid.put_color(
-                        [rx as u32, ry as u32],
-                        Some(render.fg),
-                        Some(render.bg),
-                        render.ch,
-                    );
-                }
+                grid.put_color(
+                    [pos.x - x + 40, pos.y - y + 18],
+                    Some(render.fg),
+                    Some(render.bg),
+                    render.ch,
+                );
             }
         },
     );

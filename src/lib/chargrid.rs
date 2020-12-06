@@ -5,8 +5,8 @@ use opengl_graphics::{Texture, TextureSettings};
 use rusttype::{Font, Scale};
 use std::collections::HashMap;
 
-type Position = [u32; 2];
-type Size = [u32; 2];
+type Position = [i32; 2];
+type Size = [i32; 2];
 
 fn eq_color(a: &Color, b: &Color) -> bool {
     (a[0] - b[0]).abs() <= f32::EPSILON
@@ -56,7 +56,7 @@ impl RawCharGrid {
     }
 
     fn put_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        if x >= self.size[0] || y >= self.size[1] {
+        if x < 0 || y < 0 || x >= self.size[0] || y >= self.size[1] {
             return;
         }
 
@@ -77,8 +77,8 @@ impl RawCharGrid {
         let width = self.size[0];
 
         s.char_indices()
-            .take_while(|(i, _)| x + (*i as u32) < width)
-            .for_each(|(i, c)| self.put_color([x + i as u32, y], fg, bg, c));
+            .take_while(|(i, _)| x + (*i as i32) < width)
+            .for_each(|(i, c)| self.put_color([x + i as i32, y], fg, bg, c));
     }
 }
 
@@ -90,7 +90,7 @@ pub struct CharGrid<'f> {
     back: RawCharGrid,
     font: &'f Font<'f>,
     font_scale: Scale,
-    font_offset_y: u32,
+    font_offset_y: i32,
     glyph_cache: HashMap<char, Option<Vec<f32>>>,
     cell_size: Size,
     needs_render: bool,
@@ -105,8 +105,8 @@ fn prerender_glyph(
     c: char,
     font: &Font,
     scale: &Scale,
-    width: u32,
-    height: u32,
+    width: i32,
+    height: i32,
     offset_y: f32,
 ) -> Option<Vec<f32>> {
     let glyph = font
@@ -144,6 +144,8 @@ impl<'f> CharGrid<'f> {
     /// Create a new CharGrid with a given [width, height].  White is the default foreground color
     /// and black is the default background color.
     pub fn new(grid_size: Size, font: &'f Font, font_size: f32) -> CharGrid<'f> {
+        assert!(grid_size[0] > 0 && grid_size[1] > 0);
+
         // Calculate the cell size based on font metrics in the desired size.
         let code_page_437 = "☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
@@ -186,19 +188,22 @@ impl<'f> CharGrid<'f> {
             }
         }
 
-        let cell_width = max_x as u32;
-        let cell_height = (max_y - min_y + 1) as u32;
+        let cell_width = max_x;
+        let cell_height = max_y - min_y + 1;
 
         CharGrid {
             front: RawCharGrid::new(grid_size),
             back: RawCharGrid::new(grid_size),
             font,
             font_scale,
-            font_offset_y: (-min_y) as u32,
+            font_offset_y: -min_y,
             glyph_cache: HashMap::new(),
             cell_size: [cell_width, cell_height],
             needs_render: true,
-            buffer: ImageBuffer::new(cell_width * grid_size[0], cell_height * grid_size[1]),
+            buffer: ImageBuffer::new(
+                (cell_width * grid_size[0]) as u32,
+                (cell_height * grid_size[1]) as u32,
+            ),
             texture: None,
         }
     }
@@ -279,10 +284,10 @@ impl<'f> CharGrid<'f> {
             }
 
             let grid_width = self.front.size[0];
-            let grid_x = index as u32 % grid_width;
-            let grid_y = index as u32 / grid_width;
-            let cell_width = self.cell_size[0];
-            let cell_height = self.cell_size[1];
+            let grid_x = index as u32 % grid_width as u32;
+            let grid_y = index as u32 / grid_width as u32;
+            let cell_width = self.cell_size[0] as u32;
+            let cell_height = self.cell_size[1] as u32;
             let px = grid_x * cell_width;
             let py = grid_y * cell_height;
 
@@ -297,8 +302,8 @@ impl<'f> CharGrid<'f> {
                                 fc,
                                 &self.font,
                                 &self.font_scale,
-                                cell_width,
-                                cell_height,
+                                cell_width as i32,
+                                cell_height as i32,
                                 self.font_offset_y as f32,
                             ),
                         );

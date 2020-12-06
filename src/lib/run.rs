@@ -15,7 +15,7 @@ pub struct RunSettings {
     /// Window title.
     pub title: String,
     /// Dimensions of the character grid.
-    pub grid_size: [u32; 2],
+    pub grid_size: [i32; 2],
     /// Path to font.
     pub font_path: std::path::PathBuf,
     /// Size of font.
@@ -41,9 +41,14 @@ where
     let font_data = fs::read(settings.font_path).unwrap();
     let font = Font::try_from_vec(font_data).unwrap();
     let mut grid = CharGrid::new(settings.grid_size, &font, settings.font_size);
+    let grid_size = {
+        let s = grid.size();
+        assert!(s[0] > 0 && s[1] > 0);
+        [s[0] as u32, s[1] as u32]
+    };
 
     let opengl = OpenGL::V3_2;
-    let window_settings = WindowSettings::new(settings.title, grid.size())
+    let window_settings = WindowSettings::new(settings.title, grid_size)
         .graphics_api(opengl)
         .exit_on_esc(true);
     let mut window: Sdl2Window = window_settings.build().unwrap();
