@@ -17,6 +17,7 @@ bitflags = "1.0"
 shipyard = "0.4"
 rand = "0.7"
 rand_pcg = "0.2"
+bitvec = "0.19"
 
 [patch.crates-io]
 pistoncore-sdl2_window = { path = "../sdl2_window" }

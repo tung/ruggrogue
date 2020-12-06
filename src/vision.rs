@@ -1,17 +1,18 @@
-use shipyard::{IntoIter, UniqueView, View, ViewMut};
+use shipyard::{IntoIter, Shiperator, UniqueViewMut, View, ViewMut};
 
 use crate::{
-    components::{FieldOfView, Position},
+    components::{FieldOfView, Player, Position},
     map::{Map, Tile},
 };
 use ruggle::FovShape;
 
 pub fn recalculate_fields_of_view(
-    map: UniqueView<Map>,
+    mut map: UniqueViewMut<Map>,
     positions: View<Position>,
     mut fovs: ViewMut<FieldOfView>,
+    players: View<Player>,
 ) {
-    for (pos, mut fov) in (&positions, &mut fovs).iter() {
+    for (id, (pos, mut fov)) in (&positions, &mut fovs).iter().with_id() {
         if fov.dirty {
             // Mark visible tiles with this boolean.
             let new_mark = !fov.mark;
@@ -33,6 +34,14 @@ pub fn recalculate_fields_of_view(
 
             fov.mark = new_mark;
             fov.dirty = false;
+
+            // Update map seen tiles if this field of view belongs to a player.
+            if players.contains(id) {
+                for (x, y) in fov.tiles.keys() {
+                    let idx = (y * map.width + x) as usize;
+                    map.seen.set(idx, true);
+                }
+            }
         }
     }
 }

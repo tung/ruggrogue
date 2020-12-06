@@ -1,3 +1,4 @@
+use bitvec::prelude::*;
 use rand::Rng;
 use shipyard::{Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 
@@ -28,17 +29,21 @@ pub struct Map {
     pub height: i32,
     tiles: Vec<Tile>,
     rooms: Vec<Rect>,
+    pub seen: BitVec,
 }
 
 impl Map {
     pub fn new(width: i32, height: i32) -> Self {
         assert!(width > 0 && height > 0);
 
+        let len = (width * height) as usize;
+
         Self {
             width,
             height,
-            tiles: vec![Tile::Floor; (width * height) as usize],
+            tiles: vec![Tile::Floor; len],
             rooms: Vec::new(),
+            seen: bitvec![0; len],
         }
     }
 
@@ -105,7 +110,12 @@ impl Map {
             std::iter::repeat(x).zip(ys)
         })
         .map(move |(x, y)| {
-            if x < 0 || y < 0 || x >= self.width || y >= self.height {
+            if x < 0
+                || y < 0
+                || x >= self.width
+                || y >= self.height
+                || !self.seen[(y * self.width + x) as usize]
+            {
                 (x, y, None)
             } else {
                 let (ch, color) = self.get_tile(x, y).appearance();
