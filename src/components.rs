@@ -1,11 +1,35 @@
 use shipyard::EntityId;
-use std::collections::HashSet;
+use std::collections::HashMap;
 
-pub struct FieldOfView(pub HashSet<(i32, i32)>);
+pub struct FieldOfView {
+    pub tiles: HashMap<(i32, i32), bool>,
+    pub range: i32,
+    pub dirty: bool,
+    pub mark: bool,
+}
+
+impl FieldOfView {
+    pub fn new(range: i32) -> FieldOfView {
+        assert!(range > 0);
+
+        FieldOfView {
+            tiles: HashMap::new(),
+            range,
+            dirty: true,
+            mark: false,
+        }
+    }
+}
 
 pub struct Position {
     pub x: i32,
     pub y: i32,
+}
+
+impl From<&Position> for (i32, i32) {
+    fn from(pos: &Position) -> Self {
+        (pos.x, pos.y)
+    }
 }
 
 pub struct Renderable {

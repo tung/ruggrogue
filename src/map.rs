@@ -3,7 +3,6 @@ use shipyard::{Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 
 use crate::{
     components::{FieldOfView, PlayerId, Position},
-    player::get_player_position,
     rect::Rect,
     RuggleRng,
 };
@@ -343,13 +342,14 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
     world.run(
         |map: UniqueView<Map>,
          player: UniqueView<PlayerId>,
-         fov: UniqueView<FieldOfView>,
+         fovs: View<FieldOfView>,
          positions: View<Position>| {
-            let (x, y) = get_player_position(&player, &positions);
+            let (x, y) = positions.get(player.0).into();
+            let fov = fovs.get(player.0);
 
             for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
                 if let Some((ch, color)) = tile {
-                    let color = if fov.0.contains(&(tx, ty)) {
+                    let color = if fov.tiles.contains_key(&(tx, ty)) {
                         color
                     } else {
                         let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
