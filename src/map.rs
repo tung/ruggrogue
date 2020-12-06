@@ -25,14 +25,16 @@ impl Tile {
 }
 
 pub struct Map {
-    pub width: u32,
-    pub height: u32,
+    pub width: i32,
+    pub height: i32,
     tiles: Vec<Tile>,
     rooms: Vec<Rect>,
 }
 
 impl Map {
-    pub fn new(width: u32, height: u32) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
+        assert!(width > 0 && height > 0);
+
         Self {
             width,
             height,
@@ -41,39 +43,34 @@ impl Map {
         }
     }
 
-    fn idx(&self, x: u32, y: u32) -> usize {
+    fn idx(&self, x: i32, y: i32) -> usize {
         y as usize * self.width as usize + x as usize
     }
 
-    pub fn get_tile(&self, x: u32, y: u32) -> &Tile {
+    pub fn get_tile(&self, x: i32, y: i32) -> &Tile {
         &self.tiles[self.idx(x, y)]
     }
 
-    pub fn set_tile(&mut self, x: u32, y: u32, tile: Tile) {
+    pub fn set_tile(&mut self, x: i32, y: i32, tile: Tile) {
         let idx = self.idx(x, y);
         self.tiles[idx] = tile;
     }
 
     pub fn set_rect(&mut self, rect: &Rect, tile: Tile) {
-        assert!(rect.x1 >= 0);
-        assert!(rect.y1 >= 0);
+        assert!(rect.x1 >= 0 && rect.x2 < self.width);
+        assert!(rect.y1 >= 0 && rect.y2 < self.height);
 
-        let x1 = rect.x1 as u32;
-        let y1 = rect.y1 as u32;
-        let x2 = rect.x2 as u32;
-        let y2 = rect.y2 as u32;
-
-        for y in y1..=y2 {
-            for x in x1..=x2 {
+        for y in rect.y1..=rect.y2 {
+            for x in rect.x1..=rect.x2 {
                 self.set_tile(x, y, tile);
             }
         }
     }
 
-    pub fn set_hline(&mut self, x1: u32, x2: u32, y: u32, tile: Tile) {
-        assert!(x1 < self.width);
-        assert!(x2 < self.width);
-        assert!(y < self.height);
+    pub fn set_hline(&mut self, x1: i32, x2: i32, y: i32, tile: Tile) {
+        assert!(x1 >= 0 && x1 < self.width);
+        assert!(x2 >= 0 && x2 < self.width);
+        assert!(y >= 0 && y < self.height);
 
         let (x1, x2) = if x1 <= x2 { (x1, x2) } else { (x2, x1) };
 
@@ -82,10 +79,10 @@ impl Map {
         }
     }
 
-    pub fn set_vline(&mut self, y1: u32, y2: u32, x: u32, tile: Tile) {
-        assert!(y1 < self.height);
-        assert!(y2 < self.height);
-        assert!(x < self.width);
+    pub fn set_vline(&mut self, y1: i32, y2: i32, x: i32, tile: Tile) {
+        assert!(y1 >= 0 && y1 < self.height);
+        assert!(y2 >= 0 && y2 < self.height);
+        assert!(x >= 0 && x < self.width);
 
         let (y1, y2) = if y1 <= y2 { (y1, y2) } else { (y2, y1) };
 
@@ -109,18 +106,12 @@ impl Map {
             std::iter::repeat(x).zip(ys)
         })
         .map(move |(x, y)| {
-            if x < 0 || y < 0 {
+            if x < 0 || y < 0 || x >= self.width || y >= self.height {
                 (x, y, None)
             } else {
-                let ux = x as u32;
-                let uy = y as u32;
-                if ux >= self.width || uy >= self.height {
-                    (x, y, None)
-                } else {
-                    let (ch, color) = self.get_tile(ux, uy).appearance();
+                let (ch, color) = self.get_tile(x, y).appearance();
 
-                    (x, y, Some((ch, color)))
-                }
+                (x, y, Some((ch, color)))
             }
         })
     }
@@ -128,11 +119,11 @@ impl Map {
 
 impl ruggle::ViewableField for Map {
     fn bounds(&self) -> (i32, i32, i32, i32) {
-        (0, 0, self.width as i32 - 1, self.height as i32 - 1)
+        (0, 0, self.width - 1, self.height - 1)
     }
 
     fn is_opaque(&self, x: i32, y: i32) -> bool {
-        matches!(self.get_tile(x as u32, y as u32), Tile::Wall)
+        matches!(self.get_tile(x, y), Tile::Wall)
     }
 }
 
@@ -141,16 +132,16 @@ pub fn generate_rooms_and_corridors(
     mut rng: UniqueViewMut<RuggleRng>,
 ) {
     {
-        let w = map.width as i32;
-        let h = map.height as i32;
+        let w = map.width;
+        let h = map.height;
         map.set_rect(&Rect::new(0, 0, w, h), Tile::Wall);
     }
 
     for _ in 0..30 {
         let w: i32 = rng.0.gen_range(6, 15);
         let h: i32 = rng.0.gen_range(6, 11);
-        let x: i32 = rng.0.gen_range(1, map.width as i32 - w - 1);
-        let y: i32 = rng.0.gen_range(1, map.height as i32 - h - 1);
+        let x: i32 = rng.0.gen_range(1, map.width - w - 1);
+        let y: i32 = rng.0.gen_range(1, map.height - h - 1);
         let new_room = Rect::new(x, y, w, h);
 
         if !map.rooms.iter().any(|r| new_room.intersects(&r, 1)) {
@@ -159,9 +150,7 @@ pub fn generate_rooms_and_corridors(
             // Connect the new room to the last-added room.
             if !map.rooms.is_empty() {
                 let (new_x, new_y) = new_room.center();
-                let (new_x, new_y) = (new_x as u32, new_y as u32);
                 let (last_x, last_y) = map.rooms.last().unwrap().center();
-                let (last_x, last_y) = (last_x as u32, last_y as u32);
 
                 if rng.0.gen() {
                     map.set_hline(last_x, new_x, last_y, Tile::Floor);
