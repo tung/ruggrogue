@@ -65,16 +65,20 @@ fn spawn_monsters_in_rooms(
 
 fn draw_renderables(world: &World, grid: &mut CharGrid) {
     world.run(
-        |player: UniqueView<PlayerId>, positions: View<Position>, renderables: View<Renderable>| {
+        |player: UniqueView<PlayerId>,
+         fovs: View<FieldOfView>,
+         positions: View<Position>,
+         renderables: View<Renderable>| {
             let (x, y) = positions.get(player.0).into();
+            let fov = fovs.get(player.0);
 
             for (pos, render) in (&positions, &renderables).iter() {
-                grid.put_color(
-                    [pos.x - x + 40, pos.y - y + 18],
-                    Some(render.fg),
-                    Some(render.bg),
-                    render.ch,
-                );
+                let gx = pos.x - x + 40;
+                let gy = pos.y - y + 18;
+
+                if gx >= 0 && gy >= 0 && gx < 80 && gy < 36 && fov.tiles.contains_key(&pos.into()) {
+                    grid.put_color([gx, gy], Some(render.fg), Some(render.bg), render.ch);
+                }
             }
         },
     );
