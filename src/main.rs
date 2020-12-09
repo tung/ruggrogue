@@ -1,5 +1,6 @@
 mod components;
 mod map;
+mod monster;
 mod player;
 mod rect;
 mod vision;
@@ -12,8 +13,9 @@ use shipyard::{
 use std::path::PathBuf;
 
 use crate::{
-    components::{FieldOfView, Player, PlayerId, Position, Renderable},
+    components::{FieldOfView, Monster, Name, Player, PlayerId, Position, Renderable},
     map::{draw_map, Map},
+    monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
     player::player_input,
 };
 use ruggle::{CharGrid, RunSettings};
@@ -22,51 +24,70 @@ pub struct RuggleRng(Pcg64Mcg);
 
 fn spawn_player(
     mut entities: EntitiesViewMut,
+    mut fovs: ViewMut<FieldOfView>,
+    mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
     mut positions: ViewMut<Position>,
     mut renderables: ViewMut<Renderable>,
-    mut fovs: ViewMut<FieldOfView>,
 ) -> EntityId {
     entities.add_entity(
-        (&mut players, &mut positions, &mut renderables, &mut fovs),
+        (
+            &mut players,
+            &mut fovs,
+            &mut names,
+            &mut positions,
+            &mut renderables,
+        ),
         (
             Player {},
+            FieldOfView::new(8),
+            Name("Player".into()),
             Position { x: 0, y: 0 },
             Renderable {
                 ch: '@',
                 fg: [1., 1., 0., 1.],
                 bg: [0., 0., 0., 1.],
             },
-            FieldOfView::new(8),
         ),
     )
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_monsters_in_rooms(
     map: UniqueView<Map>,
     mut rng: UniqueViewMut<RuggleRng>,
     mut entities: EntitiesViewMut,
+    mut fovs: ViewMut<FieldOfView>,
+    mut monsters: ViewMut<Monster>,
+    mut names: ViewMut<Name>,
     mut positions: ViewMut<Position>,
     mut renderables: ViewMut<Renderable>,
-    mut fovs: ViewMut<FieldOfView>,
 ) {
     for room in map.rooms.iter().skip(1) {
-        let (ch, fg) = match rng.0.gen_range(0, 2) {
-            0 => ('g', [0.5, 0.9, 0.2, 1.]),
-            1 => ('o', [0.9, 0.3, 0.2, 1.]),
-            _ => ('X', [1., 0., 0., 1.]),
+        let (ch, name, fg) = match rng.0.gen_range(0, 2) {
+            0 => ('g', "Goblin", [0.5, 0.9, 0.2, 1.]),
+            1 => ('o', "Orc", [0.9, 0.3, 0.2, 1.]),
+            _ => ('X', "???", [1., 0., 0., 1.]),
         };
 
         entities.add_entity(
-            (&mut positions, &mut renderables, &mut fovs),
             (
+                &mut monsters,
+                &mut fovs,
+                &mut names,
+                &mut positions,
+                &mut renderables,
+            ),
+            (
+                Monster {},
+                FieldOfView::new(8),
+                Name(name.into()),
                 room.center().into(),
                 Renderable {
                     ch,
                     fg,
                     bg: [0., 0., 0., 1.],
                 },
-                FieldOfView::new(8),
             ),
         );
     }
@@ -106,6 +127,8 @@ fn main() {
 
     world.run(spawn_monsters_in_rooms);
 
+    world.add_unique(MonsterTurns::new());
+
     world.run(vision::recalculate_fields_of_view);
 
     let settings = RunSettings {
@@ -119,14 +142,17 @@ fn main() {
     };
 
     ruggle::run(settings, |mut inputs, mut grid| {
-        if player_input(&world, &mut inputs) {
+        if !world.run(monster_turns_empty) {
+            world.run(do_monster_turns);
+        } else if player_input(&world, &mut inputs) {
             world.run(vision::recalculate_fields_of_view);
+            world.run(enqueue_monster_turns);
         }
 
         grid.clear();
         draw_map(&world, &mut grid);
         draw_renderables(&world, &mut grid);
 
-        false
+        !world.run(monster_turns_empty)
     });
 }

@@ -26,6 +26,12 @@ pub struct Position {
     pub y: i32,
 }
 
+impl Position {
+    pub fn dist(&self, other: &Position) -> i32 {
+        std::cmp::max((other.x - self.x).abs(), (other.y - self.y).abs())
+    }
+}
+
 impl From<&Position> for (i32, i32) {
     fn from(pos: &Position) -> Self {
         (pos.x, pos.y)
@@ -47,3 +53,7 @@ pub struct Renderable {
 pub struct Player;
 
 pub struct PlayerId(pub EntityId);
+
+pub struct Monster;
+
+pub struct Name(pub String);
