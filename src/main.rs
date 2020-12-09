@@ -4,9 +4,11 @@ mod player;
 mod rect;
 mod vision;
 
-use rand::{thread_rng, SeedableRng};
+use rand::{thread_rng, Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
-use shipyard::{EntitiesViewMut, EntityId, Get, IntoIter, UniqueView, View, ViewMut, World};
+use shipyard::{
+    EntitiesViewMut, EntityId, Get, IntoIter, UniqueView, UniqueViewMut, View, ViewMut, World,
+};
 use std::path::PathBuf;
 
 use crate::{
@@ -42,19 +44,26 @@ fn spawn_player(
 
 fn spawn_monsters_in_rooms(
     map: UniqueView<Map>,
+    mut rng: UniqueViewMut<RuggleRng>,
     mut entities: EntitiesViewMut,
     mut positions: ViewMut<Position>,
     mut renderables: ViewMut<Renderable>,
     mut fovs: ViewMut<FieldOfView>,
 ) {
     for room in map.rooms.iter().skip(1) {
+        let (ch, fg) = match rng.0.gen_range(0, 2) {
+            0 => ('g', [0.5, 0.9, 0.2, 1.]),
+            1 => ('o', [0.9, 0.3, 0.2, 1.]),
+            _ => ('X', [1., 0., 0., 1.]),
+        };
+
         entities.add_entity(
             (&mut positions, &mut renderables, &mut fovs),
             (
                 room.center().into(),
                 Renderable {
-                    ch: 'g',
-                    fg: [1., 0., 0., 1.],
+                    ch,
+                    fg,
                     bg: [0., 0., 0., 1.],
                 },
                 FieldOfView::new(8),
