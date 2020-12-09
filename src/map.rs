@@ -28,7 +28,7 @@ pub struct Map {
     pub width: i32,
     pub height: i32,
     tiles: Vec<Tile>,
-    rooms: Vec<Rect>,
+    pub rooms: Vec<Rect>,
     pub seen: BitVec,
 }
 

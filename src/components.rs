@@ -32,6 +32,12 @@ impl From<&Position> for (i32, i32) {
     }
 }
 
+impl From<(i32, i32)> for Position {
+    fn from((x, y): (i32, i32)) -> Self {
+        Position { x, y }
+    }
+}
+
 pub struct Renderable {
     pub ch: char,
     pub fg: [f32; 4],

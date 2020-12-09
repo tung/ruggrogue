@@ -40,6 +40,29 @@ fn spawn_player(
     )
 }
 
+fn spawn_monsters_in_rooms(
+    map: UniqueView<Map>,
+    mut entities: EntitiesViewMut,
+    mut positions: ViewMut<Position>,
+    mut renderables: ViewMut<Renderable>,
+    mut fovs: ViewMut<FieldOfView>,
+) {
+    for room in map.rooms.iter().skip(1) {
+        entities.add_entity(
+            (&mut positions, &mut renderables, &mut fovs),
+            (
+                room.center().into(),
+                Renderable {
+                    ch: 'g',
+                    fg: [1., 0., 0., 1.],
+                    bg: [0., 0., 0., 1.],
+                },
+                FieldOfView::new(8),
+            ),
+        );
+    }
+}
+
 fn draw_renderables(world: &World, grid: &mut CharGrid) {
     world.run(
         |player: UniqueView<PlayerId>, positions: View<Position>, renderables: View<Renderable>| {
@@ -67,6 +90,8 @@ fn main() {
 
     world.add_unique(PlayerId(world.run(spawn_player)));
     world.run(map::place_player_in_first_room);
+
+    world.run(spawn_monsters_in_rooms);
 
     world.run(vision::recalculate_fields_of_view);
 
