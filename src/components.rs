@@ -38,6 +38,12 @@ impl From<&Position> for (i32, i32) {
     }
 }
 
+impl From<&mut Position> for (i32, i32) {
+    fn from(pos: &mut Position) -> Self {
+        (pos.x, pos.y)
+    }
+}
+
 impl From<(i32, i32)> for Position {
     fn from((x, y): (i32, i32)) -> Self {
         Position { x, y }

@@ -136,6 +136,16 @@ impl ruggle::ViewableField for Map {
     }
 }
 
+impl ruggle::PathableMap for Map {
+    fn bounds(&self) -> (i32, i32, i32, i32) {
+        (0, 0, self.width - 1, self.height - 1)
+    }
+
+    fn is_blocked(&self, x: i32, y: i32) -> bool {
+        matches!(self.get_tile(x, y), &Tile::Wall)
+    }
+}
+
 pub fn generate_rooms_and_corridors(
     mut map: UniqueViewMut<Map>,
     mut rng: UniqueViewMut<RuggleRng>,
