@@ -1,3 +1,4 @@
+use bitvec::prelude::*;
 use std::{
     cmp::Reverse,
     collections::{BinaryHeap, HashMap},
@@ -31,6 +32,17 @@ impl Iterator for AStarIter {
     }
 }
 
+const ADJACENT_TILES: [(i32, i32); 8] = [
+    (-1, 0), // cardinals
+    (1, 0),
+    (0, -1),
+    (0, 1),
+    (-1, -1), // diagonals
+    (-1, 1),
+    (1, -1),
+    (1, 1),
+];
+
 /// Calculate the shortest path between `start` and `dest` on the given map using the A* algorithm.
 /// If a path is not found, the [AStarIter] that this function returns will itself return [None]
 /// when calling [Iterator::next].
@@ -57,16 +69,6 @@ pub fn find_path<T: PathableMap>(
     frontier.push((Reverse(0), dest));
     cost_so_far.insert(dest, 0);
 
-    let adjacent: [(i32, i32); 8] = [
-        (-1, 0), // cardinals
-        (1, 0),
-        (0, -1),
-        (0, 1),
-        (-1, -1), // diagonals
-        (-1, 1),
-        (1, -1),
-        (1, 1),
-    ];
     let (min_x, min_y, max_x, max_y) = map.bounds();
     let mut steps = 0;
     let mut path_found = false;
@@ -80,7 +82,7 @@ pub fn find_path<T: PathableMap>(
             break;
         }
 
-        for (i, (dx, dy)) in adjacent.iter().enumerate() {
+        for (i, (dx, dy)) in ADJACENT_TILES.iter().enumerate() {
             let next_x = current.0 + dx;
             let next_y = current.1 + dy;
 
@@ -129,4 +131,77 @@ pub fn find_path<T: PathableMap>(
         came_from,
         current_pos: if path_found { Some(start) } else { None },
     }
+}
+
+/// Find the closest point to `dest` that is reachable from `start` on the given map.
+///
+/// The reachable area is determined with a flood-fill approach starting from the `dest`, and can
+/// be confined to sub-bounds in the form of `Some((x1, y1), (x2, y2), padding)`.
+#[allow(clippy::type_complexity)]
+pub fn find_closest_reachable_point<T: PathableMap>(
+    map: &T,
+    start: (i32, i32),
+    dest: (i32, i32),
+    sub_bounds: Option<((i32, i32), (i32, i32), i32)>,
+) -> (i32, i32) {
+    let (min_x, max_x, min_y, max_y) = match sub_bounds {
+        Some(((x1, y1), (x2, y2), padding)) => {
+            let bounds = map.bounds();
+
+            (
+                std::cmp::max(bounds.0, std::cmp::min(x1, x2) - padding),
+                std::cmp::min(bounds.2, std::cmp::max(x1, x2) + padding),
+                std::cmp::max(bounds.1, std::cmp::min(y1, y2) - padding),
+                std::cmp::min(bounds.3, std::cmp::max(y1, y2) + padding),
+            )
+        }
+        None => map.bounds(),
+    };
+
+    assert!(max_x > min_x);
+    assert!(max_y > min_y);
+
+    let reached_width = max_x - min_x + 1;
+    let reached_height = max_y - min_y + 1;
+    let reached_idx = |x, y| ((y - min_y) * reached_width + x - min_x) as usize;
+    let dist2 = |(x1, y1), (x2, y2)| (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+    let mut reached = bitvec![0; (reached_width * reached_height) as usize];
+    let mut frontier: Vec<(i32, i32)> = Vec::new();
+    let mut closest_pos = start;
+    let mut closest_cost = dist2(start, dest);
+
+    reached.set(reached_idx(start.0, start.1), true);
+    frontier.push(start);
+
+    while let Some(pos) = frontier.pop() {
+        if pos == dest {
+            closest_pos = pos;
+            break;
+        }
+
+        let pos_cost = dist2(pos, dest);
+
+        if pos_cost < closest_cost {
+            closest_pos = pos;
+            closest_cost = pos_cost;
+        }
+
+        for (dx, dy) in ADJACENT_TILES.iter() {
+            let nx = pos.0 + dx;
+            let ny = pos.1 + dy;
+
+            if nx >= min_x
+                && nx <= max_x
+                && ny >= min_y
+                && ny <= max_y
+                && !reached[reached_idx(nx, ny)]
+                && ((nx, ny) == dest || !map.is_blocked(nx, ny))
+            {
+                reached.set(reached_idx(nx, ny), true);
+                frontier.push((nx, ny));
+            }
+        }
+    }
+
+    closest_pos
 }

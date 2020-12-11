@@ -53,15 +53,29 @@ fn do_turn_for_one_monster(
 ) {
     let fov = (&mut fovs).get(monster);
     let player_pos: (i32, i32) = positions.get(player.0).into();
-    let pos = (&mut positions).get(monster);
 
     if fov.tiles.contains_key(&player_pos) {
-        if let Some(step) = ruggle::find_path(map, pos.into(), player_pos, false, 50).nth(1) {
+        let pos_mut = (&mut positions).get(monster);
+        let pos: (i32, i32) = pos_mut.into();
+        let mut step = ruggle::find_path(map, pos, player_pos, false, 50).nth(1);
+
+        if step.is_none() {
+            let closest_pos = ruggle::find_closest_reachable_point(
+                map,
+                pos,
+                player_pos,
+                Some((pos, player_pos, 4)),
+            );
+
+            step = ruggle::find_path(map, pos, closest_pos, false, 0).nth(1);
+        }
+
+        if let Some(step) = step {
             if step == player_pos {
                 println!("{} shouts insults", names.get(monster).0);
             } else {
-                map.move_entity(monster, pos.into(), step, blocks.try_get(monster).is_ok());
-                *pos = step.into();
+                map.move_entity(monster, pos, step, blocks.contains(monster));
+                *pos_mut = step.into();
                 fov.dirty = true;
             }
         }
