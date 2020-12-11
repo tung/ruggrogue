@@ -51,6 +51,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
             Key::U | Key::NumPad9 => try_move_player(world, 1, -1),
             Key::B | Key::NumPad1 => try_move_player(world, -1, 1),
             Key::N | Key::NumPad3 => try_move_player(world, 1, 1),
+            Key::Period => true,
             _ => false,
         }
     } else {
