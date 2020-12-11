@@ -7,7 +7,6 @@ use crate::{
     components::{FieldOfView, Monster, Name, PlayerId, Position},
     map::Map,
 };
-use ruggle::AStarIter;
 
 pub struct MonsterTurns(BinaryHeap<(Reverse<i32>, EntityId)>);
 
@@ -56,7 +55,7 @@ fn do_turn_for_one_monster(
     let pos = (&mut positions).get(monster);
 
     if fov.tiles.contains_key(&player_pos) {
-        if let Some(step) = AStarIter::new(map, pos.into(), player_pos, false, 50).nth(1) {
+        if let Some(step) = ruggle::find_path(map, pos.into(), player_pos, false, 50).nth(1) {
             if step == player_pos {
                 println!("{} shouts insults", names.get(monster).0);
             } else {
