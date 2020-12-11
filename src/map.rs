@@ -1,6 +1,7 @@
 use bitvec::prelude::*;
 use rand::Rng;
-use shipyard::{Get, UniqueView, UniqueViewMut, View, ViewMut, World};
+use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
+use std::collections::HashMap;
 
 use crate::{
     components::{FieldOfView, PlayerId, Position},
@@ -30,6 +31,10 @@ pub struct Map {
     tiles: Vec<Tile>,
     pub rooms: Vec<Rect>,
     pub seen: BitVec,
+    // (x, y) -> (blocking_entity_count, entities_here)
+    tile_entities: HashMap<(i32, i32), (i32, Vec<EntityId>)>,
+    // zero-length non-zero-capacity vectors for reuse in tile_entities
+    empty_entity_vecs: Vec<Vec<EntityId>>,
 }
 
 impl Map {
@@ -44,6 +49,8 @@ impl Map {
             tiles: vec![Tile::Floor; len],
             rooms: Vec::new(),
             seen: bitvec![0; len],
+            tile_entities: HashMap::new(),
+            empty_entity_vecs: Vec::new(),
         }
     }
 
@@ -124,6 +131,59 @@ impl Map {
             }
         })
     }
+
+    pub fn place_entity(&mut self, entity: EntityId, pos: (i32, i32), blocks: bool) {
+        if let Some((block_count, entities_here)) = self.tile_entities.get_mut(&pos) {
+            if blocks {
+                *block_count += 1;
+            }
+            entities_here.push(entity);
+        } else {
+            let mut entities_here = self.empty_entity_vecs.pop().unwrap_or_default();
+
+            entities_here.push(entity);
+            self.tile_entities
+                .insert(pos, (if blocks { 1 } else { 0 }, entities_here));
+        }
+    }
+
+    pub fn remove_entity(&mut self, entity: EntityId, pos: (i32, i32), blocks: bool) {
+        if self.tile_entities.get(&pos).unwrap().1.len() == 1 {
+            let (_, mut entities_here) = self.tile_entities.remove(&pos).unwrap();
+
+            assert!(entities_here[0] == entity);
+            entities_here.clear();
+            self.empty_entity_vecs.push(entities_here);
+        } else {
+            let (block_count, entities_here) = self.tile_entities.get_mut(&pos).unwrap();
+            let idx = entities_here.iter().position(|e| *e == entity).unwrap();
+
+            entities_here.remove(idx);
+            if blocks {
+                *block_count -= 1;
+            }
+        }
+    }
+
+    pub fn move_entity(
+        &mut self,
+        entity: EntityId,
+        old_pos: (i32, i32),
+        new_pos: (i32, i32),
+        blocks: bool,
+    ) {
+        if self.tile_entities.get(&old_pos).unwrap().1.len() == 1
+            && !self.tile_entities.contains_key(&new_pos)
+        {
+            let data = self.tile_entities.remove(&old_pos).unwrap();
+
+            assert!(data.1[0] == entity);
+            self.tile_entities.insert(new_pos, data);
+        } else {
+            self.remove_entity(entity, old_pos, blocks);
+            self.place_entity(entity, new_pos, blocks);
+        }
+    }
 }
 
 impl ruggle::ViewableField for Map {
@@ -143,6 +203,10 @@ impl ruggle::PathableMap for Map {
 
     fn is_blocked(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x, y), &Tile::Wall)
+            || self
+                .tile_entities
+                .get(&(x, y))
+                .map_or(false, |(block_count, _)| *block_count > 0)
     }
 }
 
@@ -347,15 +411,16 @@ pub fn generate_test_pattern(mut map: UniqueViewMut<Map>) {
 }
 
 pub fn place_player_in_first_room(
-    map: UniqueView<Map>,
+    mut map: UniqueViewMut<Map>,
     player: UniqueView<PlayerId>,
     mut positions: ViewMut<Position>,
 ) {
-    let (room_center_x, room_center_y) = map.rooms.first().unwrap().center();
+    let room_center = map.rooms.first().unwrap().center();
     let mut player_pos = (&mut positions).get(player.0);
 
-    player_pos.x = room_center_x;
-    player_pos.y = room_center_y;
+    map.move_entity(player.0, player_pos.into(), room_center, false);
+    player_pos.x = room_center.0;
+    player_pos.y = room_center.1;
 }
 
 pub fn draw_map(world: &World, grid: &mut CharGrid) {

@@ -1,6 +1,8 @@
 use shipyard::EntityId;
 use std::collections::HashMap;
 
+pub struct BlocksTile;
+
 pub struct FieldOfView {
     pub tiles: HashMap<(i32, i32), bool>,
     pub range: i32,

@@ -4,7 +4,7 @@ use shipyard::{
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use crate::{
-    components::{FieldOfView, Monster, Name, PlayerId, Position},
+    components::{BlocksTile, FieldOfView, Monster, Name, PlayerId, Position},
     map::Map,
 };
 
@@ -44,8 +44,9 @@ pub fn enqueue_monster_turns(
 
 fn do_turn_for_one_monster(
     monster: EntityId,
-    map: &Map,
+    map: &mut Map,
     player: &PlayerId,
+    blocks: &View<BlocksTile>,
     mut fovs: &mut ViewMut<FieldOfView>,
     names: &View<Name>,
     mut positions: &mut ViewMut<Position>,
@@ -59,6 +60,7 @@ fn do_turn_for_one_monster(
             if step == player_pos {
                 println!("{} shouts insults", names.get(monster).0);
             } else {
+                map.move_entity(monster, pos.into(), step, blocks.try_get(monster).is_ok());
                 *pos = step.into();
                 fov.dirty = true;
             }
@@ -66,18 +68,28 @@ fn do_turn_for_one_monster(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn do_monster_turns(
     entities: EntitiesView,
-    map: UniqueView<Map>,
+    mut map: UniqueViewMut<Map>,
     mut monster_turns: UniqueViewMut<MonsterTurns>,
     player: UniqueView<PlayerId>,
+    blocks: View<BlocksTile>,
     mut fovs: ViewMut<FieldOfView>,
     names: View<Name>,
     mut positions: ViewMut<Position>,
 ) {
     while let Some((_, monster)) = monster_turns.0.pop() {
         if entities.is_alive(monster) {
-            do_turn_for_one_monster(monster, &*map, &*player, &mut fovs, &names, &mut positions);
+            do_turn_for_one_monster(
+                monster,
+                &mut *map,
+                &*player,
+                &blocks,
+                &mut fovs,
+                &names,
+                &mut positions,
+            );
         }
     }
 }

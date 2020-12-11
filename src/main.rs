@@ -8,12 +8,13 @@ mod vision;
 use rand::{thread_rng, Rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
 use shipyard::{
-    EntitiesViewMut, EntityId, Get, IntoIter, UniqueView, UniqueViewMut, View, ViewMut, World,
+    EntitiesViewMut, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
+    World,
 };
 use std::path::PathBuf;
 
 use crate::{
-    components::{FieldOfView, Monster, Name, Player, PlayerId, Position, Renderable},
+    components::{BlocksTile, FieldOfView, Monster, Name, Player, PlayerId, Position, Renderable},
     map::{draw_map, Map},
     monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
     player::player_input,
@@ -23,6 +24,7 @@ use ruggle::{CharGrid, RunSettings};
 pub struct RuggleRng(Pcg64Mcg);
 
 fn spawn_player(
+    mut map: UniqueViewMut<Map>,
     mut entities: EntitiesViewMut,
     mut fovs: ViewMut<FieldOfView>,
     mut names: ViewMut<Name>,
@@ -30,7 +32,7 @@ fn spawn_player(
     mut positions: ViewMut<Position>,
     mut renderables: ViewMut<Renderable>,
 ) -> EntityId {
-    entities.add_entity(
+    let player_id = entities.add_entity(
         (
             &mut players,
             &mut fovs,
@@ -49,14 +51,19 @@ fn spawn_player(
                 bg: [0., 0., 0., 1.],
             },
         ),
-    )
+    );
+
+    map.place_entity(player_id, (0, 0), false);
+
+    player_id
 }
 
 #[allow(clippy::too_many_arguments)]
 fn spawn_monsters_in_rooms(
-    map: UniqueView<Map>,
+    mut map: UniqueViewMut<Map>,
     mut rng: UniqueViewMut<RuggleRng>,
     mut entities: EntitiesViewMut,
+    mut blocks: ViewMut<BlocksTile>,
     mut fovs: ViewMut<FieldOfView>,
     mut monsters: ViewMut<Monster>,
     mut names: ViewMut<Name>,
@@ -73,6 +80,7 @@ fn spawn_monsters_in_rooms(
         entities.add_entity(
             (
                 &mut monsters,
+                &mut blocks,
                 &mut fovs,
                 &mut names,
                 &mut positions,
@@ -80,6 +88,7 @@ fn spawn_monsters_in_rooms(
             ),
             (
                 Monster {},
+                BlocksTile {},
                 FieldOfView::new(8),
                 Name(name.into()),
                 room.center().into(),
@@ -90,6 +99,10 @@ fn spawn_monsters_in_rooms(
                 },
             ),
         );
+    }
+
+    for (id, (_, _, pos)) in (&monsters, &blocks, &positions).iter().with_id() {
+        map.place_entity(id, pos.into(), true);
     }
 }
 

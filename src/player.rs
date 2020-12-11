@@ -1,21 +1,21 @@
 use piston::input::{Button, Key};
-use shipyard::{IntoIter, UniqueView, View, ViewMut, World};
+use shipyard::{IntoIter, Shiperator, UniqueViewMut, View, ViewMut, World};
 
 use crate::{
     components::{FieldOfView, Player, Position},
-    map::{Map, Tile},
+    map::Map,
 };
-use ruggle::{InputBuffer, InputEvent};
+use ruggle::{InputBuffer, InputEvent, PathableMap};
 
 pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
     world.run(
-        |map: UniqueView<Map>,
+        |mut map: UniqueViewMut<Map>,
          players: View<Player>,
          mut positions: ViewMut<Position>,
          mut fovs: ViewMut<FieldOfView>| {
             let mut moved = false;
 
-            for (_, pos, fov) in (&players, &mut positions, &mut fovs).iter() {
+            for (id, (_, pos, fov)) in (&players, &mut positions, &mut fovs).iter().with_id() {
                 let new_x = pos.x + dx;
                 let new_y = pos.y + dy;
 
@@ -23,8 +23,9 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
                     && new_y >= 0
                     && new_x < map.width
                     && new_y < map.height
-                    && !matches!(map.get_tile(new_x, new_y), &Tile::Wall)
+                    && !map.is_blocked(new_x, new_y)
                 {
+                    map.move_entity(id, pos.into(), (new_x, new_y), false);
                     pos.x = new_x;
                     pos.y = new_y;
                     fov.dirty = true;
