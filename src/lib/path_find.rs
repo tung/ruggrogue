@@ -154,20 +154,9 @@ pub fn find_path<T: PathableMap>(
     fallback_closest: bool,
 ) -> AStarIter {
     let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
-    let closest = a_star(map, dest, start, bound_pad, &mut came_from);
+    let closest = a_star(map, start, dest, bound_pad, &mut came_from);
 
-    if closest == start {
-        AStarIter {
-            came_from,
-            current_pos: Some(start),
-            fallback: false,
-        }
-    } else if fallback_closest {
-        came_from.clear();
-
-        // Redo the path from the start instead of the dest.
-        let closest = a_star(map, start, dest, bound_pad, &mut came_from);
-
+    if closest == dest || fallback_closest {
         // Reverse the path from closest to start.
         let mut current = came_from.get(&closest).copied();
         let mut prev = closest;
