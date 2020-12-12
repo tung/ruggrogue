@@ -89,7 +89,8 @@ fn a_star<T: PathableMap>(
             (y_diff, x_diff)
         };
 
-        low_diff * 141 + (high_diff - low_diff) * 100
+        // Prefer axis-aligning with (x2, y2).
+        low_diff * 141 + (high_diff - low_diff) * 99
     };
     let mut closest = start;
     let mut closest_cost = 0;
