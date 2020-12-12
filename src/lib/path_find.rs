@@ -81,7 +81,15 @@ fn a_star<T: PathableMap>(
         )
     };
     let dist100 = |(x1, y1), (x2, y2)| {
-        ((((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)) as f32).sqrt() * 100.) as i32
+        let x_diff = if x1 < x2 { x2 - x1 } else { x1 - x2 };
+        let y_diff = if y1 < y2 { y2 - y1 } else { y1 - y2 };
+        let (low_diff, high_diff) = if x_diff < y_diff {
+            (x_diff, y_diff)
+        } else {
+            (y_diff, x_diff)
+        };
+
+        low_diff * 141 + (high_diff - low_diff) * 100
     };
     let mut closest = start;
     let mut closest_cost = 0;
