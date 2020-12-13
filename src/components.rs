@@ -1,24 +1,49 @@
+use bitvec::prelude::*;
 use shipyard::EntityId;
-use std::collections::HashMap;
 
 pub struct BlocksTile;
 
 pub struct FieldOfView {
-    pub tiles: HashMap<(i32, i32), bool>,
+    pub tiles: BitVec,
     pub range: i32,
+    span: i32,
+    pub center: (i32, i32),
     pub dirty: bool,
-    pub mark: bool,
 }
 
 impl FieldOfView {
     pub fn new(range: i32) -> FieldOfView {
-        assert!(range > 0);
+        assert!(range >= 0);
+
+        let span = 2 * range + 1;
 
         FieldOfView {
-            tiles: HashMap::new(),
+            tiles: bitvec![0; (span * span) as usize],
             range,
+            span,
+            center: (0, 0),
             dirty: true,
-            mark: false,
+        }
+    }
+
+    fn idx(&self, (x, y): (i32, i32)) -> usize {
+        let tx = x - self.center.0 + self.range;
+        let ty = y - self.center.1 + self.range;
+        (ty * self.span + tx) as usize
+    }
+
+    pub fn set(&mut self, pos: (i32, i32), value: bool) {
+        let idx = self.idx(pos);
+        self.tiles.set(idx, value);
+    }
+
+    pub fn get(&self, pos: (i32, i32)) -> bool {
+        if (pos.0 - self.center.0).abs() <= self.range
+            && (pos.1 - self.center.1).abs() <= self.range
+        {
+            self.tiles[self.idx(pos)]
+        } else {
+            false
         }
     }
 }

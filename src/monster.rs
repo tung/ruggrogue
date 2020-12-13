@@ -54,7 +54,7 @@ fn do_turn_for_one_monster(
     let fov = (&mut fovs).get(monster);
     let player_pos: (i32, i32) = positions.get(player.0).into();
 
-    if fov.tiles.contains_key(&player_pos) {
+    if fov.get(player_pos) {
         let pos_mut = (&mut positions).get(monster);
         let pos: (i32, i32) = pos_mut.into();
 

@@ -119,7 +119,7 @@ fn draw_renderables(world: &World, grid: &mut CharGrid) {
                 let gx = pos.x - x + 40;
                 let gy = pos.y - y + 18;
 
-                if gx >= 0 && gy >= 0 && gx < 80 && gy < 36 && fov.tiles.contains_key(&pos.into()) {
+                if gx >= 0 && gy >= 0 && gx < 80 && gy < 36 && fov.get(pos.into()) {
                     grid.put_color([gx, gy], Some(render.fg), Some(render.bg), render.ch);
                 }
             }

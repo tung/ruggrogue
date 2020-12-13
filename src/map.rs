@@ -434,7 +434,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
 
             for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
                 if let Some((ch, color)) = tile {
-                    let color = if fov.tiles.contains_key(&(tx, ty)) {
+                    let color = if fov.get((tx, ty)) {
                         color
                     } else {
                         let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
