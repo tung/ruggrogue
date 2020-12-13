@@ -109,14 +109,14 @@ impl Map {
         x2: i32,
         y2: i32,
     ) -> impl Iterator<Item = (i32, i32, Option<(char, [f32; 4])>)> + '_ {
-        let xs = if x1 <= x2 { x1..=x2 } else { x2..=x1 };
+        let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
 
-        xs.flat_map(move |x| {
-            let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
+        ys.flat_map(move |y| {
+            let xs = if x1 <= x2 { x1..=x2 } else { x2..=x1 };
 
-            std::iter::repeat(x).zip(ys)
+            std::iter::repeat(y).zip(xs)
         })
-        .map(move |(x, y)| {
+        .map(move |(y, x)| {
             if x < 0
                 || y < 0
                 || x >= self.width
