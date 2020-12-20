@@ -48,6 +48,14 @@ impl FieldOfView {
     }
 }
 
+pub struct Monster;
+
+pub struct Name(pub String);
+
+pub struct Player;
+
+pub struct PlayerId(pub EntityId);
+
 pub struct Position {
     pub x: i32,
     pub y: i32,
@@ -82,11 +90,3 @@ pub struct Renderable {
     pub fg: [f32; 4],
     pub bg: [f32; 4],
 }
-
-pub struct Player;
-
-pub struct PlayerId(pub EntityId);
-
-pub struct Monster;
-
-pub struct Name(pub String);
