@@ -2,7 +2,8 @@ use piston::input::{Button, Key};
 use shipyard::{IntoIter, Shiperator, UniqueViewMut, View, ViewMut, World};
 
 use crate::{
-    components::{FieldOfView, Player, Position},
+    components::{CombatStats, FieldOfView, Player, Position},
+    damage::MeleeQueue,
     map::Map,
 };
 use ruggle::{InputBuffer, InputEvent, PathableMap};
@@ -10,26 +11,32 @@ use ruggle::{InputBuffer, InputEvent, PathableMap};
 pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
     world.run(
         |mut map: UniqueViewMut<Map>,
+         mut melee_queue: UniqueViewMut<MeleeQueue>,
+         combat_stats: View<CombatStats>,
+         mut fovs: ViewMut<FieldOfView>,
          players: View<Player>,
-         mut positions: ViewMut<Position>,
-         mut fovs: ViewMut<FieldOfView>| {
+         mut positions: ViewMut<Position>| {
             let mut moved = false;
 
             for (id, (_, pos, fov)) in (&players, &mut positions, &mut fovs).iter().with_id() {
                 let new_x = pos.x + dx;
                 let new_y = pos.y + dy;
 
-                if new_x >= 0
-                    && new_y >= 0
-                    && new_x < map.width
-                    && new_y < map.height
-                    && !map.is_blocked(new_x, new_y)
-                {
-                    map.move_entity(id, pos.into(), (new_x, new_y), false);
-                    pos.x = new_x;
-                    pos.y = new_y;
-                    fov.dirty = true;
-                    moved = true;
+                if new_x >= 0 && new_y >= 0 && new_x < map.width && new_y < map.height {
+                    let melee_target = map
+                        .iter_entities_at(new_x, new_y)
+                        .find(|e| combat_stats.contains(*e));
+
+                    if let Some(melee_target) = melee_target {
+                        melee_queue.push_back(id, melee_target);
+                        moved = true;
+                    } else if !map.is_blocked(new_x, new_y) {
+                        map.move_entity(id, pos.into(), (new_x, new_y), false);
+                        pos.x = new_x;
+                        pos.y = new_y;
+                        fov.dirty = true;
+                        moved = true;
+                    }
                 }
             }
 

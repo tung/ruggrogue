@@ -184,6 +184,14 @@ impl Map {
             self.place_entity(entity, new_pos, blocks);
         }
     }
+
+    pub fn iter_entities_at(&self, x: i32, y: i32) -> impl Iterator<Item = EntityId> + '_ {
+        self.tile_entities
+            .get(&(x, y))
+            .map(|(_, es)| es.iter().copied())
+            .into_iter()
+            .flatten()
+    }
 }
 
 impl ruggle::ViewableField for Map {

@@ -1,4 +1,5 @@
 mod components;
+mod damage;
 mod map;
 mod monster;
 mod player;
@@ -14,7 +15,12 @@ use shipyard::{
 use std::path::PathBuf;
 
 use crate::{
-    components::{BlocksTile, FieldOfView, Monster, Name, Player, PlayerId, Position, Renderable},
+    components::{
+        BlocksTile, CombatStats, FieldOfView, Monster, Name, Player, PlayerId, Position, Renderable,
+    },
+    damage::{
+        delete_dead_entities, inflict_damage, melee_combat, DamageQueue, DeadEntities, MeleeQueue,
+    },
     map::{draw_map, Map},
     monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
     player::player_input,
@@ -23,9 +29,11 @@ use ruggle::{CharGrid, RunSettings};
 
 pub struct RuggleRng(Pcg64Mcg);
 
+#[allow(clippy::too_many_arguments)]
 fn spawn_player(
     mut map: UniqueViewMut<Map>,
     mut entities: EntitiesViewMut,
+    mut combat_stats: ViewMut<CombatStats>,
     mut fovs: ViewMut<FieldOfView>,
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
@@ -35,6 +43,7 @@ fn spawn_player(
     let player_id = entities.add_entity(
         (
             &mut players,
+            &mut combat_stats,
             &mut fovs,
             &mut names,
             &mut positions,
@@ -42,6 +51,12 @@ fn spawn_player(
         ),
         (
             Player {},
+            CombatStats {
+                max_hp: 30,
+                hp: 30,
+                defense: 2,
+                power: 5,
+            },
             FieldOfView::new(8),
             Name("Player".into()),
             Position { x: 0, y: 0 },
@@ -64,6 +79,7 @@ fn spawn_monsters_in_rooms(
     mut rng: UniqueViewMut<RuggleRng>,
     mut entities: EntitiesViewMut,
     mut blocks: ViewMut<BlocksTile>,
+    mut combat_stats: ViewMut<CombatStats>,
     mut fovs: ViewMut<FieldOfView>,
     mut monsters: ViewMut<Monster>,
     mut names: ViewMut<Name>,
@@ -81,6 +97,7 @@ fn spawn_monsters_in_rooms(
             (
                 &mut monsters,
                 &mut blocks,
+                &mut combat_stats,
                 &mut fovs,
                 &mut names,
                 &mut positions,
@@ -89,6 +106,12 @@ fn spawn_monsters_in_rooms(
             (
                 Monster {},
                 BlocksTile {},
+                CombatStats {
+                    max_hp: 16,
+                    hp: 16,
+                    defense: 1,
+                    power: 4,
+                },
                 FieldOfView::new(8),
                 Name(name.into()),
                 room.center().into(),
@@ -142,6 +165,10 @@ fn main() {
 
     world.add_unique(MonsterTurns::new());
 
+    world.add_unique(MeleeQueue::new());
+    world.add_unique(DamageQueue::new());
+    world.add_unique(DeadEntities::new());
+
     world.run(vision::recalculate_fields_of_view);
 
     let settings = RunSettings {
@@ -158,6 +185,9 @@ fn main() {
         if !world.run(monster_turns_empty) {
             world.run(do_monster_turns);
         } else if player_input(&world, &mut inputs) {
+            world.run(melee_combat);
+            world.run(inflict_damage);
+            world.run(delete_dead_entities);
             world.run(vision::recalculate_fields_of_view);
             world.run(enqueue_monster_turns);
         }
