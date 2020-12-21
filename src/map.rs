@@ -440,7 +440,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
             let (x, y) = positions.get(player.0).into();
             let fov = fovs.get(player.0);
 
-            for (tx, ty, tile) in map.iter_bounds(x - 40, y - 18, x + 39, y + 17) {
+            for (tx, ty, tile) in map.iter_bounds(x - 40, y - 15, x + 39, y + 15) {
                 if let Some((ch, color)) = tile {
                     let color = if fov.get((tx, ty)) {
                         color
@@ -449,7 +449,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
                         [v, v, v, color[3]]
                     };
 
-                    grid.put_color([tx - x + 40, ty - y + 18], Some(color), None, ch);
+                    grid.put_color([tx - x + 40, ty - y + 15], Some(color), None, ch);
                 }
             }
         },

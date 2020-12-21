@@ -4,6 +4,7 @@ mod map;
 mod monster;
 mod player;
 mod rect;
+mod ui;
 mod vision;
 
 use rand::{thread_rng, Rng, SeedableRng};
@@ -24,6 +25,7 @@ use crate::{
     map::{draw_map, Map},
     monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
     player::{player_input, player_is_dead_input},
+    ui::draw_ui,
     vision::recalculate_fields_of_view,
 };
 use ruggle::{CharGrid, RunSettings};
@@ -147,9 +149,9 @@ fn draw_renderables(world: &World, grid: &mut CharGrid) {
 
             for (pos, render) in (&positions, &renderables).iter() {
                 let gx = pos.x - x + 40;
-                let gy = pos.y - y + 18;
+                let gy = pos.y - y + 15;
 
-                if gx >= 0 && gy >= 0 && gx < 80 && gy < 36 && fov.get(pos.into()) {
+                if gx >= 0 && gy >= 0 && gx < 80 && gy < 31 && fov.get(pos.into()) {
                     grid.put_color([gx, gy], Some(render.fg), Some(render.bg), render.ch);
                 }
             }
@@ -215,6 +217,7 @@ fn main() {
         grid.clear();
         draw_map(&world, &mut grid);
         draw_renderables(&world, &mut grid);
+        draw_ui(&world, &mut grid);
 
         (
             true,
