@@ -23,12 +23,18 @@ use crate::{
     },
     map::{draw_map, Map},
     monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
-    player::player_input,
+    player::{player_input, player_is_dead_input},
     vision::recalculate_fields_of_view,
 };
 use ruggle::{CharGrid, RunSettings};
 
+pub struct PlayerAlive(bool);
+
 pub struct RuggleRng(Pcg64Mcg);
+
+fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
+    player_alive.0
+}
 
 #[allow(clippy::too_many_arguments)]
 fn spawn_player(
@@ -160,6 +166,7 @@ fn main() {
     world.run(map::generate_rooms_and_corridors);
 
     world.add_unique(PlayerId(world.run(spawn_player)));
+    world.add_unique(PlayerAlive(true));
     world.run(map::place_player_in_first_room);
 
     world.run(spawn_monsters_in_rooms);
@@ -179,24 +186,39 @@ fn main() {
         font_size: 14.0,
         min_fps: 30,
         max_fps: 60,
-        start_inactive: true,
     };
 
     ruggle::run(settings, |mut inputs, mut grid| {
-        if !world.run(monster_turns_empty) {
-            world.run(do_monster_turns);
-        } else if player_input(&world, &mut inputs) {
-            world.run(melee_combat);
-            world.run(inflict_damage);
-            world.run(delete_dead_entities);
-            world.run(recalculate_fields_of_view);
-            world.run(enqueue_monster_turns);
+        if world.run(player_is_alive) {
+            let (time_passed, player_turn_done) = if !world.run(monster_turns_empty) {
+                world.run(do_monster_turns);
+                (true, false)
+            } else if player_input(&world, &mut inputs) {
+                (true, true)
+            } else {
+                (false, false)
+            };
+
+            if time_passed {
+                world.run(melee_combat);
+                world.run(inflict_damage);
+                world.run(delete_dead_entities);
+                world.run(recalculate_fields_of_view);
+                if player_turn_done {
+                    world.run(enqueue_monster_turns);
+                }
+            }
+        } else if player_is_dead_input(&mut inputs) {
+            return (false, false);
         }
 
         grid.clear();
         draw_map(&world, &mut grid);
         draw_renderables(&world, &mut grid);
 
-        !world.run(monster_turns_empty)
+        (
+            true,
+            world.run(player_is_alive) && !world.run(monster_turns_empty),
+        )
     });
 }

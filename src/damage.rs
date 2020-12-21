@@ -2,8 +2,9 @@ use shipyard::{AllStoragesViewMut, EntityId, Get, UniqueViewMut, View, ViewMut};
 use std::collections::VecDeque;
 
 use crate::{
-    components::{BlocksTile, CombatStats, Name, Position},
+    components::{BlocksTile, CombatStats, Name, Player, Position},
     map::Map,
+    PlayerAlive,
 };
 
 pub struct MeleeEvent {
@@ -124,17 +125,22 @@ fn pop_dead_entity(mut dead_entities: UniqueViewMut<DeadEntities>) -> Option<Ent
 /// Delete entities in the DeadEntities queue, clearing them from the map in the process.
 pub fn delete_dead_entities(mut all_storages: AllStoragesViewMut) {
     while let Some(dead_entity) = all_storages.run(pop_dead_entity) {
-        all_storages.run(
-            |mut map: UniqueViewMut<Map>,
-             blocks_tile: View<BlocksTile>,
-             positions: View<Position>| {
-                map.remove_entity(
-                    dead_entity,
-                    positions.get(dead_entity).into(),
-                    blocks_tile.contains(dead_entity),
-                );
-            },
-        );
-        all_storages.delete(dead_entity);
+        if all_storages.run(|players: View<Player>| players.contains(dead_entity)) {
+            println!("Press SPACE to continue...");
+            all_storages.run(|mut alive: UniqueViewMut<PlayerAlive>| alive.0 = false);
+        } else {
+            all_storages.run(
+                |mut map: UniqueViewMut<Map>,
+                 blocks_tile: View<BlocksTile>,
+                 positions: View<Position>| {
+                    map.remove_entity(
+                        dead_entity,
+                        positions.get(dead_entity).into(),
+                        blocks_tile.contains(dead_entity),
+                    );
+                },
+            );
+            all_storages.delete(dead_entity);
+        }
     }
 }

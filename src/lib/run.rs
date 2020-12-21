@@ -27,16 +27,16 @@ pub struct RunSettings {
     /// FPS limit when continuous updates are needed.  This occurs automatically when the input
     /// buffer is non-empty, but can also be requested by returning `true` from `update`.
     pub max_fps: u64,
-    /// Start [run] by waiting for an event instead of updating continuously.
-    pub start_inactive: bool,
 }
 
-/// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.  The loop
-/// calls for updates continuously if the input buffer is non-empty, or the previous `update` call
-/// returned `true`, otherwise it will wait for an input event.
+/// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.
+///
+/// `update` should return two `bool` values; the first is if running should continue (`true`) or
+/// quit (`false`), the second is if updates should be continuous (`true`) or wait for an event
+/// (`false`).
 pub fn run<T>(settings: RunSettings, mut update: T)
 where
-    T: FnMut(&mut InputBuffer, &mut CharGrid) -> bool,
+    T: FnMut(&mut InputBuffer, &mut CharGrid) -> (bool, bool),
 {
     let font_data = fs::read(settings.font_path).unwrap();
     let font = Font::try_from_vec(font_data).unwrap();
@@ -61,15 +61,14 @@ where
         .ups(settings.max_fps)
         .max_fps(settings.max_fps);
     let inactive_event_settings = EventSettings::new().lazy(true).max_fps(settings.min_fps);
-    let mut events = Events::new(if settings.start_inactive {
-        inactive_event_settings
-    } else {
-        active_event_settings
-    });
 
     let mut inputs = InputBuffer::new();
 
-    update(&mut inputs, &mut grid);
+    let mut events = Events::new(match update(&mut inputs, &mut grid) {
+        (true, true) => active_event_settings,
+        (true, false) => inactive_event_settings,
+        (false, _) => return,
+    });
 
     while let Some(e) = events.next(&mut window) {
         // Show or hide mouse cursor based on keyboard and mouse input.
@@ -85,7 +84,12 @@ where
 
         // Update for buffered inputs and update events.
         if inputs.more_inputs() || e.update_args().is_some() {
-            need_active = update(&mut inputs, &mut grid);
+            let (keep_running, active) = update(&mut inputs, &mut grid);
+
+            if !keep_running {
+                window.set_should_close(true);
+            }
+            need_active = active;
         }
 
         // Keep driving updates if more inputs are buffered.

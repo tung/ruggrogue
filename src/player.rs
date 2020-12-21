@@ -65,3 +65,12 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
         false
     }
 }
+
+pub fn player_is_dead_input(inputs: &mut InputBuffer) -> bool {
+    inputs.prepare_input();
+
+    matches!(
+        inputs.get_input(),
+        Some(InputEvent::Press(Button::Keyboard(Key::Space)))
+    )
+}
