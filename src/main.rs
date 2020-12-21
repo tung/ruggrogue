@@ -24,6 +24,7 @@ use crate::{
     map::{draw_map, Map},
     monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
     player::player_input,
+    vision::recalculate_fields_of_view,
 };
 use ruggle::{CharGrid, RunSettings};
 
@@ -169,7 +170,7 @@ fn main() {
     world.add_unique(DamageQueue::new());
     world.add_unique(DeadEntities::new());
 
-    world.run(vision::recalculate_fields_of_view);
+    world.run(recalculate_fields_of_view);
 
     let settings = RunSettings {
         title: "Ruggle".to_string(),
@@ -188,7 +189,7 @@ fn main() {
             world.run(melee_combat);
             world.run(inflict_damage);
             world.run(delete_dead_entities);
-            world.run(vision::recalculate_fields_of_view);
+            world.run(recalculate_fields_of_view);
             world.run(enqueue_monster_turns);
         }
 
