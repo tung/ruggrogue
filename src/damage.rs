@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 use crate::{
     components::{BlocksTile, CombatStats, Name, Player, Position},
     map::Map,
+    message::Messages,
     PlayerAlive,
 };
 
@@ -81,6 +82,7 @@ impl DeadEntities {
 pub fn melee_combat(
     mut damage_queue: UniqueViewMut<DamageQueue>,
     mut melee_queue: UniqueViewMut<MeleeQueue>,
+    mut messages: UniqueViewMut<Messages>,
     combat_stats: View<CombatStats>,
     names: View<Name>,
 ) {
@@ -90,10 +92,10 @@ pub fn melee_combat(
         let def_name = &names.get(defender).0;
 
         if damage > 0 {
-            println!("{} hits {} for {} hp.", att_name, def_name, damage);
+            messages.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
             damage_queue.push_back(defender, damage);
         } else {
-            println!("{} fails to hurt {}.", att_name, def_name);
+            messages.add(format!("{} fails to hurt {}.", att_name, def_name));
         }
     }
 }
@@ -103,6 +105,7 @@ pub fn melee_combat(
 pub fn inflict_damage(
     mut damage_queue: UniqueViewMut<DamageQueue>,
     mut dead_entities: UniqueViewMut<DeadEntities>,
+    mut messages: UniqueViewMut<Messages>,
     mut combat_stats: ViewMut<CombatStats>,
     names: View<Name>,
 ) {
@@ -110,7 +113,7 @@ pub fn inflict_damage(
         let target_stats = (&mut combat_stats).get(target);
 
         if target_stats.hp > 0 && amount >= target_stats.hp {
-            println!("{} dies!", names.get(target).0);
+            messages.add(format!("{} dies!", names.get(target).0));
             dead_entities.push_back(target);
         }
 
@@ -126,8 +129,13 @@ fn pop_dead_entity(mut dead_entities: UniqueViewMut<DeadEntities>) -> Option<Ent
 pub fn delete_dead_entities(mut all_storages: AllStoragesViewMut) {
     while let Some(dead_entity) = all_storages.run(pop_dead_entity) {
         if all_storages.run(|players: View<Player>| players.contains(dead_entity)) {
-            println!("Press SPACE to continue...");
-            all_storages.run(|mut alive: UniqueViewMut<PlayerAlive>| alive.0 = false);
+            all_storages.run(
+                |mut messages: UniqueViewMut<Messages>,
+                 mut player_alive: UniqueViewMut<PlayerAlive>| {
+                    messages.add("Press SPACE to continue...".into());
+                    player_alive.0 = false;
+                },
+            );
         } else {
             all_storages.run(
                 |mut map: UniqueViewMut<Map>,

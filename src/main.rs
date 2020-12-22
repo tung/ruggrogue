@@ -1,6 +1,7 @@
 mod components;
 mod damage;
 mod map;
+mod message;
 mod monster;
 mod player;
 mod rect;
@@ -23,6 +24,7 @@ use crate::{
         delete_dead_entities, inflict_damage, melee_combat, DamageQueue, DeadEntities, MeleeQueue,
     },
     map::{draw_map, Map},
+    message::Messages,
     monster::{do_monster_turns, enqueue_monster_turns, monster_turns_empty, MonsterTurns},
     player::{player_input, player_is_dead_input},
     ui::draw_ui,
@@ -163,6 +165,10 @@ fn main() {
     let world = World::new();
 
     world.add_unique(RuggleRng(Pcg64Mcg::from_rng(thread_rng()).unwrap()));
+
+    let mut messages = Messages::new(4);
+    messages.add("Welcome to Ruggle!".into());
+    world.add_unique(messages);
 
     world.add_unique(Map::new(80, 50));
     world.run(map::generate_rooms_and_corridors);
