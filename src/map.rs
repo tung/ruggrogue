@@ -16,15 +16,6 @@ pub enum Tile {
     Wall,
 }
 
-impl Tile {
-    pub fn appearance(&self) -> (char, [f32; 4]) {
-        match *self {
-            Tile::Floor => ('∙', [0.3, 0.3, 0.3, 1.]),
-            Tile::Wall => ('#', [0.7, 0.4, 0.1, 1.]),
-        }
-    }
-}
-
 pub struct Map {
     pub width: i32,
     pub height: i32,
@@ -102,6 +93,63 @@ impl Map {
         }
     }
 
+    fn wall_or_oob(&self, x: i32, y: i32) -> bool {
+        x < 0
+            || y < 0
+            || x >= self.width
+            || y >= self.height
+            || matches!(self.get_tile(x, y), Tile::Wall)
+    }
+
+    #[allow(clippy::many_single_char_names)]
+    fn wall_char(&self, x: i32, y: i32) -> char {
+        let n = self.wall_or_oob(x, y - 1);
+        let s = self.wall_or_oob(x, y + 1);
+        let e = self.wall_or_oob(x + 1, y);
+        let w = self.wall_or_oob(x - 1, y);
+        let ne = self.wall_or_oob(x + 1, y - 1);
+        let nw = self.wall_or_oob(x - 1, y - 1);
+        let se = self.wall_or_oob(x + 1, y + 1);
+        let sw = self.wall_or_oob(x - 1, y + 1);
+
+        // Extend wall stems in a direction if it has a wall,
+        // and at least one of its cardinal/diagonal adjacent tiles is not a wall.
+        let mut mask: u8 = 0;
+
+        if n && (!ne || !nw || !e || !w) {
+            mask += 1;
+        }
+        if s && (!se || !sw || !e || !w) {
+            mask += 2;
+        }
+        if w && (!nw || !sw || !n || !s) {
+            mask += 4;
+        }
+        if e && (!ne || !se || !n || !s) {
+            mask += 8;
+        }
+
+        match mask {
+            0 => '■',  // ----
+            1 => '│',  // n---
+            2 => '│',  // -s--
+            3 => '│',  // ns--
+            4 => '─',  // --w-
+            5 => '┘',  // n-w-
+            6 => '┐',  // -sw-
+            7 => '┤',  // nsw-
+            8 => '─',  // ---e
+            9 => '└',  // n--e
+            10 => '┌', // -s-e
+            11 => '├', // ns-e
+            12 => '─', // --we
+            13 => '┴', // n-we
+            14 => '┬', // -swe
+            15 => '┼', // nswe
+            _ => '#',
+        }
+    }
+
     pub fn iter_bounds(
         &self,
         x1: i32,
@@ -125,7 +173,10 @@ impl Map {
             {
                 (x, y, None)
             } else {
-                let (ch, color) = self.get_tile(x, y).appearance();
+                let (ch, color) = match self.get_tile(x, y) {
+                    Tile::Floor => ('∙', [0.4, 0.4, 0.4, 1.]),
+                    Tile::Wall => (self.wall_char(x, y), [0.8, 0.5, 0.2, 1.]),
+                };
 
                 (x, y, Some((ch, color)))
             }
