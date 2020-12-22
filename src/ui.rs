@@ -4,8 +4,9 @@ use crate::components::{CombatStats, PlayerId};
 use ruggle::CharGrid;
 
 fn draw_bar(grid: &mut CharGrid, y: i32, min_x: i32, max_x: i32, val: i32, max_val: i32) {
-    let fg = Some([1., 0., 0., 1.]);
-    let bg = None;
+    const BAR_FG: Option<[f32; 4]> = Some([1., 0., 0., 1.]);
+    const BAR_BG: Option<[f32; 4]> = None;
+
     let max_width = max_x - min_x + 1;
     let mut width_2 = val * max_width * 2 / max_val;
 
@@ -19,17 +20,17 @@ fn draw_bar(grid: &mut CharGrid, y: i32, min_x: i32, max_x: i32, val: i32, max_v
     let mut dx_2 = 0;
 
     while dx_2 + 2 <= width_2 {
-        grid.put_color([min_x + dx_2 / 2, y], fg, bg, '█');
+        grid.put_color([min_x + dx_2 / 2, y], BAR_FG, BAR_BG, '█');
         dx_2 += 2;
     }
 
     if dx_2 < width_2 {
-        grid.put_color([min_x + dx_2 / 2, y], fg, bg, '▌');
+        grid.put_color([min_x + dx_2 / 2, y], BAR_FG, BAR_BG, '▌');
         dx_2 += 2;
     }
 
     while dx_2 < max_width * 2 {
-        grid.put_color([min_x + dx_2 / 2, y], fg, bg, '░');
+        grid.put_color([min_x + dx_2 / 2, y], BAR_FG, BAR_BG, '░');
         dx_2 += 2;
     }
 }
