@@ -2,7 +2,7 @@ use opengl_graphics::{GlGraphics, OpenGL};
 use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::RenderEvent;
 use piston::window::WindowSettings;
-use piston::{MouseCursorEvent, PressEvent, UpdateEvent, Window};
+use piston::{MouseCursorEvent, PressEvent, ResizeEvent, UpdateEvent, Window};
 use rusttype::Font;
 use sdl2_window::Sdl2Window;
 use std::fs;
@@ -43,7 +43,7 @@ where
     let font = Font::try_from_vec(font_data).unwrap();
     let mut grid = CharGrid::new(settings.grid_size, &font, settings.font_size);
     let grid_size = {
-        let s = grid.size();
+        let s = grid.size_px();
         assert!(s[0] > 0 && s[1] > 0);
         [s[0] as u32, s[1] as u32]
     };
@@ -99,15 +99,17 @@ where
             need_active = true;
         }
 
+        if let Some(args) = e.resize_args() {
+            grid.resize_for_px([args.window_size[0] as i32, args.window_size[1] as i32]);
+        }
+
         if let Some(args) = e.render_args() {
             draw(&mut grid);
             gl.draw(args.viewport(), |c, g| {
                 use graphics::Graphics;
 
-                let window_size = window.size();
-
-                g.clear_color([0.3, 0.3, 0.3, 1.]);
-                grid.draw(None, Some([window_size.width, window_size.height]), &c, g);
+                g.clear_color([0., 0., 0., 1.]);
+                grid.draw(&c, g);
             });
         }
 

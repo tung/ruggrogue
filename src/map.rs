@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use crate::{
     components::{FieldOfView, PlayerId, Position},
     rect::Rect,
-    RuggleRng,
+    ui, RuggleRng,
 };
 use ruggle::CharGrid;
 
@@ -482,6 +482,7 @@ pub fn place_player_in_first_room(
     player_pos.y = room_center.1;
 }
 
+#[allow(clippy::many_single_char_names)]
 pub fn draw_map(world: &World, grid: &mut CharGrid) {
     world.run(
         |map: UniqueView<Map>,
@@ -490,8 +491,12 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
          positions: View<Position>| {
             let (x, y) = positions.get(player.0).into();
             let fov = fovs.get(player.0);
+            let w = grid.size_cells()[0];
+            let h = grid.size_cells()[1] - ui::HUD_LINES;
+            let cx = w / 2;
+            let cy = h / 2;
 
-            for (tx, ty, tile) in map.iter_bounds(x - 40, y - 15, x + 39, y + 15) {
+            for (tx, ty, tile) in map.iter_bounds(x - cx, y - cy, x - cx + w - 1, y - cy + h - 1) {
                 if let Some((ch, color)) = tile {
                     let color = if fov.get((tx, ty)) {
                         color
@@ -500,7 +505,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
                         [v, v, v, color[3]]
                     };
 
-                    grid.put_color([tx - x + 40, ty - y + 15], Some(color), None, ch);
+                    grid.put_color([tx - x + cx, ty - y + cy], Some(color), None, ch);
                 }
             }
         },

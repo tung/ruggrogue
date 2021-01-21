@@ -148,12 +148,16 @@ fn draw_renderables(world: &World, grid: &mut CharGrid) {
          renderables: View<Renderable>| {
             let (x, y) = positions.get(player.0).into();
             let fov = fovs.get(player.0);
+            let w = grid.size_cells()[0];
+            let h = grid.size_cells()[1] - ui::HUD_LINES;
+            let cx = w / 2;
+            let cy = h / 2;
 
             for (pos, render) in (&positions, &renderables).iter() {
-                let gx = pos.x - x + 40;
-                let gy = pos.y - y + 15;
+                let gx = pos.x - x + cx;
+                let gy = pos.y - y + cy;
 
-                if gx >= 0 && gy >= 0 && gx < 80 && gy < 31 && fov.get(pos.into()) {
+                if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(pos.into()) {
                     grid.put_color([gx, gy], Some(render.fg), Some(render.bg), render.ch);
                 }
             }

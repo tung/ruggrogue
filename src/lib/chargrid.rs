@@ -208,12 +208,32 @@ impl<'f> CharGrid<'f> {
         }
     }
 
+    /// The grid width and height of the full CharGrid in cells.
+    pub fn size_cells(&self) -> Size {
+        self.front.size
+    }
+
     /// The pixel width and height of the full CharGrid.
-    pub fn size(&self) -> Size {
+    pub fn size_px(&self) -> Size {
         [
             self.front.size[0] * self.cell_size[0],
             self.front.size[1] * self.cell_size[1],
         ]
+    }
+
+    /// Resize the CharGrid to fill the specified pixel dimensions.
+    pub fn resize_for_px(&mut self, px_size: Size) {
+        let w = std::cmp::min(255, std::cmp::max(1, px_size[0] / self.cell_size[0]));
+        let h = std::cmp::min(255, std::cmp::max(1, px_size[1] / self.cell_size[1]));
+
+        self.front = RawCharGrid::new([w, h]);
+        self.back = RawCharGrid::new([w, h]);
+        self.needs_render = true;
+        self.buffer = ImageBuffer::new(
+            (w * self.cell_size[0]) as u32,
+            (h * self.cell_size[1]) as u32,
+        );
+        self.texture = None;
     }
 
     /// Clear the entire CharGrid.
@@ -347,13 +367,11 @@ impl<'f> CharGrid<'f> {
         buffer_updated
     }
 
-    /// Draw the CharGrid onto the screen.  Giving a position offsets drawing from the top-left.
-    /// Giving a size will scale the CharGrid to fit within the size, maintaining its aspect ratio
-    /// and centering it in the process.
+    /// Draw the CharGrid onto the screen.
     ///
     /// A CharGrid maintains internal buffers to track changes since the last draw, so it needs to
     /// be mutable in order to update those buffers when these changes are detected.
-    pub fn draw<G>(&mut self, pos: Option<Position>, size: Option<[f64; 2]>, c: &Context, g: &mut G)
+    pub fn draw<G>(&mut self, c: &Context, g: &mut G)
     where
         G: Graphics<Texture = opengl_graphics::Texture>,
     {
@@ -371,37 +389,7 @@ impl<'f> CharGrid<'f> {
         }
 
         if let Some(texture) = &self.texture {
-            use graphics::{Image, Transformed};
-
-            let mut transform = c.transform;
-
-            if let Some(pos) = pos {
-                transform = transform.trans(pos[0] as f64, pos[1] as f64);
-            }
-
-            if let Some(size) = size {
-                let grid_size = self.size();
-                let grid_size = [grid_size[0] as f64, grid_size[1] as f64];
-
-                // Compare fractions by multiplying both sides by the product of denominators.
-                // a / b = x / y  --->  ay = xb
-                if size[0] * grid_size[1] > size[1] * grid_size[0] {
-                    // size wider than aspect of grid
-                    let factor = size[1] / grid_size[1];
-                    let h_diff = size[0] - grid_size[0] * factor;
-                    transform = transform.trans(h_diff / 2., 0.).zoom(factor);
-                } else if size[0] * grid_size[1] < size[1] * grid_size[0] {
-                    // size taller than aspect of grid
-                    let factor = size[0] / grid_size[0];
-                    let v_diff = size[1] - grid_size[1] * factor;
-                    transform = transform.trans(0., v_diff / 2.).zoom(factor);
-                } else if (size[0] - grid_size[0]).abs() > f64::EPSILON {
-                    let factor = size[0] / grid_size[0];
-                    transform = transform.zoom(factor);
-                }
-            }
-
-            Image::new().draw(texture, &c.draw_state, transform, g);
+            graphics::Image::new().draw(texture, &c.draw_state, c.transform, g);
         }
     }
 }

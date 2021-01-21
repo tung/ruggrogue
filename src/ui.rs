@@ -6,6 +6,8 @@ use crate::{
 };
 use ruggle::CharGrid;
 
+pub const HUD_LINES: i32 = 5;
+
 fn draw_bar(grid: &mut CharGrid, y: i32, min_x: i32, max_x: i32, val: i32, max_val: i32) {
     const BAR_FG: Option<[f32; 4]> = Some([1., 0., 0., 1.]);
     const BAR_BG: Option<[f32; 4]> = None;
@@ -46,14 +48,12 @@ fn draw_player_hp(world: &World, grid: &mut CharGrid, y: i32) {
             (player_stats.hp, player_stats.max_hp)
         },
     );
+    let hp_string = format!(" HP: {} / {} ", hp, max_hp);
+    let hp_bar_begin = hp_string.len() as i32 + 6;
+    let hp_bar_end = std::cmp::max(hp_bar_begin + 1, grid.size_cells()[0] - 4);
 
-    grid.print_color(
-        [12, y],
-        Some([1., 1., 0., 1.]),
-        None,
-        &format!(" HP: {} / {} ", hp, max_hp),
-    );
-    draw_bar(grid, y, 28, 78, hp, max_hp);
+    grid.print_color([3, y], Some([1., 1., 0., 1.]), None, &hp_string);
+    draw_bar(grid, y, hp_bar_begin, hp_bar_end, hp, max_hp);
 }
 
 fn draw_messages(world: &World, grid: &mut CharGrid, min_y: i32, max_y: i32) {
@@ -66,10 +66,13 @@ fn draw_messages(world: &World, grid: &mut CharGrid, min_y: i32, max_y: i32) {
 }
 
 pub fn draw_ui(world: &World, grid: &mut CharGrid) {
-    for x in 0..80 {
-        grid.put([x, 31], '─');
+    let [w, h] = grid.size_cells();
+    let y = h - HUD_LINES;
+
+    for x in 0..w {
+        grid.put([x, y], '─');
     }
 
-    draw_player_hp(world, grid, 31);
-    draw_messages(world, grid, 32, 35);
+    draw_player_hp(world, grid, y);
+    draw_messages(world, grid, y + 1, h);
 }
