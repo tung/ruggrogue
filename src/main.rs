@@ -196,38 +196,42 @@ fn main() {
         max_fps: 60,
     };
 
-    ruggle::run(settings, |mut inputs, mut grid| {
-        if world.run(player_is_alive) {
-            let (time_passed, player_turn_done) = if !world.run(monster_turns_empty) {
-                world.run(do_monster_turns);
-                (true, false)
-            } else if player_input(&world, &mut inputs) {
-                (true, true)
-            } else {
-                (false, false)
-            };
+    ruggle::run(
+        settings,
+        |mut inputs| {
+            if world.run(player_is_alive) {
+                let (time_passed, player_turn_done) = if !world.run(monster_turns_empty) {
+                    world.run(do_monster_turns);
+                    (true, false)
+                } else if player_input(&world, &mut inputs) {
+                    (true, true)
+                } else {
+                    (false, false)
+                };
 
-            if time_passed {
-                world.run(melee_combat);
-                world.run(inflict_damage);
-                world.run(delete_dead_entities);
-                world.run(recalculate_fields_of_view);
-                if player_turn_done {
-                    world.run(enqueue_monster_turns);
+                if time_passed {
+                    world.run(melee_combat);
+                    world.run(inflict_damage);
+                    world.run(delete_dead_entities);
+                    world.run(recalculate_fields_of_view);
+                    if player_turn_done {
+                        world.run(enqueue_monster_turns);
+                    }
                 }
+
+                (
+                    true,
+                    world.run(player_is_alive) && !world.run(monster_turns_empty),
+                )
+            } else {
+                (!player_is_dead_input(&mut inputs), false)
             }
-        } else if player_is_dead_input(&mut inputs) {
-            return (false, false);
-        }
-
-        grid.clear();
-        draw_map(&world, &mut grid);
-        draw_renderables(&world, &mut grid);
-        draw_ui(&world, &mut grid);
-
-        (
-            true,
-            world.run(player_is_alive) && !world.run(monster_turns_empty),
-        )
-    });
+        },
+        |mut grid| {
+            grid.clear();
+            draw_map(&world, &mut grid);
+            draw_renderables(&world, &mut grid);
+            draw_ui(&world, &mut grid);
+        },
+    );
 }

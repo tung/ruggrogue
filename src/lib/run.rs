@@ -29,14 +29,15 @@ pub struct RunSettings {
     pub max_fps: u64,
 }
 
-/// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.
+/// Create a [CharGrid] window and run a main event loop that calls `update` and `draw` repeatedly.
 ///
 /// `update` should return two `bool` values; the first is if running should continue (`true`) or
 /// quit (`false`), the second is if updates should be continuous (`true`) or wait for an event
 /// (`false`).
-pub fn run<T>(settings: RunSettings, mut update: T)
+pub fn run<U, D>(settings: RunSettings, mut update: U, mut draw: D)
 where
-    T: FnMut(&mut InputBuffer, &mut CharGrid) -> (bool, bool),
+    U: FnMut(&mut InputBuffer) -> (bool, bool),
+    D: FnMut(&mut CharGrid),
 {
     let font_data = fs::read(settings.font_path).unwrap();
     let font = Font::try_from_vec(font_data).unwrap();
@@ -64,11 +65,12 @@ where
 
     let mut inputs = InputBuffer::new();
 
-    let mut events = Events::new(match update(&mut inputs, &mut grid) {
+    let mut events = Events::new(match update(&mut inputs) {
         (true, true) => active_event_settings,
         (true, false) => inactive_event_settings,
         (false, _) => return,
     });
+    draw(&mut grid);
 
     while let Some(e) = events.next(&mut window) {
         // Show or hide mouse cursor based on keyboard and mouse input.
@@ -84,7 +86,7 @@ where
 
         // Update for buffered inputs and update events.
         if inputs.more_inputs() || e.update_args().is_some() {
-            let (keep_running, active) = update(&mut inputs, &mut grid);
+            let (keep_running, active) = update(&mut inputs);
 
             if !keep_running {
                 window.set_should_close(true);
@@ -98,6 +100,7 @@ where
         }
 
         if let Some(args) = e.render_args() {
+            draw(&mut grid);
             gl.draw(args.viewport(), |c, g| {
                 use graphics::Graphics;
 
