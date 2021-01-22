@@ -174,7 +174,7 @@ impl Map {
                 (x, y, None)
             } else {
                 let (ch, color) = match self.get_tile(x, y) {
-                    Tile::Floor => ('∙', [0.4, 0.4, 0.4, 1.]),
+                    Tile::Floor => ('·', [0.4, 0.4, 0.4, 1.]),
                     Tile::Wall => (self.wall_char(x, y), [0.8, 0.5, 0.2, 1.]),
                 };
 

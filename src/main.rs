@@ -193,9 +193,8 @@ fn main() {
 
     let settings = RunSettings {
         title: "Ruggle".to_string(),
-        grid_size: [80, 36],
-        font_path: PathBuf::from("assets/gohufont-uni-14.ttf"),
-        font_size: 14.0,
+        grid_size: [80, 48],
+        font_path: PathBuf::from("assets/terminal-8x8.png"),
         min_fps: 30,
         max_fps: 60,
     };

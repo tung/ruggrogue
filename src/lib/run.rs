@@ -3,9 +3,7 @@ use piston::event_loop::{EventLoop, EventSettings, Events};
 use piston::input::RenderEvent;
 use piston::window::WindowSettings;
 use piston::{MouseCursorEvent, PressEvent, ResizeEvent, UpdateEvent, Window};
-use rusttype::Font;
 use sdl2_window::Sdl2Window;
-use std::fs;
 
 use crate::chargrid::CharGrid;
 use crate::input_buffer::InputBuffer;
@@ -18,8 +16,6 @@ pub struct RunSettings {
     pub grid_size: [i32; 2],
     /// Path to font.
     pub font_path: std::path::PathBuf,
-    /// Size of font.
-    pub font_size: f32,
     /// FPS limit when waiting for an event to handle.  Most of the time, the event loop will be
     /// idle, but this limit can be reached when lots of unhandled events come in at once, e.g.
     /// mouse movement events.
@@ -39,9 +35,7 @@ where
     U: FnMut(&mut InputBuffer) -> (bool, bool),
     D: FnMut(&mut CharGrid),
 {
-    let font_data = fs::read(settings.font_path).unwrap();
-    let font = Font::try_from_vec(font_data).unwrap();
-    let mut grid = CharGrid::new(settings.grid_size, &font, settings.font_size);
+    let mut grid = CharGrid::new(settings.grid_size, &settings.font_path);
     let grid_size = {
         let s = grid.size_px();
         assert!(s[0] > 0 && s[1] > 0);

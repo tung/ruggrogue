@@ -2,7 +2,6 @@ use graphics::types::Color;
 use graphics::{Context, Graphics};
 use image::{ImageBuffer, Rgba, RgbaImage};
 use opengl_graphics::{Texture, TextureSettings};
-use rusttype::{Font, Scale};
 use std::collections::HashMap;
 
 type Position = [i32; 2];
@@ -85,69 +84,32 @@ impl RawCharGrid {
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
 /// color.  To use a CharGrid, create a new one, plot characters and colors onto it, and draw it to
 /// the screen.
-pub struct CharGrid<'f> {
+pub struct CharGrid {
     front: RawCharGrid,
     back: RawCharGrid,
-    font: &'f Font<'f>,
-    font_scale: Scale,
-    font_offset_y: i32,
-    glyph_cache: HashMap<char, Option<Vec<f32>>>,
+    glyph_cache: HashMap<char, Vec<f32>>,
     cell_size: Size,
     needs_render: bool,
     buffer: RgbaImage,
     texture: Option<Texture>,
 }
 
-/// Pre-calculate the intensity values for each pixel of a grid cell for a rendered glyph.
-/// The output starts at the top-left of the cell and is row-major ordered.
-/// A character without a glyph returns None.
-fn prerender_glyph(
-    c: char,
-    font: &Font,
-    scale: &Scale,
-    width: i32,
-    height: i32,
-    offset_y: f32,
-) -> Option<Vec<f32>> {
-    let glyph = font
-        .glyph(c)
-        .scaled(*scale)
-        .positioned(rusttype::point(0.0, offset_y));
-
-    if let Some(pbb) = glyph.pixel_bounding_box() {
-        let mut buf: Vec<f32> = Vec::new();
-        let size = (width * height) as usize;
-
-        buf.reserve_exact(size);
-        buf.resize(size, 0.);
-
-        let width = width as i32;
-        let height = height as i32;
-
-        glyph.draw(|x, y, v| {
-            let draw_x = pbb.min.x + x as i32;
-            let draw_y = pbb.min.y + y as i32;
-
-            if draw_x >= 0 && draw_x < width && draw_y >= 0 && draw_y < height {
-                // Exaggerate font pixels so they stand out more.
-                buf[(draw_y * width + draw_x) as usize] = 1. - (1. - v) * (1. - v);
-            }
-        });
-
-        Some(buf)
-    } else {
-        None
-    }
-}
-
-impl<'f> CharGrid<'f> {
+impl CharGrid {
     /// Create a new CharGrid with a given [width, height].  White is the default foreground color
     /// and black is the default background color.
-    pub fn new(grid_size: Size, font: &'f Font, font_size: f32) -> CharGrid<'f> {
+    pub fn new(grid_size: Size, font_path: &std::path::PathBuf) -> CharGrid {
         assert!(grid_size[0] > 0 && grid_size[1] > 0);
 
-        // Calculate the cell size based on font metrics in the desired size.
-        let code_page_437 = "☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
+        use image::GenericImageView;
+
+        // The font image should consist of a 16-by-16 grid of IBM code page 437 glyphs.
+        let image = image::io::Reader::open(font_path)
+            .unwrap()
+            .decode()
+            .unwrap();
+        let cell_width = image.dimensions().0 as i32 / 16;
+        let cell_height = image.dimensions().1 as i32 / 16;
+        let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
                              !\"#$%&'()*+,-./\
                              0123456789:;<=>?\
@@ -162,42 +124,31 @@ impl<'f> CharGrid<'f> {
                              └┴┬├─┼╞╟╚╔╩╦╠═╬╧\
                              ╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀\
                              αßΓπΣσµτΦΘΩδ∞φε∩\
-                             ≡±≥≤⌠⌡÷≈°∙·√ⁿ²■";
+                             ≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
+        let mut glyph_cache: HashMap<char, Vec<f32>> = HashMap::new();
 
-        let font_scale = Scale::uniform(font_size);
-        let point = rusttype::point(0., 0.);
+        for (i, ch) in code_page_437.chars().enumerate() {
+            let mut glyph = vec![0.0f32; (cell_width * cell_height) as usize];
+            let char_x = i as u32 % 16 * cell_width as u32;
+            let char_y = i as u32 / 16 * cell_height as u32;
 
-        // Don't track min_x; we'll just clip anything that draws left of x = 0.
-        let mut max_x: i32 = 0;
-        let mut min_y: i32 = 0;
-        let mut max_y: i32 = 0;
+            for (px_idx, glyph_px) in glyph.iter_mut().enumerate() {
+                let px_x = char_x + px_idx as u32 % cell_width as u32;
+                let px_y = char_y + px_idx as u32 / cell_width as u32;
+                let px = image.get_pixel(px_x, px_y);
 
-        for c in code_page_437.chars() {
-            let glyph = font.glyph(c).scaled(font_scale).positioned(point);
-
-            if let Some(pbb) = glyph.pixel_bounding_box() {
-                if pbb.max.x > max_x {
-                    max_x = pbb.max.x;
-                }
-                if pbb.min.y < min_y {
-                    min_y = pbb.min.y;
-                }
-                if pbb.max.y > max_y {
-                    max_y = pbb.max.y;
-                }
+                // White for foreground color, black for background color.
+                *glyph_px = px.0[0] as f32 * 0.3 / 255.0
+                    + px.0[1] as f32 * 0.59 / 255.0
+                    + px.0[2] as f32 * 0.11 / 255.0;
             }
+            glyph_cache.insert(ch, glyph);
         }
-
-        let cell_width = max_x;
-        let cell_height = max_y - min_y + 1;
 
         CharGrid {
             front: RawCharGrid::new(grid_size),
             back: RawCharGrid::new(grid_size),
-            font,
-            font_scale,
-            font_offset_y: -min_y,
-            glyph_cache: HashMap::new(),
+            glyph_cache,
             cell_size: [cell_width, cell_height],
             needs_render: true,
             buffer: ImageBuffer::new(
@@ -315,48 +266,20 @@ impl<'f> CharGrid<'f> {
             if char_diff || (fg_diff && !f_space) || bg_diff {
                 let cached_glyph = match self.glyph_cache.get(&fc) {
                     Some(data) => data,
-                    None => {
-                        self.glyph_cache.insert(
-                            fc,
-                            prerender_glyph(
-                                fc,
-                                &self.font,
-                                &self.font_scale,
-                                cell_width as i32,
-                                cell_height as i32,
-                                self.font_offset_y as f32,
-                            ),
-                        );
-                        self.glyph_cache.get(&fc).unwrap()
-                    }
+                    None => self.glyph_cache.get(&' ').unwrap(),
                 };
 
-                if let Some(data) = cached_glyph {
-                    for y in 0..cell_height {
-                        for x in 0..cell_width {
-                            let v = data[(y * cell_width + x) as usize];
-                            let c = Rgba([
-                                ((v * ffg[0] + (1. - v) * fbg[0]) * 255.) as u8,
-                                ((v * ffg[1] + (1. - v) * fbg[1]) * 255.) as u8,
-                                ((v * ffg[2] + (1. - v) * fbg[2]) * 255.) as u8,
-                                ((v * ffg[3] + (1. - v) * fbg[3]) * 255.) as u8,
-                            ]);
+                for y in 0..cell_height {
+                    for x in 0..cell_width {
+                        let v = cached_glyph[(y * cell_width + x) as usize];
+                        let c = Rgba([
+                            ((v * ffg[0] + (1. - v) * fbg[0]) * 255.) as u8,
+                            ((v * ffg[1] + (1. - v) * fbg[1]) * 255.) as u8,
+                            ((v * ffg[2] + (1. - v) * fbg[2]) * 255.) as u8,
+                            ((v * ffg[3] + (1. - v) * fbg[3]) * 255.) as u8,
+                        ]);
 
-                            self.buffer.put_pixel(px + x, py + y, c);
-                        }
-                    }
-                } else {
-                    let c = Rgba([
-                        (fbg[0] * 255.) as u8,
-                        (fbg[1] * 255.) as u8,
-                        (fbg[2] * 255.) as u8,
-                        (fbg[3] * 255.) as u8,
-                    ]);
-
-                    for y in py..py + cell_height {
-                        for x in px..px + cell_width {
-                            self.buffer.put_pixel(x, y, c);
-                        }
+                        self.buffer.put_pixel(px + x, py + y, c);
                     }
                 }
 
