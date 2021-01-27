@@ -11,4 +11,4 @@ pub use chargrid::CharGrid;
 pub use field_of_view::{field_of_view, FovIter, FovShape, ViewableField};
 pub use input_buffer::{InputBuffer, InputEvent, KeyMods};
 pub use path_find::{find_path, AStarIter, PathableMap};
-pub use run::{run, RunSettings};
+pub use run::{run, RunControl, RunSettings};

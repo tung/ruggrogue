@@ -8,6 +8,16 @@ use sdl2_window::Sdl2Window;
 use crate::chargrid::CharGrid;
 use crate::input_buffer::InputBuffer;
 
+/// Return value for `update` callback sent into [run] that controls the main event loop.
+pub enum RunControl {
+    /// Wait for an event before calling `update` again.
+    WaitForEvent,
+    /// Call `update` again next frame.
+    Update,
+    /// Quit the run loop.
+    Quit,
+}
+
 /// Window and event loop settings for [run].
 pub struct RunSettings {
     /// Window title.
@@ -32,7 +42,7 @@ pub struct RunSettings {
 /// (`false`).
 pub fn run<U, D>(settings: RunSettings, mut update: U, mut draw: D)
 where
-    U: FnMut(&mut InputBuffer) -> (bool, bool),
+    U: FnMut(&mut InputBuffer) -> RunControl,
     D: FnMut(&mut CharGrid),
 {
     let mut grid = CharGrid::new(settings.grid_size, &settings.font_path);
@@ -60,9 +70,9 @@ where
     let mut inputs = InputBuffer::new();
 
     let mut events = Events::new(match update(&mut inputs) {
-        (true, true) => active_event_settings,
-        (true, false) => inactive_event_settings,
-        (false, _) => return,
+        RunControl::WaitForEvent => inactive_event_settings,
+        RunControl::Update => active_event_settings,
+        RunControl::Quit => return,
     });
     draw(&mut grid);
 
@@ -80,12 +90,11 @@ where
 
         // Update for buffered inputs and update events.
         if inputs.more_inputs() || e.update_args().is_some() {
-            let (keep_running, active) = update(&mut inputs);
-
-            if !keep_running {
-                window.set_should_close(true);
+            match update(&mut inputs) {
+                RunControl::WaitForEvent => need_active = false,
+                RunControl::Update => need_active = true,
+                RunControl::Quit => window.set_should_close(true),
             }
-            need_active = active;
         }
 
         // Keep driving updates if more inputs are buffered.

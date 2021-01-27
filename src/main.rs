@@ -30,7 +30,7 @@ use crate::{
     ui::draw_ui,
     vision::recalculate_fields_of_view,
 };
-use ruggle::{CharGrid, RunSettings};
+use ruggle::{CharGrid, RunControl, RunSettings};
 
 pub struct PlayerAlive(bool);
 
@@ -222,12 +222,15 @@ fn main() {
                     }
                 }
 
-                (
-                    true,
-                    world.run(player_is_alive) && !world.run(monster_turns_empty),
-                )
+                if world.run(player_is_alive) && !world.run(monster_turns_empty) {
+                    RunControl::Update
+                } else {
+                    RunControl::WaitForEvent
+                }
+            } else if player_is_dead_input(&mut inputs) {
+                RunControl::Quit
             } else {
-                (!player_is_dead_input(&mut inputs), false)
+                RunControl::WaitForEvent
             }
         },
         |mut grid| {
