@@ -40,7 +40,6 @@ fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
     player_alive.0
 }
 
-#[allow(clippy::too_many_arguments)]
 fn spawn_player(
     mut map: UniqueViewMut<Map>,
     mut entities: EntitiesViewMut,
@@ -84,7 +83,6 @@ fn spawn_player(
     player_id
 }
 
-#[allow(clippy::too_many_arguments)]
 fn spawn_monsters_in_rooms(
     mut map: UniqueViewMut<Map>,
     mut rng: UniqueViewMut<RuggleRng>,

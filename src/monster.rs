@@ -71,7 +71,6 @@ fn do_turn_for_one_monster(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn do_monster_turns(
     entities: EntitiesView,
     mut map: UniqueViewMut<Map>,
