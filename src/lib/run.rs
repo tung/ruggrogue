@@ -37,9 +37,7 @@ pub struct RunSettings {
 
 /// Create a [CharGrid] window and run a main event loop that calls `update` and `draw` repeatedly.
 ///
-/// `update` should return two `bool` values; the first is if running should continue (`true`) or
-/// quit (`false`), the second is if updates should be continuous (`true`) or wait for an event
-/// (`false`).
+/// `update` should return a [RunControl] enum variant to control the loop behavior.
 pub fn run<U, D>(settings: RunSettings, mut update: U, mut draw: D)
 where
     U: FnMut(&mut InputBuffer) -> RunControl,
