@@ -5,21 +5,17 @@ mod message;
 mod monster;
 mod player;
 mod rect;
+mod spawn;
 mod ui;
 mod vision;
 
-use rand::{thread_rng, Rng, SeedableRng};
+use rand::{thread_rng, SeedableRng};
 use rand_pcg::Pcg64Mcg;
-use shipyard::{
-    EntitiesViewMut, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
-    World,
-};
+use shipyard::{Get, IntoIter, UniqueView, View, World};
 use std::path::PathBuf;
 
 use crate::{
-    components::{
-        BlocksTile, CombatStats, FieldOfView, Monster, Name, Player, PlayerId, Position, Renderable,
-    },
+    components::{FieldOfView, PlayerId, Position, Renderable},
     damage::{
         delete_dead_entities, inflict_damage, melee_combat, DamageQueue, DeadEntities, MeleeQueue,
     },
@@ -38,104 +34,6 @@ pub struct RuggleRng(Pcg64Mcg);
 
 fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
     player_alive.0
-}
-
-fn spawn_player(
-    mut map: UniqueViewMut<Map>,
-    mut entities: EntitiesViewMut,
-    mut combat_stats: ViewMut<CombatStats>,
-    mut fovs: ViewMut<FieldOfView>,
-    mut names: ViewMut<Name>,
-    mut players: ViewMut<Player>,
-    mut positions: ViewMut<Position>,
-    mut renderables: ViewMut<Renderable>,
-) -> EntityId {
-    let player_id = entities.add_entity(
-        (
-            &mut players,
-            &mut combat_stats,
-            &mut fovs,
-            &mut names,
-            &mut positions,
-            &mut renderables,
-        ),
-        (
-            Player {},
-            CombatStats {
-                max_hp: 30,
-                hp: 30,
-                defense: 2,
-                power: 5,
-            },
-            FieldOfView::new(8),
-            Name("Player".into()),
-            Position { x: 0, y: 0 },
-            Renderable {
-                ch: '@',
-                fg: [1., 1., 0., 1.],
-                bg: [0., 0., 0., 1.],
-            },
-        ),
-    );
-
-    map.place_entity(player_id, (0, 0), false);
-
-    player_id
-}
-
-fn spawn_monsters_in_rooms(
-    mut map: UniqueViewMut<Map>,
-    mut rng: UniqueViewMut<RuggleRng>,
-    mut entities: EntitiesViewMut,
-    mut blocks: ViewMut<BlocksTile>,
-    mut combat_stats: ViewMut<CombatStats>,
-    mut fovs: ViewMut<FieldOfView>,
-    mut monsters: ViewMut<Monster>,
-    mut names: ViewMut<Name>,
-    mut positions: ViewMut<Position>,
-    mut renderables: ViewMut<Renderable>,
-) {
-    for room in map.rooms.iter().skip(1) {
-        let (ch, name, fg) = match rng.0.gen_range(0, 2) {
-            0 => ('g', "Goblin", [0.5, 0.9, 0.2, 1.]),
-            1 => ('o', "Orc", [0.9, 0.3, 0.2, 1.]),
-            _ => ('X', "???", [1., 0., 0., 1.]),
-        };
-
-        entities.add_entity(
-            (
-                &mut monsters,
-                &mut blocks,
-                &mut combat_stats,
-                &mut fovs,
-                &mut names,
-                &mut positions,
-                &mut renderables,
-            ),
-            (
-                Monster {},
-                BlocksTile {},
-                CombatStats {
-                    max_hp: 16,
-                    hp: 16,
-                    defense: 1,
-                    power: 4,
-                },
-                FieldOfView::new(8),
-                Name(name.into()),
-                room.center().into(),
-                Renderable {
-                    ch,
-                    fg,
-                    bg: [0., 0., 0., 1.],
-                },
-            ),
-        );
-    }
-
-    for (id, (_, _, pos)) in (&monsters, &blocks, &positions).iter().with_id() {
-        map.place_entity(id, pos.into(), true);
-    }
 }
 
 fn draw_renderables(world: &World, grid: &mut CharGrid) {
@@ -175,11 +73,11 @@ fn main() {
     world.add_unique(Map::new(80, 50));
     world.run(map::generate_rooms_and_corridors);
 
-    world.add_unique(PlayerId(world.run(spawn_player)));
+    world.add_unique(PlayerId(world.run(spawn::spawn_player)));
     world.add_unique(PlayerAlive(true));
     world.run(map::place_player_in_first_room);
 
-    world.run(spawn_monsters_in_rooms);
+    world.run(spawn::spawn_monsters_in_rooms);
 
     world.add_unique(MonsterTurns::new());
 
