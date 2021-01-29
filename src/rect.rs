@@ -1,3 +1,4 @@
+#[derive(Clone, Copy)]
 pub struct Rect {
     pub x1: i32,
     pub y1: i32,
@@ -31,5 +32,11 @@ impl Rect {
             (self.x2 - self.x1) / 2 + self.x1,
             (self.y2 - self.y1) / 2 + self.y1,
         )
+    }
+
+    pub fn iter_xy(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        (self.y1..=self.y2)
+            .flat_map(move |y| std::iter::repeat(y).zip(self.x1..=self.x2))
+            .map(move |(y, x)| (x, y))
     }
 }

@@ -77,7 +77,7 @@ fn main() {
     world.add_unique(PlayerAlive(true));
     world.run(map::place_player_in_first_room);
 
-    world.run(spawn::spawn_monsters_in_rooms);
+    spawn::fill_rooms_with_spawns(&world);
 
     world.add_unique(MonsterTurns::new());
 
