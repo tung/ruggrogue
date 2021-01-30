@@ -6,7 +6,8 @@ use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, FieldOfView, Monster, Name, Player, Position, Renderable,
+        BlocksTile, CombatStats, FieldOfView, Item, Monster, Name, Player, Position, Potion,
+        Renderable,
     },
     map::Map,
     rect::Rect,
@@ -54,6 +55,41 @@ pub fn spawn_player(
     map.place_entity(player_id, (0, 0), false);
 
     player_id
+}
+
+fn spawn_health_potion(world: &World, pos: (i32, i32)) {
+    world.run(
+        |mut map: UniqueViewMut<Map>,
+         mut entities: EntitiesViewMut,
+         mut items: ViewMut<Item>,
+         mut names: ViewMut<Name>,
+         mut positions: ViewMut<Position>,
+         mut potions: ViewMut<Potion>,
+         mut renderables: ViewMut<Renderable>| {
+            let item_id = entities.add_entity(
+                (
+                    &mut items,
+                    &mut names,
+                    &mut positions,
+                    &mut potions,
+                    &mut renderables,
+                ),
+                (
+                    Item {},
+                    Name("Health Potion".into()),
+                    pos.into(),
+                    Potion { heal_amount: 8 },
+                    Renderable {
+                        ch: '!',
+                        fg: [1., 0., 1., 1.],
+                        bg: [0., 0., 0., 1.],
+                    },
+                ),
+            );
+
+            map.place_entity(item_id, pos, false);
+        },
+    );
 }
 
 fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f32; 4]) {
@@ -117,6 +153,17 @@ fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
 }
 
 fn fill_room_with_spawns(world: &World, room: &Rect) {
+    if world.run(|mut rng: UniqueViewMut<RuggleRng>| rng.0.gen_ratio(1, 4)) {
+        let positions = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
+            let num = rng.0.gen_range(1, 2);
+            room.iter_xy().choose_multiple(&mut rng.0, num)
+        });
+
+        for pos in positions {
+            spawn_health_potion(world, pos);
+        }
+    }
+
     if world.run(|mut rng: UniqueViewMut<RuggleRng>| rng.0.gen_ratio(1, 2)) {
         let positions = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
             let num = rng.0.gen_range(1, 4);

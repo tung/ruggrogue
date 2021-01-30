@@ -55,6 +55,8 @@ impl FieldOfView {
     }
 }
 
+pub struct Item;
+
 pub struct Monster;
 
 pub struct Name(pub String);
@@ -90,6 +92,10 @@ impl From<(i32, i32)> for Position {
     fn from((x, y): (i32, i32)) -> Self {
         Position { x, y }
     }
+}
+
+pub struct Potion {
+    pub heal_amount: i32,
 }
 
 pub struct Renderable {
