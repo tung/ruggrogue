@@ -95,6 +95,10 @@ pub struct Potion {
     pub heal_amount: i32,
 }
 
+pub struct RenderOnFloor;
+
+pub struct RenderOnMap;
+
 pub struct Renderable {
     pub ch: char,
     pub fg: [f32; 4],

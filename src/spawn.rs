@@ -7,7 +7,7 @@ use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
 use crate::{
     components::{
         BlocksTile, CombatStats, FieldOfView, Item, Monster, Name, Player, Position, Potion,
-        Renderable,
+        RenderOnFloor, RenderOnMap, Renderable,
     },
     map::Map,
     rect::Rect,
@@ -22,6 +22,7 @@ pub fn spawn_player(
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
     mut positions: ViewMut<Position>,
+    mut render_on_maps: ViewMut<RenderOnMap>,
     mut renderables: ViewMut<Renderable>,
 ) -> EntityId {
     let player_id = entities.add_entity(
@@ -31,6 +32,7 @@ pub fn spawn_player(
             &mut fovs,
             &mut names,
             &mut positions,
+            &mut render_on_maps,
             &mut renderables,
         ),
         (
@@ -44,6 +46,7 @@ pub fn spawn_player(
             FieldOfView::new(8),
             Name("Player".into()),
             Position { x: 0, y: 0 },
+            RenderOnMap {},
             Renderable {
                 ch: '@',
                 fg: [1., 1., 0., 1.],
@@ -65,6 +68,7 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
          mut names: ViewMut<Name>,
          mut positions: ViewMut<Position>,
          mut potions: ViewMut<Potion>,
+         mut render_on_floors: ViewMut<RenderOnFloor>,
          mut renderables: ViewMut<Renderable>| {
             let item_id = entities.add_entity(
                 (
@@ -72,6 +76,7 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                     &mut names,
                     &mut positions,
                     &mut potions,
+                    &mut render_on_floors,
                     &mut renderables,
                 ),
                 (
@@ -79,6 +84,7 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                     Name("Health Potion".into()),
                     pos.into(),
                     Potion { heal_amount: 8 },
+                    RenderOnFloor {},
                     Renderable {
                         ch: '!',
                         fg: [1., 0., 1., 1.],
@@ -102,6 +108,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f
          mut monsters: ViewMut<Monster>,
          mut names: ViewMut<Name>,
          mut positions: ViewMut<Position>,
+         mut render_on_maps: ViewMut<RenderOnMap>,
          mut renderables: ViewMut<Renderable>| {
             let monster_id = entities.add_entity(
                 (
@@ -111,6 +118,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f
                     &mut fovs,
                     &mut names,
                     &mut positions,
+                    &mut render_on_maps,
                     &mut renderables,
                 ),
                 (
@@ -125,6 +133,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f
                     FieldOfView::new(8),
                     Name(name),
                     pos.into(),
+                    RenderOnMap {},
                     Renderable {
                         ch,
                         fg: *fg,

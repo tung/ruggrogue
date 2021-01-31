@@ -19,12 +19,14 @@ fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
 }
 
 fn draw_renderables(world: &World, grid: &mut ruggle::CharGrid) {
-    use crate::components::{FieldOfView, Position, Renderable};
+    use crate::components::{FieldOfView, Position, RenderOnFloor, RenderOnMap, Renderable};
 
     world.run(
         |player: UniqueView<PlayerId>,
          fovs: View<FieldOfView>,
          positions: View<Position>,
+         render_on_floors: View<RenderOnFloor>,
+         render_on_maps: View<RenderOnMap>,
          renderables: View<Renderable>| {
             let (x, y) = positions.get(player.0).into();
             let fov = fovs.get(player.0);
@@ -32,14 +34,22 @@ fn draw_renderables(world: &World, grid: &mut ruggle::CharGrid) {
             let h = grid.size_cells()[1] - ui::HUD_LINES;
             let cx = w / 2;
             let cy = h / 2;
-
-            for (pos, render) in (&positions, &renderables).iter() {
+            let mut render_entity = |pos: &Position, render: &Renderable| {
                 let gx = pos.x - x + cx;
                 let gy = pos.y - y + cy;
-
                 if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(pos.into()) {
                     grid.put_color([gx, gy], Some(render.fg), Some(render.bg), render.ch);
                 }
+            };
+
+            // Draw floor entities first.
+            for (pos, render, _) in (&positions, &renderables, &render_on_floors).iter() {
+                render_entity(pos, render);
+            }
+
+            // Draw normal map entities.
+            for (pos, render, _) in (&positions, &renderables, &render_on_maps).iter() {
+                render_entity(pos, render);
             }
         },
     );
