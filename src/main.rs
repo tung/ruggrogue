@@ -10,7 +10,7 @@ mod spawn;
 mod ui;
 mod vision;
 
-use rand::{thread_rng, SeedableRng};
+use rand::SeedableRng;
 use rand_pcg::Pcg64Mcg;
 use shipyard::World;
 use std::{cell::RefCell, path::PathBuf};
@@ -26,7 +26,7 @@ pub struct RuggleRng(Pcg64Mcg);
 fn main() {
     let world = World::new();
 
-    world.add_unique(RuggleRng(Pcg64Mcg::from_rng(thread_rng()).unwrap()));
+    world.add_unique(RuggleRng(Pcg64Mcg::from_rng(rand::thread_rng()).unwrap()));
     world.add_unique(message::Messages::new(4));
     world.add_unique(map::Map::new(80, 50));
     world.add_unique(PlayerId(world.run(spawn::spawn_player)));

@@ -27,6 +27,8 @@ pub mod dungeon;
 
 use shipyard::World;
 
+use ruggle::{CharGrid, InputBuffer, RunControl};
+
 use dungeon::{DungeonMode, DungeonModeResult};
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -90,7 +92,7 @@ impl Mode {
     pub fn update(
         &mut self,
         world: &World,
-        inputs: &mut ruggle::InputBuffer,
+        inputs: &mut InputBuffer,
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         match self {
@@ -98,7 +100,7 @@ impl Mode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut ruggle::CharGrid) {
+    pub fn draw(&self, world: &World, grid: &mut CharGrid) {
         match self {
             Mode::DungeonMode(x) => x.draw(world, grid),
         }
@@ -126,11 +128,7 @@ impl ModeStack {
 
     /// Perform update logic for the top-most mode of the stack.  This also converts [ModeUpdate]
     /// values into [ruggle::RunControl] values to control the behavior of the next update.
-    pub fn update(
-        &mut self,
-        world: &World,
-        inputs: &mut ruggle::InputBuffer,
-    ) -> ruggle::RunControl {
+    pub fn update(&mut self, world: &World, inputs: &mut InputBuffer) -> RunControl {
         while let Some(top_mode) = self.stack.last_mut() {
             let result = top_mode.update(world, inputs, &self.pop_result);
 
@@ -157,16 +155,16 @@ impl ModeStack {
 
             match result.1 {
                 ModeUpdate::Immediate => (),
-                ModeUpdate::Update => return ruggle::RunControl::Update,
-                ModeUpdate::WaitForEvent => return ruggle::RunControl::WaitForEvent,
+                ModeUpdate::Update => return RunControl::Update,
+                ModeUpdate::WaitForEvent => return RunControl::WaitForEvent,
             }
         }
 
-        ruggle::RunControl::Quit
+        RunControl::Quit
     }
 
     /// Draw the modes in the stack from the bottom-up.
-    pub fn draw(&self, world: &World, grid: &mut ruggle::CharGrid) {
+    pub fn draw(&self, world: &World, grid: &mut CharGrid) {
         let stack_size = self.stack.len();
 
         if stack_size == 0 {
