@@ -1,9 +1,6 @@
 use shipyard::{Get, UniqueView, View, World};
 
-use crate::{
-    components::{CombatStats, PlayerId},
-    message::Messages,
-};
+use crate::{components::CombatStats, message::Messages, player::PlayerId};
 use ruggle::CharGrid;
 
 pub const HUD_LINES: i32 = 5;

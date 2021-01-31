@@ -15,10 +15,11 @@ use rand_pcg::Pcg64Mcg;
 use shipyard::World;
 use std::{cell::RefCell, path::PathBuf};
 
-use crate::modes::{dungeon::DungeonMode, ModeStack};
+use crate::{
+    modes::{dungeon::DungeonMode, ModeStack},
+    player::{PlayerAlive, PlayerId},
+};
 use ruggle::RunSettings;
-
-pub struct PlayerAlive(bool);
 
 pub struct RuggleRng(Pcg64Mcg);
 
@@ -28,7 +29,7 @@ fn main() {
     world.add_unique(RuggleRng(Pcg64Mcg::from_rng(thread_rng()).unwrap()));
     world.add_unique(message::Messages::new(4));
     world.add_unique(map::Map::new(80, 50));
-    world.add_unique(components::PlayerId(world.run(spawn::spawn_player)));
+    world.add_unique(PlayerId(world.run(spawn::spawn_player)));
     world.add_unique(PlayerAlive(true));
     world.add_unique(monster::MonsterTurns::new());
     world.add_unique(damage::MeleeQueue::new());

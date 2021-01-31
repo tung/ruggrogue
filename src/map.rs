@@ -4,7 +4,8 @@ use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 use std::collections::HashMap;
 
 use crate::{
-    components::{FieldOfView, PlayerId, Position},
+    components::{FieldOfView, Position},
+    player::PlayerId,
     rect::Rect,
     ui, RuggleRng,
 };

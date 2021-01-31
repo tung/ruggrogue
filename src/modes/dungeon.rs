@@ -1,7 +1,9 @@
 use shipyard::{Get, IntoIter, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
-    components::PlayerId, damage, map, message, monster, player, spawn, ui, vision, PlayerAlive,
+    damage, map, message, monster,
+    player::{self, PlayerAlive, PlayerId},
+    spawn, ui, vision,
 };
 
 use super::{ModeControl, ModeResult, ModeUpdate};

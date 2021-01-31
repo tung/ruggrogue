@@ -5,7 +5,7 @@ use crate::{
     components::{BlocksTile, CombatStats, Name, Player, Position},
     map::Map,
     message::Messages,
-    PlayerAlive,
+    player::PlayerAlive,
 };
 
 pub struct MeleeEvent {

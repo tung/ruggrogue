@@ -1,5 +1,5 @@
 use piston::input::{Button, Key};
-use shipyard::{IntoIter, Shiperator, UniqueViewMut, View, ViewMut, World};
+use shipyard::{EntityId, IntoIter, Shiperator, UniqueViewMut, View, ViewMut, World};
 
 use crate::{
     components::{CombatStats, FieldOfView, Player, Position},
@@ -7,6 +7,10 @@ use crate::{
     map::Map,
 };
 use ruggle::{InputBuffer, InputEvent, PathableMap};
+
+pub struct PlayerId(pub EntityId);
+
+pub struct PlayerAlive(pub bool);
 
 pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
     world.run(

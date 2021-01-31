@@ -1,5 +1,4 @@
 use bitvec::prelude::*;
-use shipyard::EntityId;
 
 pub struct BlocksTile;
 
@@ -62,8 +61,6 @@ pub struct Monster;
 pub struct Name(pub String);
 
 pub struct Player;
-
-pub struct PlayerId(pub EntityId);
 
 pub struct Position {
     pub x: i32,

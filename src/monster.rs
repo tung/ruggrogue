@@ -4,9 +4,10 @@ use shipyard::{
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use crate::{
-    components::{BlocksTile, FieldOfView, Monster, PlayerId, Position},
+    components::{BlocksTile, FieldOfView, Monster, Position},
     damage::MeleeQueue,
     map::Map,
+    player::PlayerId,
 };
 
 pub struct MonsterTurns(BinaryHeap<(Reverse<i32>, EntityId)>);
