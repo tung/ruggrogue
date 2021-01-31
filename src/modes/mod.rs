@@ -126,7 +126,11 @@ impl ModeStack {
 
     /// Perform update logic for the top-most mode of the stack.  This also converts [ModeUpdate]
     /// values into [ruggle::RunControl] values to control the behavior of the next update.
-    pub fn update(&mut self, world: &World, inputs: &mut ruggle::InputBuffer) -> ruggle::RunControl {
+    pub fn update(
+        &mut self,
+        world: &World,
+        inputs: &mut ruggle::InputBuffer,
+    ) -> ruggle::RunControl {
         while let Some(top_mode) = self.stack.last_mut() {
             let result = top_mode.update(world, inputs, &self.pop_result);
 
