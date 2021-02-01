@@ -88,6 +88,7 @@ pub struct CharGrid {
     front: RawCharGrid,
     back: RawCharGrid,
     glyph_cache: HashMap<char, Vec<f32>>,
+    min_grid_size: Size,
     cell_size: Size,
     needs_render: bool,
     buffer: RgbaImage,
@@ -97,8 +98,9 @@ pub struct CharGrid {
 impl CharGrid {
     /// Create a new CharGrid with a given [width, height].  White is the default foreground color
     /// and black is the default background color.
-    pub fn new(grid_size: Size, font_path: &std::path::PathBuf) -> CharGrid {
+    pub fn new(font_path: &std::path::PathBuf, grid_size: Size, min_grid_size: Size) -> CharGrid {
         assert!(grid_size[0] > 0 && grid_size[1] > 0);
+        assert!(min_grid_size[0] > 0 && min_grid_size[1] > 0);
 
         use image::GenericImageView;
 
@@ -145,10 +147,16 @@ impl CharGrid {
             glyph_cache.insert(ch, glyph);
         }
 
+        let grid_size = [
+            std::cmp::min(255, std::cmp::max(min_grid_size[0], grid_size[0])),
+            std::cmp::min(255, std::cmp::max(min_grid_size[1], grid_size[1])),
+        ];
+
         CharGrid {
             front: RawCharGrid::new(grid_size),
             back: RawCharGrid::new(grid_size),
             glyph_cache,
+            min_grid_size,
             cell_size: [cell_width, cell_height],
             needs_render: true,
             buffer: ImageBuffer::new(
@@ -174,8 +182,14 @@ impl CharGrid {
 
     /// Resize the CharGrid to fill the specified pixel dimensions.
     pub fn resize_for_px(&mut self, px_size: Size) {
-        let w = std::cmp::min(255, std::cmp::max(1, px_size[0] / self.cell_size[0]));
-        let h = std::cmp::min(255, std::cmp::max(1, px_size[1] / self.cell_size[1]));
+        let w = std::cmp::min(
+            255,
+            std::cmp::max(self.min_grid_size[0], px_size[0] / self.cell_size[0]),
+        );
+        let h = std::cmp::min(
+            255,
+            std::cmp::max(self.min_grid_size[1], px_size[1] / self.cell_size[1]),
+        );
 
         self.front = RawCharGrid::new([w, h]);
         self.back = RawCharGrid::new([w, h]);

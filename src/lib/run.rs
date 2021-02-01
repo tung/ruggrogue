@@ -24,6 +24,8 @@ pub struct RunSettings {
     pub title: String,
     /// Dimensions of the character grid.
     pub grid_size: [i32; 2],
+    /// Minimum dimensions of the character grid.
+    pub min_grid_size: [i32; 2],
     /// Path to font.
     pub font_path: std::path::PathBuf,
     /// FPS limit when waiting for an event to handle.  Most of the time, the event loop will be
@@ -43,7 +45,11 @@ where
     U: FnMut(&mut InputBuffer) -> RunControl,
     D: FnMut(&mut CharGrid),
 {
-    let mut grid = CharGrid::new(settings.grid_size, &settings.font_path);
+    let mut grid = CharGrid::new(
+        &settings.font_path,
+        settings.grid_size,
+        settings.min_grid_size,
+    );
     let grid_size = {
         let s = grid.size_px();
         assert!(s[0] > 0 && s[1] > 0);
