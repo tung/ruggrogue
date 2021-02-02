@@ -506,7 +506,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
                         [v, v, v, color[3]]
                     };
 
-                    grid.put_color([tx - x + cx, ty - y + cy], Some(color), None, ch);
+                    grid.put_color_raw([tx - x + cx, ty - y + cy], Some(color), None, ch);
                 }
             }
         },

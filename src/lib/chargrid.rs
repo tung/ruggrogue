@@ -54,30 +54,36 @@ impl RawCharGrid {
         }
     }
 
-    fn put_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        if x < 0 || y < 0 || x >= self.size[0] || y >= self.size[1] {
-            return;
-        }
-
+    fn put_color_raw(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         let index = (y * self.size[0] + x) as usize;
 
         self.chars[index] = c;
-
         if let Some(c) = fg {
             self.fg[index] = c;
         }
-
         if let Some(c) = bg {
             self.bg[index] = c;
         }
     }
 
-    fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
-        let width = self.size[0];
+    fn put_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
+        if pos[0] >= 0 && pos[1] >= 0 && pos[0] < self.size[0] && pos[1] < self.size[1] {
+            self.put_color_raw(pos, fg, bg, c);
+        }
+    }
 
-        s.char_indices()
-            .take_while(|(i, _)| x + (*i as i32) < width)
-            .for_each(|(i, c)| self.put_color([x + i as i32, y], fg, bg, c));
+    fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
+        if y >= 0 && y < self.size[1] && x < self.size[0] && x + s.len() as i32 > 0 {
+            let skip_chars = if x < 0 { -x as usize } else { 0 };
+
+            for (i, c) in s
+                .char_indices()
+                .skip(skip_chars)
+                .take(self.size[0] as usize)
+            {
+                self.put_color_raw([x + i as i32, y], fg, bg, c);
+            }
+        }
     }
 }
 
@@ -221,6 +227,12 @@ impl CharGrid {
     /// background colors.
     pub fn put_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         self.front.put_color(pos, fg, bg, c);
+        self.needs_render = true;
+    }
+
+    /// Like [CharGrid::put_color], but skips bounds checking.
+    pub fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
+        self.front.put_color_raw(pos, fg, bg, c);
         self.needs_render = true;
     }
 
