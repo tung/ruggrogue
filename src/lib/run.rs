@@ -57,9 +57,7 @@ where
     };
 
     let opengl = OpenGL::V3_2;
-    let window_settings = WindowSettings::new(settings.title, grid_size)
-        .graphics_api(opengl)
-        .exit_on_esc(true);
+    let window_settings = WindowSettings::new(settings.title, grid_size).graphics_api(opengl);
     let mut window: Sdl2Window = window_settings.build().unwrap();
     let mut gl = GlGraphics::new(opengl);
     let mut mouse_shown = true;

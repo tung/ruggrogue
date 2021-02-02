@@ -85,6 +85,47 @@ impl RawCharGrid {
             }
         }
     }
+
+    fn draw_box(&mut self, [x, y]: Position, [w, h]: Size, fg: Color, bg: Color) {
+        if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < self.size[0] && y < self.size[1] {
+            let fg = Some(fg);
+            let bg = Some(bg);
+
+            if y >= 0 {
+                if x >= 0 {
+                    self.put_color_raw([x, y], fg, bg, '┌');
+                }
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size[0], x + w - 1) {
+                    self.put_color_raw([xx, y], fg, bg, '─');
+                }
+                if x + w - 1 < self.size[0] {
+                    self.put_color_raw([x + w - 1, y], fg, bg, '┐');
+                }
+            }
+            for yy in std::cmp::max(0, y + 1)..std::cmp::min(self.size[1], y + h - 1) {
+                if x >= 0 {
+                    self.put_color_raw([x, yy], fg, bg, '│');
+                }
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size[0], x + w - 1) {
+                    self.put_color_raw([xx, yy], fg, bg, ' ');
+                }
+                if x + w - 1 < self.size[0] {
+                    self.put_color_raw([x + w - 1, yy], fg, bg, '│');
+                }
+            }
+            if y + h - 1 < self.size[1] {
+                if x >= 0 {
+                    self.put_color_raw([x, y + h - 1], fg, bg, '└');
+                }
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size[0], x + w - 1) {
+                    self.put_color_raw([xx, y + h - 1], fg, bg, '─');
+                }
+                if x + w - 1 < self.size[0] {
+                    self.put_color_raw([x + w - 1, y + h - 1], fg, bg, '┘');
+                }
+            }
+        }
+    }
 }
 
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
@@ -247,6 +288,13 @@ impl CharGrid {
     /// CharGrid it will be truncated.
     pub fn print_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
         self.front.print_color(pos, fg, bg, s);
+        self.needs_render = true;
+    }
+
+    /// Draw a box on the CharGrid with the given size, position and foreground/background colors.
+    /// Any part of the box that falls outside of the CharGrid will be clipped off.
+    pub fn draw_box(&mut self, pos: Position, size: Size, fg: Color, bg: Color) {
+        self.front.draw_box(pos, size, fg, bg);
         self.needs_render = true;
     }
 

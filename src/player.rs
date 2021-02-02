@@ -12,7 +12,13 @@ pub struct PlayerId(pub EntityId);
 
 pub struct PlayerAlive(pub bool);
 
-pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
+pub enum PlayerInputResult {
+    NoResult,
+    TurnDone,
+    ShowExitPrompt,
+}
+
+pub fn try_move_player(world: &World, dx: i32, dy: i32) -> PlayerInputResult {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut melee_queue: UniqueViewMut<MeleeQueue>,
@@ -44,12 +50,16 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32) -> bool {
                 }
             }
 
-            moved
+            if moved {
+                PlayerInputResult::TurnDone
+            } else {
+                PlayerInputResult::NoResult
+            }
         },
     )
 }
 
-pub fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
+pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResult {
     inputs.prepare_input();
 
     if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
@@ -62,11 +72,12 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> bool {
             Key::U | Key::NumPad9 => try_move_player(world, 1, -1),
             Key::B | Key::NumPad1 => try_move_player(world, -1, 1),
             Key::N | Key::NumPad3 => try_move_player(world, 1, 1),
-            Key::Period | Key::NumPad5 => true,
-            _ => false,
+            Key::Period | Key::NumPad5 => PlayerInputResult::TurnDone,
+            Key::Escape => PlayerInputResult::ShowExitPrompt,
+            _ => PlayerInputResult::NoResult,
         }
     } else {
-        false
+        PlayerInputResult::NoResult
     }
 }
 

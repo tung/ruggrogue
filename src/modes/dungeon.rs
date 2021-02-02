@@ -2,11 +2,14 @@ use shipyard::{Get, IntoIter, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
     damage, map, message, monster,
-    player::{self, PlayerAlive, PlayerId},
+    player::{self, PlayerAlive, PlayerId, PlayerInputResult},
     spawn, ui, vision,
 };
 
-use super::{ModeControl, ModeResult, ModeUpdate};
+use super::{
+    yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
+    ModeControl, ModeResult, ModeUpdate,
+};
 
 pub enum DungeonModeResult {
     Done,
@@ -75,16 +78,38 @@ impl DungeonMode {
         &mut self,
         world: &World,
         inputs: &mut ruggle::InputBuffer,
-        _pop_result: &Option<ModeResult>,
+        pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
-        if world.run(player_is_alive) {
+        if let Some(result) = pop_result {
+            match result {
+                // "Really exit Ruggle?" prompt result.
+                ModeResult::YesNoDialogModeResult(result) => match result {
+                    YesNoDialogModeResult::Yes => (
+                        ModeControl::Pop(DungeonModeResult::Done.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    YesNoDialogModeResult::No => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                },
+                _ => (ModeControl::Stay, ModeUpdate::Update),
+            }
+        } else if world.run(player_is_alive) {
             let (time_passed, player_turn_done) = if !world.run(monster::monster_turns_empty) {
                 world.run(monster::do_monster_turns);
                 (true, false)
-            } else if player::player_input(world, inputs) {
-                (true, true)
             } else {
-                (false, false)
+                match player::player_input(world, inputs) {
+                    PlayerInputResult::NoResult => (false, false),
+                    PlayerInputResult::TurnDone => (true, true),
+                    PlayerInputResult::ShowExitPrompt => {
+                        return (
+                            ModeControl::Push(
+                                YesNoDialogMode::new("Really exit Ruggle?".to_string(), false)
+                                    .into(),
+                            ),
+                            ModeUpdate::WaitForEvent,
+                        )
+                    }
+                }
             };
 
             if time_passed {

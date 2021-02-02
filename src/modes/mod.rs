@@ -24,23 +24,32 @@
 //! the main gameplay mode underneath can be seen behind it.
 
 pub mod dungeon;
+pub mod yes_no_dialog;
 
 use shipyard::World;
 
 use ruggle::{CharGrid, InputBuffer, RunControl};
 
 use dungeon::{DungeonMode, DungeonModeResult};
+use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 
 // /////////////////////////////////////////////////////////////////////////////
 
 /// All possible modes that can be added to the mode stack.  Add new modes here.
 pub enum Mode {
     DungeonMode(DungeonMode),
+    YesNoDialogMode(YesNoDialogMode),
 }
 
 impl From<DungeonMode> for Mode {
     fn from(mode: DungeonMode) -> Self {
         Self::DungeonMode(mode)
+    }
+}
+
+impl From<YesNoDialogMode> for Mode {
+    fn from(mode: YesNoDialogMode) -> Self {
+        Self::YesNoDialogMode(mode)
     }
 }
 
@@ -50,11 +59,18 @@ impl From<DungeonMode> for Mode {
 /// should be added for every mode added.
 pub enum ModeResult {
     DungeonModeResult(DungeonModeResult),
+    YesNoDialogModeResult(YesNoDialogModeResult),
 }
 
 impl From<DungeonModeResult> for ModeResult {
     fn from(result: DungeonModeResult) -> Self {
         Self::DungeonModeResult(result)
+    }
+}
+
+impl From<YesNoDialogModeResult> for ModeResult {
+    fn from(result: YesNoDialogModeResult) -> Self {
+        Self::YesNoDialogModeResult(result)
     }
 }
 
@@ -97,12 +113,14 @@ impl Mode {
     ) -> (ModeControl, ModeUpdate) {
         match self {
             Mode::DungeonMode(x) => x.update(world, inputs, pop_result),
+            Mode::YesNoDialogMode(x) => x.update(world, inputs, pop_result),
         }
     }
 
     pub fn draw(&self, world: &World, grid: &mut CharGrid) {
         match self {
             Mode::DungeonMode(x) => x.draw(world, grid),
+            Mode::YesNoDialogMode(x) => x.draw(world, grid),
         }
     }
 }
