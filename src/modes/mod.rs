@@ -117,10 +117,10 @@ impl Mode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid) {
+    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
         match self {
-            Mode::DungeonMode(x) => x.draw(world, grid),
-            Mode::YesNoDialogMode(x) => x.draw(world, grid),
+            Mode::DungeonMode(x) => x.draw(world, grid, active),
+            Mode::YesNoDialogMode(x) => x.draw(world, grid, active),
         }
     }
 }
@@ -181,7 +181,8 @@ impl ModeStack {
         RunControl::Quit
     }
 
-    /// Draw the modes in the stack from the bottom-up.
+    /// Draw the modes in the stack from the bottom-up.  The mode at the top of the stack will be
+    /// called with `active` set to `true`, while the others will be called with it set to `false`.
     pub fn draw(&self, world: &World, grid: &mut CharGrid) {
         let stack_size = self.stack.len();
 
@@ -190,11 +191,11 @@ impl ModeStack {
         }
 
         for i in 0..(stack_size - 1) {
-            self.stack[i].draw(world, grid);
+            self.stack[i].draw(world, grid, false);
         }
 
         if let Some(top_mode) = self.stack.last() {
-            top_mode.draw(world, grid);
+            top_mode.draw(world, grid, true);
         }
     }
 }

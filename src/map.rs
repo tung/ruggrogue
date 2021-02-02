@@ -484,7 +484,7 @@ pub fn place_player_in_first_room(
 }
 
 #[allow(clippy::many_single_char_names)]
-pub fn draw_map(world: &World, grid: &mut CharGrid) {
+pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
     world.run(
         |map: UniqueView<Map>,
          player: UniqueView<PlayerId>,
@@ -500,13 +500,13 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
             for (tx, ty, tile) in map.iter_bounds(x - cx, y - cy, x - cx + w - 1, y - cy + h - 1) {
                 if let Some((ch, color)) = tile {
                     let color = if fov.get((tx, ty)) {
-                        color
+                        Some(ui::recolor(color, active))
                     } else {
                         let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
-                        [v, v, v, color[3]]
+                        Some(ui::recolor([v, v, v, color[3]], active))
                     };
 
-                    grid.put_color_raw([tx - x + cx, ty - y + cy], Some(color), None, ch);
+                    grid.put_color_raw([tx - x + cx, ty - y + cy], color, None, ch);
                 }
             }
         },

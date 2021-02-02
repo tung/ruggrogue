@@ -22,7 +22,7 @@ fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
     player_alive.0
 }
 
-fn draw_renderables(world: &World, grid: &mut CharGrid) {
+fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
     use crate::components::{FieldOfView, Position, RenderOnFloor, RenderOnMap, Renderable};
 
     world.run(
@@ -42,7 +42,12 @@ fn draw_renderables(world: &World, grid: &mut CharGrid) {
                 let gx = pos.x - x + cx;
                 let gy = pos.y - y + cy;
                 if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(pos.into()) {
-                    grid.put_color([gx, gy], Some(render.fg), Some(render.bg), render.ch);
+                    grid.put_color(
+                        [gx, gy],
+                        Some(ui::recolor(render.fg, active)),
+                        Some(ui::recolor(render.bg, active)),
+                        render.ch,
+                    );
                 }
             };
 
@@ -138,9 +143,9 @@ impl DungeonMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid) {
-        map::draw_map(world, grid);
-        draw_renderables(world, grid);
-        ui::draw_ui(world, grid);
+    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
+        map::draw_map(world, grid, active);
+        draw_renderables(world, grid, active);
+        ui::draw_ui(world, grid, active);
     }
 }

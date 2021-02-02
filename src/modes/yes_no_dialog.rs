@@ -3,6 +3,7 @@ use shipyard::World;
 
 use ruggle::{CharGrid, InputBuffer, InputEvent};
 
+use crate::ui;
 use super::{ModeControl, ModeResult, ModeUpdate};
 
 pub enum YesNoDialogModeResult {
@@ -65,10 +66,11 @@ impl YesNoDialogMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, _world: &World, grid: &mut CharGrid) {
+    pub fn draw(&self, _world: &World, grid: &mut CharGrid, active: bool) {
         let yes_str = "[ Yes ]";
         let no_str = "[ No ]";
-        let selected_bg = [0., 0.5, 1., 1.];
+        let fg = Some(ui::recolor(ui::color::WHITE, active));
+        let selected_bg = Some(ui::recolor(ui::color::SELECTED_BG, active));
         let width = std::cmp::max(self.prompt.len(), yes_str.len() + no_str.len() + 2) as i32 + 4;
         let height = 7i32;
         let x = (grid.size_cells()[0] - width) / 2;
@@ -76,20 +78,20 @@ impl YesNoDialogMode {
         let yes_dx = width - yes_str.len() as i32 - no_str.len() as i32 - 4;
         let no_dx = width - no_str.len() as i32 - 2;
 
-        grid.draw_box([x, y], [width, height], [1.; 4], [0., 0., 0., 1.]);
+        grid.draw_box(
+            [x, y],
+            [width, height],
+            ui::recolor(ui::color::WHITE, active),
+            ui::recolor(ui::color::BLACK, active),
+        );
         grid.print([x + 2, y + 2], &self.prompt);
 
         if self.yes_selected {
-            grid.print_color(
-                [x + yes_dx, y + 4],
-                Some([1.; 4]),
-                Some(selected_bg),
-                yes_str,
-            );
-            grid.print([x + no_dx, y + 4], no_str);
+            grid.print_color([x + yes_dx, y + 4], fg, selected_bg, yes_str);
+            grid.print_color([x + no_dx, y + 4], fg, None, no_str);
         } else {
-            grid.print([x + yes_dx, y + 4], yes_str);
-            grid.print_color([x + no_dx, y + 4], Some([1.; 4]), Some(selected_bg), no_str);
+            grid.print_color([x + yes_dx, y + 4], fg, None, yes_str);
+            grid.print_color([x + no_dx, y + 4], fg, selected_bg, no_str);
         }
     }
 }
