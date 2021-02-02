@@ -5,6 +5,7 @@ use crate::{
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
     spawn, ui, vision,
 };
+use ruggle::{CharGrid, InputBuffer};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -21,7 +22,7 @@ fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
     player_alive.0
 }
 
-fn draw_renderables(world: &World, grid: &mut ruggle::CharGrid) {
+fn draw_renderables(world: &World, grid: &mut CharGrid) {
     use crate::components::{FieldOfView, Position, RenderOnFloor, RenderOnMap, Renderable};
 
     world.run(
@@ -77,7 +78,7 @@ impl DungeonMode {
     pub fn update(
         &mut self,
         world: &World,
-        inputs: &mut ruggle::InputBuffer,
+        inputs: &mut InputBuffer,
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if let Some(result) = pop_result {
@@ -137,7 +138,7 @@ impl DungeonMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut ruggle::CharGrid) {
+    pub fn draw(&self, world: &World, grid: &mut CharGrid) {
         map::draw_map(world, grid);
         draw_renderables(world, grid);
         ui::draw_ui(world, grid);
