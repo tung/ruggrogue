@@ -11,7 +11,7 @@ use crate::{
     },
     map::Map,
     rect::Rect,
-    RuggleRng,
+    ui, RuggleRng,
 };
 
 pub fn spawn_player(
@@ -49,8 +49,8 @@ pub fn spawn_player(
             RenderOnMap {},
             Renderable {
                 ch: '@',
-                fg: [1., 1., 0., 1.],
-                bg: [0., 0., 0., 1.],
+                fg: ui::color::YELLOW,
+                bg: ui::color::BLACK,
             },
         ),
     );
@@ -87,8 +87,8 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         ch: '!',
-                        fg: [1., 0., 1., 1.],
-                        bg: [0., 0., 0., 1.],
+                        fg: ui::color::MAGENTA,
+                        bg: ui::color::BLACK,
                     },
                 ),
             );
@@ -137,7 +137,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f
                     Renderable {
                         ch,
                         fg: *fg,
-                        bg: [0., 0., 0., 1.],
+                        bg: ui::color::BLACK,
                     },
                 ),
             );

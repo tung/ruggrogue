@@ -8,6 +8,7 @@ pub mod color {
     pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
     pub const RED: [f32; 4] = [1., 0., 0., 1.];
     pub const YELLOW: [f32; 4] = [1., 1., 0., 1.];
+    pub const MAGENTA: [f32; 4] = [1., 0., 1., 1.];
 
     pub const SELECTED_BG: [f32; 4] = [0., 0.5, 1., 1.];
 }
