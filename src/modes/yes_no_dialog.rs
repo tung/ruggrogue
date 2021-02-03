@@ -3,8 +3,8 @@ use shipyard::World;
 
 use ruggle::{CharGrid, InputBuffer, InputEvent};
 
-use crate::ui;
 use super::{ModeControl, ModeResult, ModeUpdate};
+use crate::ui;
 
 pub enum YesNoDialogModeResult {
     Yes,

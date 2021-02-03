@@ -20,13 +20,26 @@ pub fn recolor(c: [f32; 4], active: bool) -> [f32; 4] {
         // Dim and desaturate.
         let gray = c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11;
 
-        [(c[0] + gray) * 0.3, (c[1] + gray) * 0.3, (c[2] + gray) * 0.3, c[3]]
+        [
+            (c[0] + gray) * 0.3,
+            (c[1] + gray) * 0.3,
+            (c[2] + gray) * 0.3,
+            c[3],
+        ]
     }
 }
 
 pub const HUD_LINES: i32 = 5;
 
-fn draw_bar(grid: &mut CharGrid, active: bool, y: i32, min_x: i32, max_x: i32, val: i32, max_val: i32) {
+fn draw_bar(
+    grid: &mut CharGrid,
+    active: bool,
+    y: i32,
+    min_x: i32,
+    max_x: i32,
+    val: i32,
+    max_val: i32,
+) {
     let bar_fg = Some(recolor(color::RED, active));
     let bar_bg = None;
 
@@ -70,7 +83,12 @@ fn draw_player_hp(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
     let hp_bar_begin = hp_string.len() as i32 + 6;
     let hp_bar_end = std::cmp::max(hp_bar_begin + 1, grid.size_cells()[0] - 4);
 
-    grid.print_color([3, y], Some(recolor(color::YELLOW, active)), None, &hp_string);
+    grid.print_color(
+        [3, y],
+        Some(recolor(color::YELLOW, active)),
+        None,
+        &hp_string,
+    );
     draw_bar(grid, active, y, hp_bar_begin, hp_bar_end, hp, max_hp);
 }
 
