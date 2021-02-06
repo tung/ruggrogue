@@ -24,6 +24,9 @@
 //! the main gameplay mode underneath can be seen behind it.
 
 pub mod dungeon;
+pub mod inventory;
+pub mod inventory_action;
+pub mod pick_up_menu;
 pub mod yes_no_dialog;
 
 use shipyard::World;
@@ -31,6 +34,9 @@ use shipyard::World;
 use ruggle::{CharGrid, InputBuffer, RunControl};
 
 use dungeon::{DungeonMode, DungeonModeResult};
+use inventory::{InventoryMode, InventoryModeResult};
+use inventory_action::{InventoryActionMode, InventoryActionModeResult};
+use pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult};
 use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -38,12 +44,33 @@ use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 /// All possible modes that can be added to the mode stack.  Add new modes here.
 pub enum Mode {
     DungeonMode(DungeonMode),
+    InventoryMode(InventoryMode),
+    InventoryActionMode(InventoryActionMode),
+    PickUpMenuMode(PickUpMenuMode),
     YesNoDialogMode(YesNoDialogMode),
 }
 
 impl From<DungeonMode> for Mode {
     fn from(mode: DungeonMode) -> Self {
         Self::DungeonMode(mode)
+    }
+}
+
+impl From<InventoryMode> for Mode {
+    fn from(mode: InventoryMode) -> Self {
+        Self::InventoryMode(mode)
+    }
+}
+
+impl From<InventoryActionMode> for Mode {
+    fn from(mode: InventoryActionMode) -> Self {
+        Self::InventoryActionMode(mode)
+    }
+}
+
+impl From<PickUpMenuMode> for Mode {
+    fn from(mode: PickUpMenuMode) -> Self {
+        Self::PickUpMenuMode(mode)
     }
 }
 
@@ -59,12 +86,33 @@ impl From<YesNoDialogMode> for Mode {
 /// should be added for every mode added.
 pub enum ModeResult {
     DungeonModeResult(DungeonModeResult),
+    InventoryModeResult(InventoryModeResult),
+    InventoryActionModeResult(InventoryActionModeResult),
+    PickUpMenuModeResult(PickUpMenuModeResult),
     YesNoDialogModeResult(YesNoDialogModeResult),
 }
 
 impl From<DungeonModeResult> for ModeResult {
     fn from(result: DungeonModeResult) -> Self {
         Self::DungeonModeResult(result)
+    }
+}
+
+impl From<InventoryModeResult> for ModeResult {
+    fn from(result: InventoryModeResult) -> Self {
+        Self::InventoryModeResult(result)
+    }
+}
+
+impl From<InventoryActionModeResult> for ModeResult {
+    fn from(result: InventoryActionModeResult) -> Self {
+        Self::InventoryActionModeResult(result)
+    }
+}
+
+impl From<PickUpMenuModeResult> for ModeResult {
+    fn from(result: PickUpMenuModeResult) -> Self {
+        Self::PickUpMenuModeResult(result)
     }
 }
 
@@ -113,6 +161,9 @@ impl Mode {
     ) -> (ModeControl, ModeUpdate) {
         match self {
             Mode::DungeonMode(x) => x.update(world, inputs, pop_result),
+            Mode::InventoryMode(x) => x.update(world, inputs, pop_result),
+            Mode::InventoryActionMode(x) => x.update(world, inputs, pop_result),
+            Mode::PickUpMenuMode(x) => x.update(world, inputs, pop_result),
             Mode::YesNoDialogMode(x) => x.update(world, inputs, pop_result),
         }
     }
@@ -120,6 +171,9 @@ impl Mode {
     pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
         match self {
             Mode::DungeonMode(x) => x.draw(world, grid, active),
+            Mode::InventoryMode(x) => x.draw(world, grid, active),
+            Mode::InventoryActionMode(x) => x.draw(world, grid, active),
+            Mode::PickUpMenuMode(x) => x.draw(world, grid, active),
             Mode::YesNoDialogMode(x) => x.draw(world, grid, active),
         }
     }

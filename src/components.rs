@@ -1,4 +1,5 @@
 use bitvec::prelude::*;
+use shipyard::EntityId;
 
 pub struct BlocksTile;
 
@@ -52,6 +53,10 @@ impl FieldOfView {
             false
         }
     }
+}
+
+pub struct Inventory {
+    pub items: Vec<EntityId>,
 }
 
 pub struct Item;

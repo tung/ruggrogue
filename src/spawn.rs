@@ -6,8 +6,8 @@ use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, FieldOfView, Item, Monster, Name, Player, Position, Potion,
-        RenderOnFloor, RenderOnMap, Renderable,
+        BlocksTile, CombatStats, FieldOfView, Inventory, Item, Monster, Name, Player, Position,
+        Potion, RenderOnFloor, RenderOnMap, Renderable,
     },
     map::Map,
     rect::Rect,
@@ -19,6 +19,7 @@ pub fn spawn_player(
     mut entities: EntitiesViewMut,
     mut combat_stats: ViewMut<CombatStats>,
     mut fovs: ViewMut<FieldOfView>,
+    mut inventories: ViewMut<Inventory>,
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
     mut positions: ViewMut<Position>,
@@ -30,6 +31,7 @@ pub fn spawn_player(
             &mut players,
             &mut combat_stats,
             &mut fovs,
+            &mut inventories,
             &mut names,
             &mut positions,
             &mut render_on_maps,
@@ -44,6 +46,7 @@ pub fn spawn_player(
                 power: 5,
             },
             FieldOfView::new(8),
+            Inventory { items: Vec::new() },
             Name("Player".into()),
             Position { x: 0, y: 0 },
             RenderOnMap {},

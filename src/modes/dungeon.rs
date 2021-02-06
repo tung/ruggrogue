@@ -1,13 +1,17 @@
 use shipyard::{Get, IntoIter, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
-    damage, map, message, monster,
+    damage, map,
+    message::Messages,
+    monster,
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
     spawn, ui, vision,
 };
 use ruggle::{CharGrid, InputBuffer};
 
 use super::{
+    inventory::{InventoryMode, InventoryModeResult},
+    pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
@@ -68,9 +72,7 @@ fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
 /// perform other actions while alive, directly or indirectly.
 impl DungeonMode {
     pub fn new(world: &World) -> Self {
-        world.run(|mut msgs: UniqueViewMut<message::Messages>| {
-            msgs.add("Welcome to Ruggle!".into())
-        });
+        world.run(|mut msgs: UniqueViewMut<Messages>| msgs.add("Welcome to Ruggle!".into()));
         world.run(map::generate_rooms_and_corridors);
         world.run(|mut alive: UniqueViewMut<PlayerAlive>| alive.0 = true);
         world.run(map::place_player_in_first_room);
@@ -86,20 +88,39 @@ impl DungeonMode {
         inputs: &mut InputBuffer,
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
-        if let Some(result) = pop_result {
-            match result {
-                // "Really exit Ruggle?" prompt result.
-                ModeResult::YesNoDialogModeResult(result) => match result {
-                    YesNoDialogModeResult::Yes => (
-                        ModeControl::Pop(DungeonModeResult::Done.into()),
-                        ModeUpdate::Immediate,
-                    ),
-                    YesNoDialogModeResult::No => (ModeControl::Stay, ModeUpdate::WaitForEvent),
-                },
-                _ => (ModeControl::Stay, ModeUpdate::Update),
-            }
-        } else if world.run(player_is_alive) {
-            let (time_passed, player_turn_done) = if !world.run(monster::monster_turns_empty) {
+        if world.run(player_is_alive) {
+            let (time_passed, player_turn_done) = if let Some(result) = pop_result {
+                match result {
+                    // "Really exit Ruggle?" prompt result.
+                    ModeResult::YesNoDialogModeResult(result) => match result {
+                        YesNoDialogModeResult::Yes => {
+                            return (
+                                ModeControl::Pop(DungeonModeResult::Done.into()),
+                                ModeUpdate::Immediate,
+                            )
+                        }
+                        YesNoDialogModeResult::No => (false, false),
+                    },
+
+                    ModeResult::PickUpMenuModeResult(result) => match result {
+                        PickUpMenuModeResult::PickedItem(item_id) => {
+                            player::player_pick_up_item(world, *item_id);
+                            (true, true)
+                        }
+                        PickUpMenuModeResult::Cancelled => (false, false),
+                    },
+
+                    ModeResult::InventoryModeResult(result) => match result {
+                        InventoryModeResult::DoNothing => (false, false),
+                        InventoryModeResult::DropItem(item_id) => {
+                            player::player_drop_item(world, *item_id);
+                            (true, true)
+                        }
+                    },
+
+                    _ => (false, false),
+                }
+            } else if !world.run(monster::monster_turns_empty) {
                 world.run(monster::do_monster_turns);
                 (true, false)
             } else {
@@ -107,13 +128,28 @@ impl DungeonMode {
                     PlayerInputResult::NoResult => (false, false),
                     PlayerInputResult::TurnDone => (true, true),
                     PlayerInputResult::ShowExitPrompt => {
+                        inputs.clear_input();
                         return (
                             ModeControl::Push(
                                 YesNoDialogMode::new("Really exit Ruggle?".to_string(), false)
                                     .into(),
                             ),
-                            ModeUpdate::WaitForEvent,
-                        )
+                            ModeUpdate::Immediate,
+                        );
+                    }
+                    PlayerInputResult::ShowPickUpMenu => {
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(PickUpMenuMode::new(world).into()),
+                            ModeUpdate::Immediate,
+                        );
+                    }
+                    PlayerInputResult::ShowInventory => {
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(InventoryMode::new(world).into()),
+                            ModeUpdate::Immediate,
+                        );
                     }
                 }
             };
