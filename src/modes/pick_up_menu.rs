@@ -167,6 +167,19 @@ impl PickUpMenuMode {
             ),
         );
 
+        if self.items.len() as i32 > list_height {
+            grid.draw_bar(
+                true,
+                [x + width - 1, y + 4],
+                list_height,
+                list_offset,
+                list_height,
+                self.items.len() as i32,
+                Some(fg),
+                Some(bg),
+            );
+        }
+
         world.run(|names: View<Name>, renderables: View<Renderable>| {
             for (i, item_id) in self
                 .items

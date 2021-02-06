@@ -155,7 +155,7 @@ impl InventoryMode {
         grid: &mut CharGrid,
         active: bool,
         [x, y]: [i32; 2],
-        [_width, height]: [i32; 2],
+        [width, height]: [i32; 2],
     ) {
         let fg = Some(ui::recolor(ui::color::WHITE, active));
         let bg = Some(ui::recolor(ui::color::BLACK, active));
@@ -203,6 +203,19 @@ impl InventoryMode {
                             self.inv_selection - (item_height - 1) / 2,
                         ),
                     );
+
+                    if player_inv.items.len() as i32 > item_height {
+                        grid.draw_bar(
+                            true,
+                            [x + width - 1, item_y],
+                            item_height,
+                            item_offset,
+                            item_height,
+                            player_inv.items.len() as i32,
+                            fg,
+                            bg,
+                        );
+                    }
 
                     for (i, item_id) in player_inv
                         .items
@@ -259,7 +272,7 @@ impl InventoryMode {
         let bg = ui::recolor(ui::color::BLACK, active);
         let equip_x = base_x + SIDE_WIDTH;
         let inv_x = equip_x;
-        let inv_y = base_y + 2 + TOP_HEIGHT + 2;
+        let inv_y = base_y + 2 + TOP_HEIGHT + 1;
 
         // Full box border.
         grid.draw_box([base_x, base_y], [full_width, full_height], fg, bg);
@@ -296,7 +309,7 @@ impl InventoryMode {
             grid,
             active,
             [inv_x, inv_y],
-            [full_width - SIDE_WIDTH, full_height - (2 + TOP_HEIGHT + 2)],
+            [full_width - SIDE_WIDTH, full_height - (2 + TOP_HEIGHT + 1)],
         );
     }
 }

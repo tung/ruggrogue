@@ -126,6 +126,68 @@ impl RawCharGrid {
             }
         }
     }
+
+    fn draw_bar(
+        &mut self,
+        vertical: bool,
+        [x, y]: Position,
+        length: i32,
+        offset: i32,
+        amount: i32,
+        max: i32,
+        fg: Option<Color>,
+        bg: Option<Color>,
+    ) {
+        assert!(length > 0);
+        assert!(max >= 0);
+
+        let fill_length = if max > 0 {
+            std::cmp::min(length, std::cmp::max(0, length * amount / max))
+        } else {
+            0
+        };
+        let gap = length - fill_length;
+        let fill_start = if gap > 0 && amount < max {
+            gap * offset / (max - amount)
+        } else {
+            0
+        };
+
+        #[allow(clippy::collapsible_if)]
+        if vertical {
+            if x >= 0 && x < self.size[0] && y < self.size[1] && y + length >= 0 {
+                for i in std::cmp::max(0, y)..std::cmp::min(self.size[1], y + fill_start) {
+                    self.put_color_raw([x, i], fg, bg, '░');
+                }
+                for i in std::cmp::max(0, y + fill_start)
+                    ..std::cmp::min(self.size[1], y + fill_start + fill_length)
+                {
+                    self.put_color_raw([x, i], fg, bg, '█');
+                }
+                for i in std::cmp::max(0, y + fill_start + fill_length)
+                    ..std::cmp::min(self.size[1], y + length)
+                {
+                    self.put_color_raw([x, i], fg, bg, '░');
+                }
+            }
+        } else {
+            if y >= 0 && y < self.size[1] && x < self.size[0] && x + length >= 0 {
+                for i in std::cmp::max(0, x)..std::cmp::min(self.size[0], x + fill_start) {
+                    self.put_color_raw([i, y], fg, bg, '░');
+                }
+                for i in std::cmp::max(0, x + fill_start)
+                    ..std::cmp::min(self.size[0], x + fill_start + fill_length)
+                {
+                    self.put_color_raw([i, y], fg, bg, '█');
+                }
+                for i in std::cmp::max(0, x + fill_start + fill_length)
+                    ..std::cmp::min(self.size[0], x + length)
+                {
+                    self.put_color_raw([i, y], fg, bg, '░');
+                }
+            }
+        }
+    }
 }
 
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
@@ -295,6 +357,25 @@ impl CharGrid {
     /// Any part of the box that falls outside of the CharGrid will be clipped off.
     pub fn draw_box(&mut self, pos: Position, size: Size, fg: Color, bg: Color) {
         self.front.draw_box(pos, size, fg, bg);
+        self.needs_render = true;
+    }
+
+    /// Draw a bar of a given length starting at the given position.  Part of the bar is filled
+    /// based on the offset, amount and max values, and the entire bar is colored based on the fg
+    /// and bg colors provided.
+    pub fn draw_bar(
+        &mut self,
+        vertical: bool,
+        pos: Position,
+        length: i32,
+        offset: i32,
+        amount: i32,
+        max: i32,
+        fg: Option<Color>,
+        bg: Option<Color>,
+    ) {
+        self.front
+            .draw_bar(vertical, pos, length, offset, amount, max, fg, bg);
         self.needs_render = true;
     }
 
