@@ -33,9 +33,9 @@ pub struct InventoryMode {
 impl InventoryMode {
     pub fn new(world: &World) -> Self {
         let inv_min_width = world.run(
-            |player: UniqueView<PlayerId>, inventories: View<Inventory>, names: View<Name>| {
+            |player_id: UniqueView<PlayerId>, inventories: View<Inventory>, names: View<Name>| {
                 inventories
-                    .get(player.0)
+                    .get(player_id.0)
                     .items
                     .iter()
                     .map(|it| names.get(*it).0.len() + 2)
@@ -76,8 +76,8 @@ impl InventoryMode {
 
         if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
             world.run(
-                |player: UniqueView<PlayerId>, inventories: View<Inventory>| {
-                    let player_inv = inventories.get(player.0);
+                |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
+                    let player_inv = inventories.get(player_id.0);
 
                     match key {
                         Key::J | Key::NumPad2 | Key::Down => match self.subsection {
@@ -175,11 +175,11 @@ impl InventoryMode {
         );
 
         world.run(
-            |player: UniqueView<PlayerId>,
+            |player_id: UniqueView<PlayerId>,
              inventories: View<Inventory>,
              names: View<Name>,
              renderables: View<Renderable>| {
-                let player_inv = inventories.get(player.0);
+                let player_inv = inventories.get(player_id.0);
                 let item_x = x + 2;
                 let item_y = y + 4;
 
@@ -256,8 +256,8 @@ impl InventoryMode {
         const ESC_TO_CLOSE: &str = " [Esc] to close ";
 
         let inv_len = world.run(
-            |player: UniqueView<PlayerId>, inventories: View<Inventory>| {
-                inventories.get(player.0).items.len() as i32
+            |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
+                inventories.get(player_id.0).items.len() as i32
             },
         );
         let inv_height = std::cmp::min(

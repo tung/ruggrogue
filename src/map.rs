@@ -472,13 +472,13 @@ pub fn generate_test_pattern(mut map: UniqueViewMut<Map>) {
 
 pub fn place_player_in_first_room(
     mut map: UniqueViewMut<Map>,
-    player: UniqueView<PlayerId>,
+    player_id: UniqueView<PlayerId>,
     mut positions: ViewMut<Position>,
 ) {
     let room_center = map.rooms.first().unwrap().center();
-    let mut player_pos = (&mut positions).get(player.0);
+    let mut player_pos = (&mut positions).get(player_id.0);
 
-    map.move_entity(player.0, player_pos.into(), room_center, false);
+    map.move_entity(player_id.0, player_pos.into(), room_center, false);
     player_pos.x = room_center.0;
     player_pos.y = room_center.1;
 }
@@ -487,11 +487,11 @@ pub fn place_player_in_first_room(
 pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
     world.run(
         |map: UniqueView<Map>,
-         player: UniqueView<PlayerId>,
+         player_id: UniqueView<PlayerId>,
          fovs: View<FieldOfView>,
          positions: View<Position>| {
-            let (x, y) = positions.get(player.0).into();
-            let fov = fovs.get(player.0);
+            let (x, y) = positions.get(player_id.0).into();
+            let fov = fovs.get(player_id.0);
             let w = grid.size_cells()[0];
             let h = grid.size_cells()[1] - ui::HUD_LINES;
             let cx = w / 2;

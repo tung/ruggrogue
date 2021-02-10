@@ -69,7 +69,7 @@ pub fn player_pick_up_item(world: &World, item_id: EntityId) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut msgs: UniqueViewMut<Messages>,
-         player: UniqueView<PlayerId>,
+         player_id: UniqueView<PlayerId>,
          mut inventories: ViewMut<Inventory>,
          names: View<Name>,
          mut positions: ViewMut<Position>,
@@ -77,10 +77,10 @@ pub fn player_pick_up_item(world: &World, item_id: EntityId) {
             map.remove_entity(item_id, positions.get(item_id).into(), false);
             positions.remove(item_id);
             render_on_floors.remove(item_id);
-            (&mut inventories).get(player.0).items.insert(0, item_id);
+            (&mut inventories).get(player_id.0).items.insert(0, item_id);
             msgs.add(format!(
                 "{} picks up {}.",
-                names.get(player.0).0,
+                names.get(player_id.0).0,
                 names.get(item_id).0
             ));
         },
@@ -91,19 +91,19 @@ pub fn player_drop_item(world: &World, item_id: EntityId) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut msgs: UniqueViewMut<Messages>,
-         player: UniqueView<PlayerId>,
+         player_id: UniqueView<PlayerId>,
          entities: EntitiesView,
          mut inventories: ViewMut<Inventory>,
          names: View<Name>,
          mut positions: ViewMut<Position>,
          mut render_on_floors: ViewMut<RenderOnFloor>| {
-            let player_inv = (&mut inventories).get(player.0);
+            let player_inv = (&mut inventories).get(player_id.0);
 
             if let Some(inv_pos) = player_inv.items.iter().position(|id| *id == item_id) {
                 player_inv.items.remove(inv_pos);
             }
 
-            let item_pos: (i32, i32) = positions.get(player.0).into();
+            let item_pos: (i32, i32) = positions.get(player_id.0).into();
 
             entities.add_component(
                 (&mut positions, &mut render_on_floors),
@@ -119,7 +119,7 @@ pub fn player_drop_item(world: &World, item_id: EntityId) {
             map.place_entity(item_id, item_pos, false);
             msgs.add(format!(
                 "{} drops {}.",
-                names.get(player.0).0,
+                names.get(player_id.0).0,
                 names.get(item_id).0
             ));
         },

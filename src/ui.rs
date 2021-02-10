@@ -33,8 +33,8 @@ pub const HUD_LINES: i32 = 5;
 
 fn draw_player_hp(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
     let (hp, max_hp) = world.run(
-        |player: UniqueView<PlayerId>, combat_stats: View<CombatStats>| {
-            let player_stats = combat_stats.get(player.0);
+        |player_id: UniqueView<PlayerId>, combat_stats: View<CombatStats>| {
+            let player_stats = combat_stats.get(player_id.0);
 
             (player_stats.hp, player_stats.max_hp)
         },

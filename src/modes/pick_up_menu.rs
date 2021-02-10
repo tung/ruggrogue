@@ -37,11 +37,11 @@ impl PickUpMenuMode {
     pub fn new(world: &World) -> Self {
         let (items, width) = world.run(
             |map: UniqueView<Map>,
-             player: UniqueView<PlayerId>,
+             player_id: UniqueView<PlayerId>,
              items: View<Item>,
              names: View<Name>,
              positions: View<Position>| {
-                let player_pos = positions.get(player.0);
+                let player_pos = positions.get(player_id.0);
                 let items = map
                     .iter_entities_at(player_pos.x, player_pos.y)
                     .filter(|id| items.contains(*id))

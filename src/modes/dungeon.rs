@@ -30,14 +30,14 @@ fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
     use crate::components::{FieldOfView, Position, RenderOnFloor, RenderOnMap, Renderable};
 
     world.run(
-        |player: UniqueView<PlayerId>,
+        |player_id: UniqueView<PlayerId>,
          fovs: View<FieldOfView>,
          positions: View<Position>,
          render_on_floors: View<RenderOnFloor>,
          render_on_maps: View<RenderOnMap>,
          renderables: View<Renderable>| {
-            let (x, y) = positions.get(player.0).into();
-            let fov = fovs.get(player.0);
+            let (x, y) = positions.get(player_id.0).into();
+            let fov = fovs.get(player_id.0);
             let w = grid.size_cells()[0];
             let h = grid.size_cells()[1] - ui::HUD_LINES;
             let cx = w / 2;
