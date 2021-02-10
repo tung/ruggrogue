@@ -164,11 +164,18 @@ impl DungeonMode {
                 }
             }
 
-            if world.run(player_is_alive) && !world.run(monster::monster_turns_empty) {
-                (ModeControl::Stay, ModeUpdate::Update)
-            } else {
-                (ModeControl::Stay, ModeUpdate::WaitForEvent)
-            }
+            let update = world.run(player_is_alive)
+                && (!world.run(monster::monster_turns_empty)
+                    || world.run(player::player_is_auto_running));
+
+            (
+                ModeControl::Stay,
+                if update {
+                    ModeUpdate::Update
+                } else {
+                    ModeUpdate::WaitForEvent
+                },
+            )
         } else if player::player_is_dead_input(inputs) {
             (
                 ModeControl::Pop(DungeonModeResult::Done.into()),

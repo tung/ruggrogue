@@ -38,7 +38,7 @@ pub fn spawn_player(
             &mut renderables,
         ),
         (
-            Player {},
+            Player { auto_run: None },
             CombatStats {
                 max_hp: 30,
                 hp: 30,

@@ -94,7 +94,7 @@ impl Map {
         }
     }
 
-    fn wall_or_oob(&self, x: i32, y: i32) -> bool {
+    pub fn wall_or_oob(&self, x: i32, y: i32) -> bool {
         x < 0
             || y < 0
             || x >= self.width

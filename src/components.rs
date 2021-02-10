@@ -1,6 +1,8 @@
 use bitvec::prelude::*;
 use shipyard::EntityId;
 
+use crate::player::AutoRun;
+
 pub struct BlocksTile;
 
 pub struct CombatStats {
@@ -53,6 +55,25 @@ impl FieldOfView {
             false
         }
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
+        let ys = (self.center.1 - self.range)..=(self.center.1 + self.range);
+
+        ys.flat_map(move |y| {
+            let xs = (self.center.0 - self.range)..=(self.center.0 + self.range);
+
+            std::iter::repeat(y).zip(xs)
+        })
+        .filter_map(
+            move |(y, x)| {
+                if self.get((x, y)) {
+                    Some((x, y))
+                } else {
+                    None
+                }
+            },
+        )
+    }
 }
 
 pub struct Inventory {
@@ -65,7 +86,9 @@ pub struct Monster;
 
 pub struct Name(pub String);
 
-pub struct Player;
+pub struct Player {
+    pub auto_run: Option<AutoRun>,
+}
 
 pub struct Position {
     pub x: i32,
