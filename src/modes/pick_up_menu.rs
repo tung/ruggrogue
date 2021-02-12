@@ -154,16 +154,12 @@ impl PickUpMenuMode {
         grid.draw_box([x, y], [width, height], fg, bg);
         grid.print_color([x + 2, y + 2], Some(fg), None, PROMPT);
 
-        let viewed = std::cmp::max(
-            0,
-            std::cmp::min(self.items.len() as i32 - 1, self.selection),
-        );
         let list_height = height - 8;
         let list_offset = std::cmp::max(
             0,
             std::cmp::min(
                 self.items.len() as i32 - list_height,
-                viewed - (list_height - 1) / 2,
+                self.selection - (list_height - 1) / 2,
             ),
         );
 

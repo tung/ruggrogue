@@ -142,7 +142,7 @@ impl RawCharGrid {
         assert!(max >= 0);
 
         let fill_length = if max > 0 {
-            std::cmp::min(length, std::cmp::max(0, length * amount / max))
+            (length * amount / max).clamp(0, length)
         } else {
             0
         };
