@@ -1,7 +1,7 @@
 use shipyard::{Get, IntoIter, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
-    damage, map,
+    damage, item, map,
     message::Messages,
     monster,
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
@@ -112,6 +112,12 @@ impl DungeonMode {
 
                     ModeResult::InventoryModeResult(result) => match result {
                         InventoryModeResult::DoNothing => (false, false),
+                        InventoryModeResult::UseItem(item_id) => {
+                            let player_id =
+                                world.run(|player_id: UniqueView<PlayerId>| player_id.0);
+                            item::use_item(world, player_id, *item_id);
+                            (true, true)
+                        }
                         InventoryModeResult::DropItem(item_id) => {
                             player::player_drop_item(world, *item_id);
                             (true, true)

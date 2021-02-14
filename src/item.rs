@@ -1,8 +1,13 @@
-use shipyard::{EntitiesView, EntityId, Get, Remove, UniqueViewMut, ViewMut, World};
+use shipyard::{
+    AllStoragesViewMut, EntitiesView, EntityId, Get, Remove, UniqueView, UniqueViewMut, View,
+    ViewMut, World,
+};
 
 use crate::{
-    components::{Inventory, Position, RenderOnFloor},
+    components::{CombatStats, Inventory, Name, Position, Potion, RenderOnFloor},
     map::Map,
+    message::Messages,
+    player::PlayerId,
 };
 
 pub fn add_item_to_map(world: &World, item_id: EntityId, (x, y): (i32, i32)) {
@@ -46,4 +51,35 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
     if let Some(inv_pos) = holder_inv.items.iter().position(|id| *id == item_id) {
         holder_inv.items.remove(inv_pos);
     }
+}
+
+pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId) {
+    let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
+
+    remove_item_from_inventory(world, player_id, item_id);
+    world.run(
+        |mut msgs: UniqueViewMut<Messages>,
+         mut combat_stats: ViewMut<CombatStats>,
+         names: View<Name>,
+         potions: View<Potion>| {
+            if combat_stats.contains(user_id) {
+                let stats = (&mut combat_stats).get(user_id);
+
+                if potions.contains(item_id) {
+                    let Potion { heal_amount } = &potions.get(item_id);
+
+                    stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
+                    if user_id == player_id {
+                        msgs.add(format!(
+                            "{} uses {} and heals {} hp.",
+                            names.get(user_id).0,
+                            names.get(item_id).0,
+                            heal_amount,
+                        ));
+                    }
+                }
+            }
+        },
+    );
+    world.borrow::<AllStoragesViewMut>().delete(item_id);
 }

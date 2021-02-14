@@ -13,6 +13,7 @@ const CANCEL: &str = "[ Cancel ]";
 
 pub enum InventoryActionModeResult {
     Cancelled,
+    UseItem(EntityId),
     DropItem(EntityId),
 }
 
@@ -22,12 +23,14 @@ enum SubSection {
 }
 
 enum Action {
+    UseItem,
     DropItem,
 }
 
 impl Action {
     fn name(&self) -> &'static str {
         match self {
+            Action::UseItem => "[ Apply ]",
             Action::DropItem => "[ Drop ]",
         }
     }
@@ -44,7 +47,7 @@ pub struct InventoryActionMode {
 /// Show a menu of actions for a single item in the player's inventory.
 impl InventoryActionMode {
     pub fn new(world: &World, item_id: EntityId) -> Self {
-        let actions = vec![Action::DropItem];
+        let actions = vec![Action::UseItem, Action::DropItem];
         let subsection = if actions.is_empty() {
             SubSection::Cancel
         } else {
@@ -122,6 +125,7 @@ impl InventoryActionMode {
                 Key::Return => {
                     let result = match self.subsection {
                         SubSection::Actions => match self.actions[self.selection as usize] {
+                            Action::UseItem => InventoryActionModeResult::UseItem(self.item_id),
                             Action::DropItem => InventoryActionModeResult::DropItem(self.item_id),
                         },
                         SubSection::Cancel => InventoryActionModeResult::Cancelled,
