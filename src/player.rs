@@ -1,14 +1,12 @@
 use piston::input::{Button, Key};
 use shipyard::{
-    EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
-    World,
+    EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut, World,
 };
 
 use crate::{
-    components::{
-        CombatStats, FieldOfView, Inventory, Item, Monster, Name, Player, Position, RenderOnFloor,
-    },
+    components::{CombatStats, FieldOfView, Item, Monster, Name, Player, Position},
     damage::MeleeQueue,
+    item,
     map::Map,
     message::Messages,
 };
@@ -608,64 +606,33 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
 }
 
 pub fn player_pick_up_item(world: &World, item_id: EntityId) {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut msgs: UniqueViewMut<Messages>,
-         player_id: UniqueView<PlayerId>,
-         mut inventories: ViewMut<Inventory>,
-         names: View<Name>,
-         mut positions: ViewMut<Position>,
-         mut render_on_floors: ViewMut<RenderOnFloor>| {
-            map.remove_entity(item_id, positions.get(item_id).into(), false);
-            positions.remove(item_id);
-            render_on_floors.remove(item_id);
-            (&mut inventories).get(player_id.0).items.insert(0, item_id);
-            msgs.add(format!(
-                "{} picks up {}.",
-                names.get(player_id.0).0,
-                names.get(item_id).0
-            ));
-        },
-    );
+    let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
+
+    item::remove_item_from_map(world, item_id);
+    item::add_item_to_inventory(world, player_id, item_id);
+    world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+        msgs.add(format!(
+            "{} picks up {}.",
+            names.get(player_id).0,
+            names.get(item_id).0
+        ));
+    });
 }
 
 pub fn player_drop_item(world: &World, item_id: EntityId) {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut msgs: UniqueViewMut<Messages>,
-         player_id: UniqueView<PlayerId>,
-         entities: EntitiesView,
-         mut inventories: ViewMut<Inventory>,
-         names: View<Name>,
-         mut positions: ViewMut<Position>,
-         mut render_on_floors: ViewMut<RenderOnFloor>| {
-            let player_inv = (&mut inventories).get(player_id.0);
+    let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
+    let player_pos: (i32, i32) =
+        world.run(|positions: View<Position>| positions.get(player_id).into());
 
-            if let Some(inv_pos) = player_inv.items.iter().position(|id| *id == item_id) {
-                player_inv.items.remove(inv_pos);
-            }
-
-            let item_pos: (i32, i32) = positions.get(player_id.0).into();
-
-            entities.add_component(
-                (&mut positions, &mut render_on_floors),
-                (
-                    Position {
-                        x: item_pos.0,
-                        y: item_pos.1,
-                    },
-                    RenderOnFloor {},
-                ),
-                item_id,
-            );
-            map.place_entity(item_id, item_pos, false);
-            msgs.add(format!(
-                "{} drops {}.",
-                names.get(player_id.0).0,
-                names.get(item_id).0
-            ));
-        },
-    );
+    item::remove_item_from_inventory(world, player_id, item_id);
+    item::add_item_to_map(world, item_id, player_pos);
+    world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+        msgs.add(format!(
+            "{} drops {}.",
+            names.get(player_id).0,
+            names.get(item_id).0
+        ));
+    });
 }
 
 pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResult {

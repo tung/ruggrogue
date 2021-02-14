@@ -1,5 +1,6 @@
 mod components;
 mod damage;
+mod item;
 mod map;
 mod message;
 mod modes;
