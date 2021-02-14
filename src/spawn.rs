@@ -6,8 +6,8 @@ use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, FieldOfView, Inventory, Item, Monster, Name, Player, Position,
-        Potion, RenderOnFloor, RenderOnMap, Renderable,
+        BlocksTile, CombatStats, Consumable, FieldOfView, Inventory, Item, Monster, Name, Player,
+        Position, ProvidesHealing, RenderOnFloor, RenderOnMap, Renderable,
     },
     map::Map,
     rect::Rect,
@@ -67,26 +67,29 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
+         mut consumables: ViewMut<Consumable>,
          mut items: ViewMut<Item>,
          mut names: ViewMut<Name>,
          mut positions: ViewMut<Position>,
-         mut potions: ViewMut<Potion>,
+         mut provides_healings: ViewMut<ProvidesHealing>,
          mut render_on_floors: ViewMut<RenderOnFloor>,
          mut renderables: ViewMut<Renderable>| {
             let item_id = entities.add_entity(
                 (
                     &mut items,
+                    &mut consumables,
                     &mut names,
                     &mut positions,
-                    &mut potions,
+                    &mut provides_healings,
                     &mut render_on_floors,
                     &mut renderables,
                 ),
                 (
                     Item {},
+                    Consumable {},
                     Name("Health Potion".into()),
                     pos.into(),
-                    Potion { heal_amount: 8 },
+                    ProvidesHealing { heal_amount: 8 },
                     RenderOnFloor {},
                     Renderable {
                         ch: '!',

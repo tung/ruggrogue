@@ -12,6 +12,8 @@ pub struct CombatStats {
     pub power: i32,
 }
 
+pub struct Consumable;
+
 pub struct FieldOfView {
     pub tiles: BitVec,
     pub range: i32,
@@ -119,7 +121,7 @@ impl From<(i32, i32)> for Position {
     }
 }
 
-pub struct Potion {
+pub struct ProvidesHealing {
     pub heal_amount: i32,
 }
 

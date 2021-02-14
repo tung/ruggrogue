@@ -4,7 +4,9 @@ use shipyard::{
 };
 
 use crate::{
-    components::{CombatStats, Inventory, Name, Position, Potion, RenderOnFloor},
+    components::{
+        CombatStats, Consumable, Inventory, Name, Position, ProvidesHealing, RenderOnFloor,
+    },
     map::Map,
     message::Messages,
     player::PlayerId,
@@ -56,17 +58,16 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
 pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId) {
     let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
 
-    remove_item_from_inventory(world, player_id, item_id);
     world.run(
         |mut msgs: UniqueViewMut<Messages>,
          mut combat_stats: ViewMut<CombatStats>,
          names: View<Name>,
-         potions: View<Potion>| {
+         provides_healings: View<ProvidesHealing>| {
             if combat_stats.contains(user_id) {
                 let stats = (&mut combat_stats).get(user_id);
 
-                if potions.contains(item_id) {
-                    let Potion { heal_amount } = &potions.get(item_id);
+                if provides_healings.contains(item_id) {
+                    let ProvidesHealing { heal_amount } = &provides_healings.get(item_id);
 
                     stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
                     if user_id == player_id {
@@ -81,5 +82,9 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId) {
             }
         },
     );
-    world.borrow::<AllStoragesViewMut>().delete(item_id);
+
+    if world.borrow::<View<Consumable>>().contains(item_id) {
+        remove_item_from_inventory(world, player_id, item_id);
+        world.borrow::<AllStoragesViewMut>().delete(item_id);
+    }
 }
