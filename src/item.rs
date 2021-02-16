@@ -11,6 +11,7 @@ use crate::{
     map::Map,
     message::Messages,
 };
+use ruggle::FovShape;
 
 pub fn add_item_to_map(world: &World, item_id: EntityId, (x, y): (i32, i32)) {
     let (mut map, entities, mut positions, mut render_on_floors) = world.borrow::<(
@@ -69,13 +70,8 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
          provides_healings: View<ProvidesHealing>| {
             let center = target.unwrap_or_else(|| positions.get(user_id).into());
             let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
-            let radius2 = radius * (radius + 1);
-            let targets = ((center.1 - radius)..=(center.1 + radius))
-                .flat_map(move |ys| {
-                    std::iter::repeat(ys).zip((center.0 - radius)..=(center.0 + radius))
-                })
-                .filter(move |(y, x)| (x - center.0).pow(2) + (y - center.1).pow(2) <= radius2)
-                .flat_map(|(y, x)| map.iter_entities_at(x, y))
+            let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
+                .flat_map(|(x, y, _)| map.iter_entities_at(x, y))
                 .filter(|id| monsters.contains(*id) || players.contains(*id));
             let user_name = &names.get(user_id).0;
             let item_name = &names.get(item_id).0;
