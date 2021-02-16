@@ -1,4 +1,6 @@
-use shipyard::{AllStoragesViewMut, EntityId, Get, UniqueViewMut, View, ViewMut};
+use shipyard::{
+    AllStoragesViewMut, EntityId, Get, IntoIter, Shiperator, UniqueViewMut, View, ViewMut, World,
+};
 use std::collections::VecDeque;
 
 use crate::{
@@ -7,60 +9,6 @@ use crate::{
     message::Messages,
     player::PlayerAlive,
 };
-
-pub struct MeleeEvent {
-    pub attacker: EntityId,
-    pub defender: EntityId,
-}
-
-pub struct MeleeQueue(VecDeque<MeleeEvent>);
-
-impl MeleeQueue {
-    pub fn new() -> Self {
-        Self(VecDeque::new())
-    }
-
-    pub fn push_back(&mut self, attacker: EntityId, defender: EntityId) {
-        self.0.push_back(MeleeEvent { attacker, defender });
-    }
-
-    pub fn pop_front(&mut self) -> Option<MeleeEvent> {
-        self.0.pop_front()
-    }
-}
-
-impl Default for MeleeQueue {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-pub struct DamageEvent {
-    target: EntityId,
-    amount: i32,
-}
-
-pub struct DamageQueue(VecDeque<DamageEvent>);
-
-impl DamageQueue {
-    pub fn new() -> Self {
-        Self(VecDeque::new())
-    }
-
-    pub fn push_back(&mut self, target: EntityId, amount: i32) {
-        self.0.push_back(DamageEvent { target, amount });
-    }
-
-    pub fn pop_front(&mut self) -> Option<DamageEvent> {
-        self.0.pop_front()
-    }
-}
-
-impl Default for DamageQueue {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 pub struct DeadEntities(VecDeque<EntityId>);
 
@@ -78,46 +26,35 @@ impl DeadEntities {
     }
 }
 
-/// Convert MeleeEvents into DamageEvents and log hit messages.
-pub fn melee_combat(
-    mut damage_queue: UniqueViewMut<DamageQueue>,
-    mut melee_queue: UniqueViewMut<MeleeQueue>,
-    mut messages: UniqueViewMut<Messages>,
-    combat_stats: View<CombatStats>,
-    names: View<Name>,
-) {
-    while let Some(MeleeEvent { attacker, defender }) = melee_queue.pop_front() {
-        let damage = combat_stats.get(attacker).power - combat_stats.get(defender).defense;
-        let att_name = &names.get(attacker).0;
-        let def_name = &names.get(defender).0;
+pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
+    let (mut msgs, mut combat_stats, names) =
+        world.borrow::<(UniqueViewMut<Messages>, ViewMut<CombatStats>, View<Name>)>();
+    let damage = combat_stats.get(attacker).power - combat_stats.get(defender).defense;
+    let att_name = &names.get(attacker).0;
+    let def_name = &names.get(defender).0;
 
-        if damage > 0 {
-            messages.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
-            damage_queue.push_back(defender, damage);
-        } else {
-            messages.add(format!("{} fails to hurt {}.", att_name, def_name));
-        }
+    if damage > 0 {
+        msgs.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
+        (&mut combat_stats).get(defender).hp -= damage;
+    } else {
+        msgs.add(format!(
+            "{} hits {}, but does no damage.",
+            att_name, def_name
+        ));
     }
 }
 
-/// Convert DamageEvents into hp changes to CombatStats and add any entities that die to the
-/// DeadEntities queue, logging them as they die.
-pub fn inflict_damage(
-    mut damage_queue: UniqueViewMut<DamageQueue>,
+pub fn check_for_dead(
     mut dead_entities: UniqueViewMut<DeadEntities>,
-    mut messages: UniqueViewMut<Messages>,
-    mut combat_stats: ViewMut<CombatStats>,
+    mut msgs: UniqueViewMut<Messages>,
+    combat_stats: View<CombatStats>,
     names: View<Name>,
 ) {
-    while let Some(DamageEvent { target, amount }) = damage_queue.pop_front() {
-        let target_stats = (&mut combat_stats).get(target);
-
-        if target_stats.hp > 0 && amount >= target_stats.hp {
-            messages.add(format!("{} dies!", names.get(target).0));
-            dead_entities.push_back(target);
+    for (id, stats) in combat_stats.iter().with_id() {
+        if stats.hp <= 0 {
+            msgs.add(format!("{} dies!", names.get(id).0));
+            dead_entities.push_back(id);
         }
-
-        target_stats.hp -= amount;
     }
 }
 

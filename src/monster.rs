@@ -1,11 +1,12 @@
 use shipyard::{
     EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
+    World,
 };
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use crate::{
     components::{BlocksTile, FieldOfView, Monster, Position},
-    damage::MeleeQueue,
+    damage,
     map::Map,
     player::PlayerId,
 };
@@ -44,15 +45,15 @@ pub fn enqueue_monster_turns(
     }
 }
 
-fn do_turn_for_one_monster(
-    monster: EntityId,
-    map: &mut Map,
-    melee_queue: &mut MeleeQueue,
-    player_id: &PlayerId,
-    blocks: &View<BlocksTile>,
-    mut fovs: &mut ViewMut<FieldOfView>,
-    mut positions: &mut ViewMut<Position>,
-) {
+fn do_turn_for_one_monster(world: &World, monster: EntityId) {
+    let (mut map, player_id, blocks, mut fovs, mut positions) = world.borrow::<(
+        UniqueViewMut<Map>,
+        UniqueView<PlayerId>,
+        View<BlocksTile>,
+        ViewMut<FieldOfView>,
+        ViewMut<Position>,
+    )>();
+
     let fov = (&mut fovs).get(monster);
     let player_pos: (i32, i32) = positions.get(player_id.0).into();
 
@@ -60,9 +61,9 @@ fn do_turn_for_one_monster(
         let pos_mut = (&mut positions).get(monster);
         let pos: (i32, i32) = pos_mut.into();
 
-        if let Some(step) = ruggle::find_path(map, pos, player_pos, 4, true).nth(1) {
+        if let Some(step) = ruggle::find_path(&*map, pos, player_pos, 4, true).nth(1) {
             if step == player_pos {
-                melee_queue.push_back(monster, player_id.0);
+                damage::melee_attack(world, monster, player_id.0);
             } else {
                 map.move_entity(monster, pos, step, blocks.contains(monster));
                 *pos_mut = step.into();
@@ -72,27 +73,13 @@ fn do_turn_for_one_monster(
     }
 }
 
-pub fn do_monster_turns(
-    entities: EntitiesView,
-    mut map: UniqueViewMut<Map>,
-    mut melee_queue: UniqueViewMut<MeleeQueue>,
-    mut monster_turns: UniqueViewMut<MonsterTurns>,
-    player_id: UniqueView<PlayerId>,
-    blocks: View<BlocksTile>,
-    mut fovs: ViewMut<FieldOfView>,
-    mut positions: ViewMut<Position>,
-) {
+pub fn do_monster_turns(world: &World) {
+    let (entities, mut monster_turns) =
+        world.borrow::<(EntitiesView, UniqueViewMut<MonsterTurns>)>();
+
     while let Some((_, monster)) = monster_turns.0.pop() {
         if entities.is_alive(monster) {
-            do_turn_for_one_monster(
-                monster,
-                &mut *map,
-                &mut *melee_queue,
-                &*player_id,
-                &blocks,
-                &mut fovs,
-                &mut positions,
-            );
+            do_turn_for_one_monster(world, monster);
         }
     }
 }

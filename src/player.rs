@@ -5,8 +5,7 @@ use shipyard::{
 
 use crate::{
     components::{CombatStats, FieldOfView, Item, Monster, Name, Player, Position},
-    damage::MeleeQueue,
-    item,
+    damage, item,
     map::Map,
     message::Messages,
 };
@@ -535,9 +534,9 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
         return PlayerInputResult::NoResult;
     }
 
+    let mut melee_queue = Vec::new();
     let (took_time, moved) = world.run(
         |mut map: UniqueViewMut<Map>,
-         mut melee_queue: UniqueViewMut<MeleeQueue>,
          combat_stats: View<CombatStats>,
          mut fovs: ViewMut<FieldOfView>,
          players: View<Player>,
@@ -555,7 +554,7 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
                         .find(|e| combat_stats.contains(*e));
 
                     if let Some(melee_target) = melee_target {
-                        melee_queue.push_back(id, melee_target);
+                        melee_queue.push((id, melee_target));
                         took_time = true;
                     } else if !map.is_blocked(new_x, new_y) {
                         map.move_entity(id, pos.into(), (new_x, new_y), false);
@@ -571,6 +570,10 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
             (took_time, moved)
         },
     );
+
+    for (attacker, defender) in melee_queue {
+        damage::melee_attack(world, attacker, defender);
+    }
 
     if start_run && moved {
         if auto_run_corridor_check(world, dx, dy).is_some() {

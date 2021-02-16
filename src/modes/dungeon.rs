@@ -81,7 +81,7 @@ impl DungeonMode {
                     _ => (false, false),
                 }
             } else if !world.run(monster::monster_turns_empty) {
-                world.run(monster::do_monster_turns);
+                monster::do_monster_turns(world);
                 (true, false)
             } else {
                 match player::player_input(world, inputs) {
@@ -115,8 +115,7 @@ impl DungeonMode {
             };
 
             if time_passed {
-                world.run(damage::melee_combat);
-                world.run(damage::inflict_damage);
+                world.run(damage::check_for_dead);
                 world.run(damage::delete_dead_entities);
                 world.run(vision::recalculate_fields_of_view);
                 if player_turn_done {
