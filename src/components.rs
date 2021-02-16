@@ -3,6 +3,10 @@ use shipyard::EntityId;
 
 use crate::player::AutoRun;
 
+pub struct AreaOfEffect {
+    pub radius: i32,
+}
+
 pub struct BlocksTile;
 
 pub struct CombatStats {

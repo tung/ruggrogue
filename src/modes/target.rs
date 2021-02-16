@@ -24,27 +24,34 @@ pub struct TargetMode {
     for_what: String,
     center: (i32, i32), // x, y
     range: i32,
+    radius: i32,
     valid: HashSet<(i32, i32)>,
     cursor: (i32, i32), // x, y
     warn_self: bool,
 }
 
+fn dist2((x1, y1): (i32, i32), (x2, y2): (i32, i32)) -> i32 {
+    (x2 - x1).pow(2) + (y2 - y1).pow(2)
+}
+
 /// Pick a target position within a certain range of the player.
 impl TargetMode {
-    pub fn new(world: &World, for_what: String, range: i32, warn_self: bool) -> Self {
+    pub fn new(world: &World, for_what: String, range: i32, radius: i32, warn_self: bool) -> Self {
+        assert!(range >= 0);
+        assert!(radius >= 0);
+
         let player_pos: (i32, i32) = world.run(
             |player_id: UniqueView<PlayerId>, positions: View<Position>| {
                 positions.get(player_id.0).into()
             },
         );
 
-        let dist2 = |(x, y): &(i32, i32)| (*x - player_pos.0).pow(2) + (*y - player_pos.1).pow(2);
         let valid = world.run(|player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>| {
             // Add 0.5 to the range to prevent 'bumps' at the edge of the range circle.
             let max_dist2 = range * (range + 1);
             fovs.get(player_id.0)
                 .iter()
-                .filter(|pos| dist2(pos) <= max_dist2)
+                .filter(|pos| dist2(*pos, player_pos) <= max_dist2)
                 .collect::<HashSet<_>>()
         });
 
@@ -57,14 +64,15 @@ impl TargetMode {
                     .iter_entities_at(*x, *y)
                     .any(|id| world.borrow::<View<Monster>>().contains(id))
             })
+            .min_by_key(|pos| dist2(**pos, player_pos))
             .copied()
-            .min_by_key(dist2)
             .unwrap_or(player_pos);
 
         Self {
             for_what,
             center: player_pos,
             range,
+            radius,
             valid,
             cursor,
             warn_self,
@@ -149,11 +157,23 @@ impl TargetMode {
                 }
                 Key::Return => {
                     if self.valid.contains(&self.cursor) {
-                        let result = if self.warn_self && self.cursor == self.center {
+                        let result = if self.warn_self
+                            && dist2(self.cursor, self.center) <= self.radius * (self.radius + 1)
+                        {
                             inputs.clear_input();
                             ModeControl::Push(
-                                YesNoDialogMode::new("Really target yourself?".into(), false)
-                                    .into(),
+                                YesNoDialogMode::new(
+                                    format!(
+                                        "Really {} yourself?",
+                                        if self.cursor == self.center {
+                                            "target"
+                                        } else {
+                                            "include"
+                                        },
+                                    ),
+                                    false,
+                                )
+                                .into(),
                             )
                         } else {
                             ModeControl::Pop(
@@ -187,12 +207,23 @@ impl TargetMode {
             },
         );
         let target_bg = ui::recolor(ui::color::BLUE, active);
+        let aoe_bg = ui::recolor(ui::color::PURPLE, active);
+        let radius2 = self.radius * (self.radius + 1);
 
         // Highlight targetable spaces.
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
                     grid.set_bg([x - px + cx, y - py + cy], target_bg);
+                }
+            }
+        }
+
+        // Highlight area of effect.
+        for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
+            for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
+                if dist2((x, y), self.cursor) <= radius2 {
+                    grid.set_bg([x - px + cx, y - py + cy], aoe_bg);
                 }
             }
         }

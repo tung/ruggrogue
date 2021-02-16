@@ -2,7 +2,7 @@ use piston::input::{Button, Key};
 use shipyard::{EntityId, Get, View, World};
 
 use crate::{
-    components::{Name, Ranged, Renderable},
+    components::{AreaOfEffect, Name, Ranged, Renderable},
     ui,
 };
 use ruggle::{CharGrid, InputBuffer, InputEvent};
@@ -149,11 +149,16 @@ impl InventoryActionMode {
                                 {
                                     let item_name =
                                         world.borrow::<View<Name>>().get(self.item_id).0.clone();
+                                    let radius = world
+                                        .borrow::<View<AreaOfEffect>>()
+                                        .try_get(self.item_id)
+                                        .map_or(0, |aoe| aoe.radius);
 
                                     inputs.clear_input();
                                     return (
                                         ModeControl::Push(
-                                            TargetMode::new(world, item_name, *range, true).into(),
+                                            TargetMode::new(world, item_name, *range, radius, true)
+                                                .into(),
                                         ),
                                         ModeUpdate::Immediate,
                                     );
