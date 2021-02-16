@@ -696,6 +696,10 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
     }
 }
 
+pub fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
+    player_alive.0
+}
+
 pub fn player_is_dead_input(inputs: &mut InputBuffer) -> bool {
     inputs.prepare_input();
 

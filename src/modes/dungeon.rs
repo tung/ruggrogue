@@ -1,11 +1,11 @@
-use shipyard::{Get, IntoIter, UniqueView, UniqueViewMut, View, World};
+use shipyard::{UniqueView, UniqueViewMut, World};
 
 use crate::{
     damage, item, map,
     message::Messages,
     monster,
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
-    spawn, ui, vision,
+    render, spawn, ui, vision,
 };
 use ruggle::{CharGrid, InputBuffer};
 
@@ -21,52 +21,6 @@ pub enum DungeonModeResult {
 }
 
 pub struct DungeonMode;
-
-fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
-    player_alive.0
-}
-
-fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
-    use crate::components::{FieldOfView, Position, RenderOnFloor, RenderOnMap, Renderable};
-
-    world.run(
-        |player_id: UniqueView<PlayerId>,
-         fovs: View<FieldOfView>,
-         positions: View<Position>,
-         render_on_floors: View<RenderOnFloor>,
-         render_on_maps: View<RenderOnMap>,
-         renderables: View<Renderable>| {
-            let (x, y) = positions.get(player_id.0).into();
-            let fov = fovs.get(player_id.0);
-            let w = grid.size_cells()[0];
-            let h = grid.size_cells()[1] - ui::HUD_LINES;
-            let cx = w / 2;
-            let cy = h / 2;
-            let mut render_entity = |pos: &Position, render: &Renderable| {
-                let gx = pos.x - x + cx;
-                let gy = pos.y - y + cy;
-                if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(pos.into()) {
-                    grid.put_color(
-                        [gx, gy],
-                        Some(ui::recolor(render.fg, active)),
-                        Some(ui::recolor(render.bg, active)),
-                        render.ch,
-                    );
-                }
-            };
-
-            // Draw floor entities first.
-            for (pos, render, _) in (&positions, &renderables, &render_on_floors).iter() {
-                render_entity(pos, render);
-            }
-
-            // Draw normal map entities.
-            for (pos, render, _) in (&positions, &renderables, &render_on_maps).iter() {
-                render_entity(pos, render);
-            }
-        },
-    );
-}
 
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
 /// perform other actions while alive, directly or indirectly.
@@ -88,7 +42,7 @@ impl DungeonMode {
         inputs: &mut InputBuffer,
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
-        if world.run(player_is_alive) {
+        if world.run(player::player_is_alive) {
             let (time_passed, player_turn_done) = if let Some(result) = pop_result {
                 match result {
                     // "Really exit Ruggle?" prompt result.
@@ -112,10 +66,10 @@ impl DungeonMode {
 
                     ModeResult::InventoryModeResult(result) => match result {
                         InventoryModeResult::DoNothing => (false, false),
-                        InventoryModeResult::UseItem(item_id) => {
+                        InventoryModeResult::UseItem(item_id, target) => {
                             let player_id =
                                 world.run(|player_id: UniqueView<PlayerId>| player_id.0);
-                            item::use_item(world, player_id, *item_id);
+                            item::use_item(world, player_id, *item_id, *target);
                             (true, true)
                         }
                         InventoryModeResult::DropItem(item_id) => {
@@ -170,7 +124,7 @@ impl DungeonMode {
                 }
             }
 
-            let update = world.run(player_is_alive)
+            let update = world.run(player::player_is_alive)
                 && (!world.run(monster::monster_turns_empty)
                     || world.run(player::player_is_auto_running));
 
@@ -193,8 +147,8 @@ impl DungeonMode {
     }
 
     pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
-        map::draw_map(world, grid, active);
-        draw_renderables(world, grid, active);
-        ui::draw_ui(world, grid, active);
+        render::draw_map(world, grid, active);
+        render::draw_renderables(world, grid, active);
+        ui::draw_ui(world, grid, active, None);
     }
 }

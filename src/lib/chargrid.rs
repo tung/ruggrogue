@@ -72,6 +72,14 @@ impl RawCharGrid {
         }
     }
 
+    fn set_bg(&mut self, [x, y]: Position, bg: Color) {
+        if x >= 0 && y >= 0 && x < self.size[0] && y < self.size[1] {
+            let index = (y * self.size[0] + x) as usize;
+
+            self.bg[index] = bg;
+        }
+    }
+
     fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
         if y >= 0 && y < self.size[1] && x < self.size[0] && x + s.len() as i32 > 0 {
             let skip_chars = if x < 0 { -x as usize } else { 0 };
@@ -336,6 +344,12 @@ impl CharGrid {
     /// Like [CharGrid::put_color], but skips bounds checking.
     pub fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         self.front.put_color_raw(pos, fg, bg, c);
+        self.needs_render = true;
+    }
+
+    /// Set background color at a given position.
+    pub fn set_bg(&mut self, pos: Position, bg: Color) {
+        self.front.set_bg(pos, bg);
         self.needs_render = true;
     }
 

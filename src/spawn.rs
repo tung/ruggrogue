@@ -6,8 +6,8 @@ use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
 
 use crate::{
     components::{
-        BlocksTile, CombatStats, Consumable, FieldOfView, Inventory, Item, Monster, Name, Player,
-        Position, ProvidesHealing, RenderOnFloor, RenderOnMap, Renderable,
+        BlocksTile, CombatStats, Consumable, FieldOfView, InflictsDamage, Inventory, Item, Monster,
+        Name, Player, Position, ProvidesHealing, Ranged, RenderOnFloor, RenderOnMap, Renderable,
     },
     map::Map,
     rect::Rect,
@@ -104,6 +104,50 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
     );
 }
 
+fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
+    world.run(
+        |mut map: UniqueViewMut<Map>,
+         mut entities: EntitiesViewMut,
+         mut consumables: ViewMut<Consumable>,
+         mut inflicts_damages: ViewMut<InflictsDamage>,
+         mut items: ViewMut<Item>,
+         mut names: ViewMut<Name>,
+         mut positions: ViewMut<Position>,
+         mut rangeds: ViewMut<Ranged>,
+         mut render_on_floors: ViewMut<RenderOnFloor>,
+         mut renderables: ViewMut<Renderable>| {
+            let item_id = entities.add_entity(
+                (
+                    &mut items,
+                    &mut consumables,
+                    &mut inflicts_damages,
+                    &mut names,
+                    &mut positions,
+                    &mut rangeds,
+                    &mut render_on_floors,
+                    &mut renderables,
+                ),
+                (
+                    Item {},
+                    Consumable {},
+                    InflictsDamage { damage: 8 },
+                    Name("Magic Missile Scroll".into()),
+                    pos.into(),
+                    Ranged { range: 6 },
+                    RenderOnFloor {},
+                    Renderable {
+                        ch: '?',
+                        fg: ui::color::CYAN,
+                        bg: ui::color::BLACK,
+                    },
+                ),
+            );
+
+            map.place_entity(item_id, pos, false);
+        },
+    );
+}
+
 fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f32; 4]) {
     world.run(
         |mut map: UniqueViewMut<Map>,
@@ -167,6 +211,13 @@ fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
     }
 }
 
+fn spawn_random_item_at(world: &World, pos: (i32, i32)) {
+    match world.borrow::<UniqueViewMut<RuggleRng>>().0.gen_range(0, 2) {
+        1 => spawn_magic_missile_scroll(world, pos),
+        _ => spawn_health_potion(world, pos),
+    }
+}
+
 fn fill_room_with_spawns(world: &World, room: &Rect) {
     if world.run(|mut rng: UniqueViewMut<RuggleRng>| rng.0.gen_ratio(1, 4)) {
         let positions = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
@@ -175,7 +226,7 @@ fn fill_room_with_spawns(world: &World, room: &Rect) {
         });
 
         for pos in positions {
-            spawn_health_potion(world, pos);
+            spawn_random_item_at(world, pos);
         }
     }
 

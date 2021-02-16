@@ -15,7 +15,7 @@ use super::{
 
 pub enum InventoryModeResult {
     DoNothing,
-    UseItem(EntityId),
+    UseItem(EntityId, Option<(i32, i32)>),
     DropItem(EntityId),
 }
 
@@ -64,8 +64,8 @@ impl InventoryMode {
                     InventoryActionModeResult::Cancelled => {
                         (ModeControl::Stay, ModeUpdate::WaitForEvent)
                     }
-                    InventoryActionModeResult::UseItem(item_id) => (
-                        ModeControl::Pop(InventoryModeResult::UseItem(*item_id).into()),
+                    InventoryActionModeResult::UseItem(item_id, target) => (
+                        ModeControl::Pop(InventoryModeResult::UseItem(*item_id, *target).into()),
                         ModeUpdate::Immediate,
                     ),
                     InventoryActionModeResult::DropItem(item_id) => (

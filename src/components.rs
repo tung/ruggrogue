@@ -78,6 +78,10 @@ impl FieldOfView {
     }
 }
 
+pub struct InflictsDamage {
+    pub damage: i32,
+}
+
 pub struct Inventory {
     pub items: Vec<EntityId>,
 }
@@ -123,6 +127,10 @@ impl From<(i32, i32)> for Position {
 
 pub struct ProvidesHealing {
     pub heal_amount: i32,
+}
+
+pub struct Ranged {
+    pub range: i32,
 }
 
 pub struct RenderOnFloor;

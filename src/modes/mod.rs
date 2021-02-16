@@ -27,6 +27,7 @@ pub mod dungeon;
 pub mod inventory;
 pub mod inventory_action;
 pub mod pick_up_menu;
+pub mod target;
 pub mod yes_no_dialog;
 
 use shipyard::World;
@@ -37,6 +38,7 @@ use dungeon::{DungeonMode, DungeonModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
 use pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult};
+use target::{TargetMode, TargetModeResult};
 use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 
 // /////////////////////////////////////////////////////////////////////////////
@@ -47,6 +49,7 @@ pub enum Mode {
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
     PickUpMenuMode(PickUpMenuMode),
+    TargetMode(TargetMode),
     YesNoDialogMode(YesNoDialogMode),
 }
 
@@ -74,6 +77,12 @@ impl From<PickUpMenuMode> for Mode {
     }
 }
 
+impl From<TargetMode> for Mode {
+    fn from(mode: TargetMode) -> Self {
+        Self::TargetMode(mode)
+    }
+}
+
 impl From<YesNoDialogMode> for Mode {
     fn from(mode: YesNoDialogMode) -> Self {
         Self::YesNoDialogMode(mode)
@@ -89,6 +98,7 @@ pub enum ModeResult {
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
     PickUpMenuModeResult(PickUpMenuModeResult),
+    TargetModeResult(TargetModeResult),
     YesNoDialogModeResult(YesNoDialogModeResult),
 }
 
@@ -113,6 +123,12 @@ impl From<InventoryActionModeResult> for ModeResult {
 impl From<PickUpMenuModeResult> for ModeResult {
     fn from(result: PickUpMenuModeResult) -> Self {
         Self::PickUpMenuModeResult(result)
+    }
+}
+
+impl From<TargetModeResult> for ModeResult {
+    fn from(result: TargetModeResult) -> Self {
+        Self::TargetModeResult(result)
     }
 }
 
@@ -164,6 +180,7 @@ impl Mode {
             Mode::InventoryMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, pop_result),
             Mode::PickUpMenuMode(x) => x.update(world, inputs, pop_result),
+            Mode::TargetMode(x) => x.update(world, inputs, pop_result),
             Mode::YesNoDialogMode(x) => x.update(world, inputs, pop_result),
         }
     }
@@ -174,7 +191,20 @@ impl Mode {
             Mode::InventoryMode(x) => x.draw(world, grid, active),
             Mode::InventoryActionMode(x) => x.draw(world, grid, active),
             Mode::PickUpMenuMode(x) => x.draw(world, grid, active),
+            Mode::TargetMode(x) => x.draw(world, grid, active),
             Mode::YesNoDialogMode(x) => x.draw(world, grid, active),
+        }
+    }
+
+    /// Should the current mode draw modes behind it in the stack?
+    fn draw_behind(&self) -> bool {
+        match self {
+            Mode::DungeonMode(_) => false,
+            Mode::InventoryMode(_) => true,
+            Mode::InventoryActionMode(_) => true,
+            Mode::PickUpMenuMode(_) => true,
+            Mode::TargetMode(_) => false,
+            Mode::YesNoDialogMode(_) => true,
         }
     }
 }
@@ -239,12 +269,17 @@ impl ModeStack {
     /// called with `active` set to `true`, while the others will be called with it set to `false`.
     pub fn draw(&self, world: &World, grid: &mut CharGrid) {
         let stack_size = self.stack.len();
+        let start_from = self
+            .stack
+            .iter()
+            .rposition(|mode| !mode.draw_behind())
+            .unwrap_or(0);
 
         if stack_size == 0 {
             return;
         }
 
-        for i in 0..(stack_size - 1) {
+        for i in start_from..(stack_size - 1) {
             self.stack[i].draw(world, grid, false);
         }
 

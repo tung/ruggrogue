@@ -2,18 +2,21 @@ use piston::input::{Button, Key};
 use shipyard::{EntityId, Get, View, World};
 
 use crate::{
-    components::{Name, Renderable},
+    components::{Name, Ranged, Renderable},
     ui,
 };
 use ruggle::{CharGrid, InputBuffer, InputEvent};
 
-use super::{ModeControl, ModeResult, ModeUpdate};
+use super::{
+    target::{TargetMode, TargetModeResult},
+    ModeControl, ModeResult, ModeUpdate,
+};
 
 const CANCEL: &str = "[ Cancel ]";
 
 pub enum InventoryActionModeResult {
     Cancelled,
-    UseItem(EntityId),
+    UseItem(EntityId, Option<(i32, i32)>),
     DropItem(EntityId),
 }
 
@@ -78,10 +81,25 @@ impl InventoryActionMode {
 
     pub fn update(
         &mut self,
-        _world: &World,
+        world: &World,
         inputs: &mut InputBuffer,
-        _pop_result: &Option<ModeResult>,
+        pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
+        if let Some(result) = pop_result {
+            return match result {
+                ModeResult::TargetModeResult(result) => match result {
+                    TargetModeResult::Cancelled => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                    TargetModeResult::Target { x, y } => (
+                        ModeControl::Pop(
+                            InventoryActionModeResult::UseItem(self.item_id, Some((*x, *y))).into(),
+                        ),
+                        ModeUpdate::Immediate,
+                    ),
+                },
+                _ => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+            };
+        }
+
         inputs.prepare_input();
 
         if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
@@ -125,7 +143,24 @@ impl InventoryActionMode {
                 Key::Return => {
                     let result = match self.subsection {
                         SubSection::Actions => match self.actions[self.selection as usize] {
-                            Action::UseItem => InventoryActionModeResult::UseItem(self.item_id),
+                            Action::UseItem => {
+                                if let Some(Ranged { range }) =
+                                    &world.borrow::<View<Ranged>>().try_get(self.item_id).ok()
+                                {
+                                    let item_name =
+                                        world.borrow::<View<Name>>().get(self.item_id).0.clone();
+
+                                    inputs.clear_input();
+                                    return (
+                                        ModeControl::Push(
+                                            TargetMode::new(world, item_name, *range, true).into(),
+                                        ),
+                                        ModeUpdate::Immediate,
+                                    );
+                                } else {
+                                    InventoryActionModeResult::UseItem(self.item_id, None)
+                                }
+                            }
                             Action::DropItem => InventoryActionModeResult::DropItem(self.item_id),
                         },
                         SubSection::Cancel => InventoryActionModeResult::Cancelled,

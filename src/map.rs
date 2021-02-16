@@ -1,20 +1,27 @@
 use bitvec::prelude::*;
 use rand::Rng;
-use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
+use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
 use std::collections::HashMap;
 
-use crate::{
-    components::{FieldOfView, Position},
-    player::PlayerId,
-    rect::Rect,
-    ui, RuggleRng,
-};
-use ruggle::CharGrid;
+use crate::{components::Position, player::PlayerId, rect::Rect, RuggleRng};
 
 #[derive(Clone, Copy)]
 pub enum Tile {
     Floor,
     Wall,
+}
+
+impl std::fmt::Display for Tile {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Tile::Floor => "Floor",
+                Tile::Wall => "Wall",
+            }
+        )
+    }
 }
 
 pub struct Map {
@@ -481,34 +488,4 @@ pub fn place_player_in_first_room(
     map.move_entity(player_id.0, player_pos.into(), room_center, false);
     player_pos.x = room_center.0;
     player_pos.y = room_center.1;
-}
-
-#[allow(clippy::many_single_char_names)]
-pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
-    world.run(
-        |map: UniqueView<Map>,
-         player_id: UniqueView<PlayerId>,
-         fovs: View<FieldOfView>,
-         positions: View<Position>| {
-            let (x, y) = positions.get(player_id.0).into();
-            let fov = fovs.get(player_id.0);
-            let w = grid.size_cells()[0];
-            let h = grid.size_cells()[1] - ui::HUD_LINES;
-            let cx = w / 2;
-            let cy = h / 2;
-
-            for (tx, ty, tile) in map.iter_bounds(x - cx, y - cy, x - cx + w - 1, y - cy + h - 1) {
-                if let Some((ch, color)) = tile {
-                    let color = if fov.get((tx, ty)) {
-                        Some(ui::recolor(color, active))
-                    } else {
-                        let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
-                        Some(ui::recolor([v, v, v, color[3]], active))
-                    };
-
-                    grid.put_color_raw([tx - x + cx, ty - y + cy], color, None, ch);
-                }
-            }
-        },
-    );
 }

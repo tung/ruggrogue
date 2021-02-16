@@ -7,8 +7,10 @@ pub mod color {
     pub const WHITE: [f32; 4] = [1.; 4];
     pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
     pub const RED: [f32; 4] = [1., 0., 0., 1.];
+    pub const BLUE: [f32; 4] = [0., 0., 1., 1.];
     pub const YELLOW: [f32; 4] = [1., 1., 0., 1.];
     pub const MAGENTA: [f32; 4] = [1., 0., 1., 1.];
+    pub const CYAN: [f32; 4] = [0., 1., 1., 1.];
 
     pub const SELECTED_BG: [f32; 4] = [0., 0.5, 1., 1.];
 }
@@ -72,7 +74,7 @@ fn draw_messages(world: &World, grid: &mut CharGrid, active: bool, min_y: i32, m
     });
 }
 
-pub fn draw_ui(world: &World, grid: &mut CharGrid, active: bool) {
+pub fn draw_ui(world: &World, grid: &mut CharGrid, active: bool, prompt: Option<&str>) {
     let [w, h] = grid.size_cells();
     let y = h - HUD_LINES;
     let fg = Some(recolor(color::WHITE, active));
@@ -82,5 +84,11 @@ pub fn draw_ui(world: &World, grid: &mut CharGrid, active: bool) {
     }
 
     draw_player_hp(world, grid, active, y);
-    draw_messages(world, grid, active, y + 1, h);
+
+    if let Some(prompt) = prompt {
+        grid.print_color([2, y + 1], fg, None, prompt);
+        draw_messages(world, grid, false, y + 2, h - 1);
+    } else {
+        draw_messages(world, grid, active, y + 1, h);
+    }
 }

@@ -5,11 +5,11 @@ use shipyard::{
 
 use crate::{
     components::{
-        CombatStats, Consumable, Inventory, Name, Position, ProvidesHealing, RenderOnFloor,
+        CombatStats, Consumable, InflictsDamage, Inventory, Monster, Name, Player, Position,
+        ProvidesHealing, RenderOnFloor,
     },
     map::Map,
     message::Messages,
-    player::PlayerId,
 };
 
 pub fn add_item_to_map(world: &World, item_id: EntityId, (x, y): (i32, i32)) {
@@ -55,27 +55,45 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
     }
 }
 
-pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId) {
-    let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
-
+pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {
     world.run(
-        |mut msgs: UniqueViewMut<Messages>,
+        |map: UniqueView<Map>,
+         mut msgs: UniqueViewMut<Messages>,
          mut combat_stats: ViewMut<CombatStats>,
+         inflicts_damages: View<InflictsDamage>,
+         monsters: View<Monster>,
          names: View<Name>,
+         players: View<Player>,
          provides_healings: View<ProvidesHealing>| {
-            if combat_stats.contains(user_id) {
-                let stats = (&mut combat_stats).get(user_id);
+            let user_name = &names.get(user_id).0;
+            let item_name = &names.get(item_id).0;
+            let target_id = match target {
+                Some((x, y)) => map
+                    .iter_entities_at(x, y)
+                    .find(|id| monsters.contains(*id) || players.contains(*id)),
+                None => Some(user_id),
+            };
 
-                if provides_healings.contains(item_id) {
-                    let ProvidesHealing { heal_amount } = &provides_healings.get(item_id);
+            msgs.add(format!("{} uses {}.", user_name, item_name));
 
-                    stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
-                    if user_id == player_id {
+            if let Some(target_id) = target_id {
+                let target_name = &names.get(target_id).0;
+
+                if let Ok(stats) = (&mut combat_stats).try_get(target_id) {
+                    if let Ok(ProvidesHealing { heal_amount }) = &provides_healings.try_get(item_id)
+                    {
+                        stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
                         msgs.add(format!(
-                            "{} uses {} and heals {} hp.",
-                            names.get(user_id).0,
-                            names.get(item_id).0,
-                            heal_amount,
+                            "{} heals {} for {} hp.",
+                            item_name, target_name, heal_amount,
+                        ));
+                    }
+
+                    if let Ok(InflictsDamage { damage }) = &inflicts_damages.try_get(item_id) {
+                        stats.hp -= damage;
+                        msgs.add(format!(
+                            "{} hits {} for {} hp.",
+                            item_name, target_name, damage,
                         ));
                     }
                 }
@@ -84,7 +102,7 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId) {
     );
 
     if world.borrow::<View<Consumable>>().contains(item_id) {
-        remove_item_from_inventory(world, player_id, item_id);
+        remove_item_from_inventory(world, user_id, item_id);
         world.borrow::<AllStoragesViewMut>().delete(item_id);
     }
 }
