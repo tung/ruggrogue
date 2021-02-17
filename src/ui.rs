@@ -13,6 +13,7 @@ pub mod color {
     pub const CYAN: [f32; 4] = [0., 1., 1., 1.];
     pub const ORANGE: [f32; 4] = [1.0, 0.65, 0., 1.];
     pub const PURPLE: [f32; 4] = [0.5, 0., 0.5, 1.];
+    pub const PINK: [f32; 4] = [1., 0.75, 0.8, 1.];
 
     pub const SELECTED_BG: [f32; 4] = [0., 0.5, 1., 1.];
 }

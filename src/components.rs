@@ -7,6 +7,11 @@ pub struct AreaOfEffect {
     pub radius: i32,
 }
 
+pub struct Asleep {
+    pub sleepiness: i32,
+    pub last_hp: i32,
+}
+
 pub struct BlocksTile;
 
 pub struct CombatStats {
@@ -84,6 +89,10 @@ impl FieldOfView {
 
 pub struct InflictsDamage {
     pub damage: i32,
+}
+
+pub struct InflictsSleep {
+    pub sleepiness: i32,
 }
 
 pub struct Inventory {

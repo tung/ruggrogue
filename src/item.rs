@@ -5,11 +5,12 @@ use shipyard::{
 
 use crate::{
     components::{
-        AreaOfEffect, CombatStats, Consumable, InflictsDamage, Inventory, Monster, Name, Player,
-        Position, ProvidesHealing, RenderOnFloor,
+        AreaOfEffect, Asleep, CombatStats, Consumable, FieldOfView, InflictsDamage, InflictsSleep,
+        Inventory, Monster, Name, Player, Position, ProvidesHealing, RenderOnFloor,
     },
     map::Map,
     message::Messages,
+    player::{self, PlayerId},
 };
 use ruggle::FovShape;
 
@@ -58,14 +59,14 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
 
 pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {
     world.run(
-        |map: UniqueView<Map>,
-         mut msgs: UniqueViewMut<Messages>,
+        |(map, mut msgs): (UniqueView<Map>, UniqueViewMut<Messages>),
+         entities: EntitiesView,
          aoes: View<AreaOfEffect>,
+         mut asleeps: ViewMut<Asleep>,
          mut combat_stats: ViewMut<CombatStats>,
          inflicts_damages: View<InflictsDamage>,
-         monsters: View<Monster>,
-         names: View<Name>,
-         players: View<Player>,
+         inflicts_sleeps: View<InflictsSleep>,
+         (monsters, names, players): (View<Monster>, View<Name>, View<Player>),
          positions: View<Position>,
          provides_healings: View<ProvidesHealing>| {
             let center = target.unwrap_or_else(|| positions.get(user_id).into());
@@ -83,7 +84,7 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
                 let target_name = &names.get(target_id).0;
 
                 if let Ok(stats) = (&mut combat_stats).try_get(target_id) {
-                    if let Ok(ProvidesHealing { heal_amount }) = &provides_healings.try_get(item_id)
+                    if let Ok(ProvidesHealing { heal_amount }) = provides_healings.try_get(item_id)
                     {
                         stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
                         msgs.add(format!(
@@ -92,12 +93,24 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
                         ));
                     }
 
-                    if let Ok(InflictsDamage { damage }) = &inflicts_damages.try_get(item_id) {
+                    if let Ok(InflictsDamage { damage }) = inflicts_damages.try_get(item_id) {
                         stats.hp -= damage;
                         msgs.add(format!(
                             "{} hits {} for {} hp.",
                             item_name, target_name, damage,
                         ));
+                    }
+
+                    if let Ok(InflictsSleep { sleepiness }) = inflicts_sleeps.try_get(item_id) {
+                        entities.add_component(
+                            &mut asleeps,
+                            Asleep {
+                                sleepiness: *sleepiness,
+                                last_hp: stats.hp,
+                            },
+                            target_id,
+                        );
+                        msgs.add(format!("{} sends {} to sleep.", item_name, target_name));
                     }
                 }
             }
@@ -107,5 +120,53 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
     if world.borrow::<View<Consumable>>().contains(item_id) {
         remove_item_from_inventory(world, user_id, item_id);
         world.borrow::<AllStoragesViewMut>().delete(item_id);
+    }
+}
+
+pub fn is_asleep(world: &World, who: EntityId) -> bool {
+    world.borrow::<View<Asleep>>().contains(who)
+}
+
+pub fn handle_sleep_turn(world: &World, who: EntityId) {
+    let mut asleeps = world.borrow::<ViewMut<Asleep>>();
+
+    if let Ok(mut asleep) = (&mut asleeps).try_get(who) {
+        let (mut msgs, player_id, combat_stats, fovs, names, positions) = world.borrow::<(
+            UniqueViewMut<Messages>,
+            UniqueView<PlayerId>,
+            View<CombatStats>,
+            View<FieldOfView>,
+            View<Name>,
+            View<Position>,
+        )>();
+
+        asleep.sleepiness -= 1;
+        if (who == player_id.0 && world.run(player::player_sees_foes))
+            || player::can_see_player(world, who)
+        {
+            asleep.sleepiness -= 1;
+        }
+        if let Ok(stats) = combat_stats.try_get(who) {
+            if stats.hp < asleep.last_hp {
+                asleep.sleepiness -= 10;
+                asleep.last_hp = stats.hp;
+            }
+        }
+
+        if asleep.sleepiness <= 0 {
+            let show_msg = if who == player_id.0 {
+                true
+            } else if let Ok(who_pos) = positions.try_get(who) {
+                let player_fov = fovs.get(player_id.0);
+                player_fov.get(who_pos.into())
+            } else {
+                false
+            };
+
+            asleeps.remove(who);
+            if show_msg {
+                msgs.add(format!("{} wakes up.", names.get(who).0));
+            }
+        }
     }
 }

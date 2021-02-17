@@ -50,7 +50,7 @@ pub fn player_stop_auto_run(player_id: UniqueView<PlayerId>, mut players: ViewMu
     (&mut players).get(player_id.0).auto_run = None;
 }
 
-fn player_sees_foes(
+pub fn player_sees_foes(
     map: UniqueView<Map>,
     player_id: UniqueView<PlayerId>,
     fovs: View<FieldOfView>,
@@ -59,6 +59,19 @@ fn player_sees_foes(
     fovs.get(player_id.0)
         .iter()
         .any(|(x, y)| map.iter_entities_at(x, y).any(|id| monsters.contains(id)))
+}
+
+pub fn can_see_player(world: &World, who: EntityId) -> bool {
+    let (player_id, fovs, positions) =
+        world.borrow::<(UniqueView<PlayerId>, View<FieldOfView>, View<Position>)>();
+
+    if let Ok(fov) = fovs.try_get(who) {
+        let player_pos = positions.get(player_id.0);
+
+        fov.get(player_pos.into())
+    } else {
+        false
+    }
 }
 
 /// Calculate a 2-by-2 matrix to rotate any `(dx, dy)` to only face `(+dx, 0)` or `(+dx, +dy)`.
@@ -639,9 +652,26 @@ pub fn player_drop_item(world: &World, item_id: EntityId) {
 }
 
 pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResult {
+    let player_id = world.borrow::<UniqueView<PlayerId>>();
+
     inputs.prepare_input();
 
-    if world.run(player_is_auto_running) {
+    if item::is_asleep(world, player_id.0) {
+        if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
+            match key {
+                Key::Escape => PlayerInputResult::ShowExitPrompt,
+                _ => {
+                    world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+                        msgs.add(format!("{} is sleeping.", names.get(player_id.0).0));
+                    });
+                    item::handle_sleep_turn(world, player_id.0);
+                    PlayerInputResult::TurnDone
+                }
+            }
+        } else {
+            PlayerInputResult::NoResult
+        }
+    } else if world.run(player_is_auto_running) {
         if matches!(
             inputs.get_input(),
             Some(InputEvent::Press(Button::Keyboard(_)))
@@ -651,19 +681,17 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             world.run(player_stop_auto_run);
             PlayerInputResult::NoResult
         } else {
-            let limit_reached = world.run(
-                |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
-                    let player = (&mut players).get(player_id.0);
-                    if let Some(auto_run) = &mut player.auto_run {
-                        if auto_run.limit > 0 {
-                            auto_run.limit -= 1;
-                        }
-                        auto_run.limit <= 0
-                    } else {
-                        true
+            let limit_reached = world.run(|mut players: ViewMut<Player>| {
+                let player = (&mut players).get(player_id.0);
+                if let Some(auto_run) = &mut player.auto_run {
+                    if auto_run.limit > 0 {
+                        auto_run.limit -= 1;
                     }
-                },
-            );
+                    auto_run.limit <= 0
+                } else {
+                    true
+                }
+            });
 
             if limit_reached {
                 world.run(player_stop_auto_run);

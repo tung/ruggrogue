@@ -6,9 +6,9 @@ use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
 
 use crate::{
     components::{
-        AreaOfEffect, BlocksTile, CombatStats, Consumable, FieldOfView, InflictsDamage, Inventory,
-        Item, Monster, Name, Player, Position, ProvidesHealing, Ranged, RenderOnFloor, RenderOnMap,
-        Renderable,
+        AreaOfEffect, BlocksTile, CombatStats, Consumable, FieldOfView, InflictsDamage,
+        InflictsSleep, Inventory, Item, Monster, Name, Player, Position, ProvidesHealing, Ranged,
+        RenderOnFloor, RenderOnMap, Renderable,
     },
     map::Map,
     rect::Rect,
@@ -195,6 +195,52 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
+fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
+    world.run(
+        |mut map: UniqueViewMut<Map>,
+         mut entities: EntitiesViewMut,
+         mut aoes: ViewMut<AreaOfEffect>,
+         mut consumables: ViewMut<Consumable>,
+         mut inflicts_sleeps: ViewMut<InflictsSleep>,
+         mut items: ViewMut<Item>,
+         mut names: ViewMut<Name>,
+         mut positions: ViewMut<Position>,
+         mut rangeds: ViewMut<Ranged>,
+         (mut render_on_floors, mut renderables): (ViewMut<RenderOnFloor>, ViewMut<Renderable>)| {
+            let item_id = entities.add_entity(
+                (
+                    &mut items,
+                    &mut aoes,
+                    &mut consumables,
+                    &mut inflicts_sleeps,
+                    &mut names,
+                    &mut positions,
+                    &mut rangeds,
+                    &mut render_on_floors,
+                    &mut renderables,
+                ),
+                (
+                    Item {},
+                    AreaOfEffect { radius: 1 },
+                    Consumable {},
+                    InflictsSleep { sleepiness: 36 },
+                    Name("Sleep Scroll".into()),
+                    pos.into(),
+                    Ranged { range: 6 },
+                    RenderOnFloor {},
+                    Renderable {
+                        ch: '?',
+                        fg: ui::color::PINK,
+                        bg: ui::color::BLACK,
+                    },
+                ),
+            );
+
+            map.place_entity(item_id, pos, false);
+        },
+    );
+}
+
 fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f32; 4]) {
     world.run(
         |mut map: UniqueViewMut<Map>,
@@ -259,9 +305,10 @@ fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
 }
 
 fn spawn_random_item_at(world: &World, pos: (i32, i32)) {
-    match world.borrow::<UniqueViewMut<RuggleRng>>().0.gen_range(0, 3) {
+    match world.borrow::<UniqueViewMut<RuggleRng>>().0.gen_range(0, 4) {
         1 => spawn_magic_missile_scroll(world, pos),
         2 => spawn_fireball_scroll(world, pos),
+        3 => spawn_sleep_scroll(world, pos),
         _ => spawn_health_potion(world, pos),
     }
 }

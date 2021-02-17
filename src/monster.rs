@@ -6,9 +6,9 @@ use std::{cmp::Reverse, collections::BinaryHeap};
 
 use crate::{
     components::{BlocksTile, FieldOfView, Monster, Position},
-    damage,
+    damage, item,
     map::Map,
-    player::PlayerId,
+    player::{self, PlayerId},
 };
 
 pub struct MonsterTurns(BinaryHeap<(Reverse<i32>, EntityId)>);
@@ -46,18 +46,18 @@ pub fn enqueue_monster_turns(
 }
 
 fn do_turn_for_one_monster(world: &World, monster: EntityId) {
-    let (mut map, player_id, blocks, mut fovs, mut positions) = world.borrow::<(
-        UniqueViewMut<Map>,
-        UniqueView<PlayerId>,
-        View<BlocksTile>,
-        ViewMut<FieldOfView>,
-        ViewMut<Position>,
-    )>();
-
-    let fov = (&mut fovs).get(monster);
-    let player_pos: (i32, i32) = positions.get(player_id.0).into();
-
-    if fov.get(player_pos) {
+    if item::is_asleep(world, monster) {
+        item::handle_sleep_turn(world, monster);
+    } else if player::can_see_player(world, monster) {
+        let (mut map, player_id, blocks, mut fovs, mut positions) = world.borrow::<(
+            UniqueViewMut<Map>,
+            UniqueView<PlayerId>,
+            View<BlocksTile>,
+            ViewMut<FieldOfView>,
+            ViewMut<Position>,
+        )>();
+        let fov = (&mut fovs).get(monster);
+        let player_pos: (i32, i32) = positions.get(player_id.0).into();
         let pos_mut = (&mut positions).get(monster);
         let pos: (i32, i32) = pos_mut.into();
 
