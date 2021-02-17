@@ -71,6 +71,7 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
             let center = target.unwrap_or_else(|| positions.get(user_id).into());
             let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
             let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
+                .filter(|(_, _, symmetric)| *symmetric)
                 .flat_map(|(x, y, _)| map.iter_entities_at(x, y))
                 .filter(|id| monsters.contains(*id) || players.contains(*id));
             let user_name = &names.get(user_id).0;
