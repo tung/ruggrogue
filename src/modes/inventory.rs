@@ -1,8 +1,9 @@
-use piston::input::{Button, Key};
+use piston::input::Button;
 use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
     components::{Inventory, Name, Renderable},
+    gamekey::GameKey,
     player::PlayerId,
     ui,
 };
@@ -84,8 +85,8 @@ impl InventoryMode {
                 |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
                     let player_inv = inventories.get(player_id.0);
 
-                    match key {
-                        Key::J | Key::NumPad2 | Key::Down => match self.subsection {
+                    match key.into() {
+                        GameKey::Down => match self.subsection {
                             SubSection::SortAll => {
                                 self.subsection = SubSection::Inventory;
                                 self.inv_selection = 0;
@@ -100,7 +101,7 @@ impl InventoryMode {
                                 }
                             }
                         },
-                        Key::K | Key::NumPad8 | Key::Up => match self.subsection {
+                        GameKey::Up => match self.subsection {
                             SubSection::SortAll => {
                                 self.subsection = SubSection::Inventory;
                                 self.inv_selection = if player_inv.items.is_empty() {
@@ -117,13 +118,13 @@ impl InventoryMode {
                                 }
                             }
                         },
-                        Key::Escape => {
+                        GameKey::Cancel => {
                             return (
                                 ModeControl::Pop(InventoryModeResult::DoNothing.into()),
                                 ModeUpdate::Immediate,
                             )
                         }
-                        Key::Return => {
+                        GameKey::Confirm => {
                             match self.subsection {
                                 SubSection::SortAll => {} // TODO
                                 SubSection::Inventory => {

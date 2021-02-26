@@ -1,8 +1,9 @@
-use piston::input::{Button, Key};
+use piston::input::Button;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
     components::{Item, Name, Position, Renderable},
+    gamekey::GameKey,
     map::Map,
     message::Messages,
     player::PlayerId,
@@ -89,8 +90,8 @@ impl PickUpMenuMode {
             inputs.prepare_input();
 
             if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-                match key {
-                    Key::J | Key::NumPad2 | Key::Down => match self.subsection {
+                match key.into() {
+                    GameKey::Down => match self.subsection {
                         SubSection::Items => {
                             if self.selection < self.items.len() as i32 - 1 {
                                 self.selection += 1;
@@ -103,7 +104,7 @@ impl PickUpMenuMode {
                             self.selection = 0;
                         }
                     },
-                    Key::K | Key::NumPad8 | Key::Up => match self.subsection {
+                    GameKey::Up => match self.subsection {
                         SubSection::Items => {
                             if self.selection > 0 {
                                 self.selection -= 1;
@@ -116,13 +117,13 @@ impl PickUpMenuMode {
                             self.selection = self.items.len() as i32 - 1;
                         }
                     },
-                    Key::Escape => {
+                    GameKey::Cancel => {
                         return (
                             ModeControl::Pop(PickUpMenuModeResult::Cancelled.into()),
                             ModeUpdate::Immediate,
                         )
                     }
-                    Key::Return | Key::Comma | Key::G => {
+                    GameKey::Confirm | GameKey::PickUp => {
                         let result = match self.subsection {
                             SubSection::Items => PickUpMenuModeResult::PickedItem(
                                 self.items[self.selection as usize],

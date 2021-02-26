@@ -5,7 +5,9 @@ use shipyard::{
 
 use crate::{
     components::{CombatStats, FieldOfView, Item, Monster, Name, Player, Position},
-    damage, item,
+    damage,
+    gamekey::GameKey,
+    item,
     map::Map,
     message::Messages,
 };
@@ -658,8 +660,8 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
 
     if item::is_asleep(world, player_id.0) {
         if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-            match key {
-                Key::Escape => PlayerInputResult::ShowExitPrompt,
+            match key.into() {
+                GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
                 _ => {
                     world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
                         msgs.add(format!("{} is sleeping.", names.get(player_id.0).0));
@@ -707,19 +709,19 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
     } else if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
         let shift = inputs.get_mods(KeyMods::SHIFT);
 
-        match key {
-            Key::H | Key::NumPad4 | Key::Left => try_move_player(world, -1, 0, shift),
-            Key::J | Key::NumPad2 | Key::Down => try_move_player(world, 0, 1, shift),
-            Key::K | Key::NumPad8 | Key::Up => try_move_player(world, 0, -1, shift),
-            Key::L | Key::NumPad6 | Key::Right => try_move_player(world, 1, 0, shift),
-            Key::Y | Key::NumPad7 => try_move_player(world, -1, -1, shift),
-            Key::U | Key::NumPad9 => try_move_player(world, 1, -1, shift),
-            Key::B | Key::NumPad1 => try_move_player(world, -1, 1, shift),
-            Key::N | Key::NumPad3 => try_move_player(world, 1, 1, shift),
-            Key::Period | Key::NumPad5 | Key::Space => PlayerInputResult::TurnDone,
-            Key::Escape => PlayerInputResult::ShowExitPrompt,
-            Key::Comma | Key::G => PlayerInputResult::ShowPickUpMenu,
-            Key::I | Key::Return => PlayerInputResult::ShowInventory,
+        match key.into() {
+            GameKey::Left => try_move_player(world, -1, 0, shift),
+            GameKey::Down => try_move_player(world, 0, 1, shift),
+            GameKey::Up => try_move_player(world, 0, -1, shift),
+            GameKey::Right => try_move_player(world, 1, 0, shift),
+            GameKey::UpLeft => try_move_player(world, -1, -1, shift),
+            GameKey::UpRight => try_move_player(world, 1, -1, shift),
+            GameKey::DownLeft => try_move_player(world, -1, 1, shift),
+            GameKey::DownRight => try_move_player(world, 1, 1, shift),
+            GameKey::Wait => PlayerInputResult::TurnDone,
+            GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
+            GameKey::PickUp => PlayerInputResult::ShowPickUpMenu,
+            GameKey::Inventory | GameKey::Confirm => PlayerInputResult::ShowInventory,
             _ => PlayerInputResult::NoResult,
         }
     } else {

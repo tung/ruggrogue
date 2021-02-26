@@ -1,8 +1,9 @@
-use piston::input::{Button, Key};
+use piston::input::Button;
 use shipyard::{EntityId, Get, View, World};
 
 use crate::{
     components::{AreaOfEffect, Name, Ranged, Renderable},
+    gamekey::GameKey,
     ui,
 };
 use ruggle::{CharGrid, InputBuffer, InputEvent};
@@ -103,8 +104,8 @@ impl InventoryActionMode {
         inputs.prepare_input();
 
         if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-            match key {
-                Key::J | Key::NumPad2 | Key::Down => match self.subsection {
+            match key.into() {
+                GameKey::Down => match self.subsection {
                     SubSection::Actions => {
                         if self.selection < self.actions.len() as i32 - 1 {
                             self.selection += 1;
@@ -119,7 +120,7 @@ impl InventoryActionMode {
                         }
                     }
                 },
-                Key::K | Key::NumPad8 | Key::Up => match self.subsection {
+                GameKey::Up => match self.subsection {
                     SubSection::Actions => {
                         if self.selection > 0 {
                             self.selection -= 1;
@@ -134,13 +135,13 @@ impl InventoryActionMode {
                         }
                     }
                 },
-                Key::Escape => {
+                GameKey::Cancel => {
                     return (
                         ModeControl::Pop(InventoryActionModeResult::Cancelled.into()),
                         ModeUpdate::Immediate,
                     )
                 }
-                Key::Return => {
+                GameKey::Confirm => {
                     let result = match self.subsection {
                         SubSection::Actions => match self.actions[self.selection as usize] {
                             Action::UseItem => {

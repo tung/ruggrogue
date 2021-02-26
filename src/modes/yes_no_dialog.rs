@@ -1,10 +1,10 @@
-use piston::input::{Button, Key};
+use piston::input::Button;
 use shipyard::World;
 
 use ruggle::{CharGrid, InputBuffer, InputEvent};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
-use crate::ui;
+use crate::{gamekey::GameKey, ui};
 
 pub enum YesNoDialogModeResult {
     Yes,
@@ -44,16 +44,16 @@ impl YesNoDialogMode {
         inputs.prepare_input();
 
         if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-            match key {
-                Key::H | Key::NumPad4 | Key::Left => self.yes_selected = true,
-                Key::L | Key::NumPad6 | Key::Right => self.yes_selected = false,
-                Key::Return => {
+            match key.into() {
+                GameKey::Left => self.yes_selected = true,
+                GameKey::Right => self.yes_selected = false,
+                GameKey::Confirm => {
                     return (
                         ModeControl::Pop(YesNoDialogModeResult::from(self.yes_selected).into()),
                         ModeUpdate::Immediate,
                     )
                 }
-                Key::Escape => {
+                GameKey::Cancel => {
                     return (
                         ModeControl::Pop(YesNoDialogModeResult::No.into()),
                         ModeUpdate::Immediate,

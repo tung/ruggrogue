@@ -1,9 +1,10 @@
-use piston::input::{Button, Key};
+use piston::input::Button;
 use shipyard::{Get, UniqueView, View, World};
 use std::collections::HashSet;
 
 use crate::{
     components::{FieldOfView, Item, Monster, Name, Player, Position},
+    gamekey::GameKey,
     map::Map,
     player::PlayerId,
     render, ui,
@@ -112,50 +113,50 @@ impl TargetMode {
             let min_y = self.center.1 - self.range;
             let max_y = self.center.1 + self.range;
 
-            match key {
-                Key::H | Key::NumPad4 | Key::Left => {
+            match key.into() {
+                GameKey::Left => {
                     self.cursor.0 = std::cmp::max(min_x, self.cursor.0 - 1);
                 }
-                Key::J | Key::NumPad2 | Key::Down => {
+                GameKey::Down => {
                     self.cursor.1 = std::cmp::min(max_y, self.cursor.1 + 1);
                 }
-                Key::K | Key::NumPad8 | Key::Up => {
+                GameKey::Up => {
                     self.cursor.1 = std::cmp::max(min_y, self.cursor.1 - 1);
                 }
-                Key::L | Key::NumPad6 | Key::Right => {
+                GameKey::Right => {
                     self.cursor.0 = std::cmp::min(max_x, self.cursor.0 + 1);
                 }
-                Key::Y | Key::NumPad7 => {
+                GameKey::UpLeft => {
                     if self.cursor.0 > min_x && self.cursor.1 > min_y {
                         self.cursor.0 -= 1;
                         self.cursor.1 -= 1;
                     }
                 }
-                Key::U | Key::NumPad9 => {
+                GameKey::UpRight => {
                     if self.cursor.0 < max_x && self.cursor.1 > min_y {
                         self.cursor.0 += 1;
                         self.cursor.1 -= 1;
                     }
                 }
-                Key::B | Key::NumPad1 => {
+                GameKey::DownLeft => {
                     if self.cursor.0 > min_x && self.cursor.1 < max_y {
                         self.cursor.0 -= 1;
                         self.cursor.1 += 1;
                     }
                 }
-                Key::N | Key::NumPad3 => {
+                GameKey::DownRight => {
                     if self.cursor.0 < max_x && self.cursor.1 < max_y {
                         self.cursor.0 += 1;
                         self.cursor.1 += 1;
                     }
                 }
-                Key::Escape => {
+                GameKey::Cancel => {
                     return (
                         ModeControl::Pop(TargetModeResult::Cancelled.into()),
                         ModeUpdate::Immediate,
                     )
                 }
-                Key::Return => {
+                GameKey::Confirm => {
                     if self.valid.contains(&self.cursor) {
                         let result = if self.warn_self
                             && dist2(self.cursor, self.center) <= self.radius * (self.radius + 1)
