@@ -118,7 +118,7 @@ impl InventoryMode {
                                 }
                             }
                         },
-                        GameKey::Cancel => {
+                        GameKey::Cancel | GameKey::Inventory => {
                             return (
                                 ModeControl::Pop(InventoryModeResult::DoNothing.into()),
                                 ModeUpdate::Immediate,
@@ -259,7 +259,6 @@ impl InventoryMode {
     pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
         const SIDE_WIDTH: i32 = 15;
         const TOP_HEIGHT: i32 = 2;
-        const ESC_TO_CLOSE: &str = " [Esc] to close ";
 
         let inv_len = world.run(
             |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
@@ -299,16 +298,6 @@ impl InventoryMode {
             grid.put_color([x, inv_y], fg, bg, '─');
         }
         grid.put_color([base_x + full_width - 1, inv_y], fg, bg, '┤');
-
-        grid.print_color(
-            [
-                base_x + full_width - ESC_TO_CLOSE.len() as i32 - 2,
-                base_y + full_height - 1,
-            ],
-            fg,
-            bg,
-            ESC_TO_CLOSE,
-        );
 
         self.draw_inventory(
             world,
