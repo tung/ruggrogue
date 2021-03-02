@@ -15,5 +15,9 @@ rand_pcg = "0.2"
 sdl2 = "0.34"
 shipyard = "0.4"
 
+# We don't use this, but bitvec 0.19 breaks on funty 1.2, so we need to specify this.
+[dependencies.funty]
+version = ">=1.0, <=1.1"
+
 [lib]
 path = "src/lib/lib.rs"
