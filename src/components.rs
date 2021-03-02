@@ -152,6 +152,6 @@ pub struct RenderOnMap;
 
 pub struct Renderable {
     pub ch: char,
-    pub fg: [f32; 4],
-    pub bg: [f32; 4],
+    pub fg: [f32; 3],
+    pub bg: [f32; 3],
 }

@@ -241,7 +241,7 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f32; 4]) {
+fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f32; 3]) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
@@ -293,8 +293,8 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: &[f
 fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
     let choice = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
         [
-            ('g', "Goblin", [0.5, 0.9, 0.2, 1.]),
-            ('o', "Orc", [0.9, 0.3, 0.2, 1.]),
+            ('g', "Goblin", [0.5, 0.9, 0.2]),
+            ('o', "Orc", [0.9, 0.3, 0.2]),
         ]
         .choose(&mut rng.0)
     });

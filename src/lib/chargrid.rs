@@ -7,7 +7,7 @@ use sdl2::{
 };
 use std::{collections::HashMap, convert::TryInto};
 
-type Color = [f32; 4];
+type Color = [f32; 3];
 type Position = [i32; 2];
 type Size = [i32; 2];
 
@@ -17,7 +17,6 @@ fn eq_color(a: &Color, b: &Color) -> bool {
     (a[0] - b[0]).abs() <= f32::EPSILON
         && (a[1] - b[1]).abs() <= f32::EPSILON
         && (a[2] - b[2]).abs() <= f32::EPSILON
-        && (a[3] - b[3]).abs() <= f32::EPSILON
 }
 
 struct RawCharGrid {
@@ -39,8 +38,8 @@ impl RawCharGrid {
         RawCharGrid {
             size,
             chars: vec![' '; vec_size],
-            fg: vec![[1.; 4]; vec_size],
-            bg: vec![[0., 0., 0., 1.]; vec_size],
+            fg: vec![[1.; 3]; vec_size],
+            bg: vec![[0.; 3]; vec_size],
         }
     }
 
@@ -49,12 +48,12 @@ impl RawCharGrid {
             *e = ' ';
         }
 
-        let fg: Color = fg.unwrap_or([1.; 4]);
+        let fg: Color = fg.unwrap_or([1.; 3]);
         for e in self.fg.iter_mut() {
             *e = fg;
         }
 
-        let bg: Color = bg.unwrap_or([0., 0., 0., 1.]);
+        let bg: Color = bg.unwrap_or([0., 0., 0.]);
         for e in self.bg.iter_mut() {
             *e = bg;
         }

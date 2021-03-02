@@ -4,21 +4,21 @@ use crate::{components::CombatStats, message::Messages, player::PlayerId};
 use ruggle::CharGrid;
 
 pub mod color {
-    pub const WHITE: [f32; 4] = [1.; 4];
-    pub const BLACK: [f32; 4] = [0., 0., 0., 1.];
-    pub const RED: [f32; 4] = [1., 0., 0., 1.];
-    pub const BLUE: [f32; 4] = [0., 0., 1., 1.];
-    pub const YELLOW: [f32; 4] = [1., 1., 0., 1.];
-    pub const MAGENTA: [f32; 4] = [1., 0., 1., 1.];
-    pub const CYAN: [f32; 4] = [0., 1., 1., 1.];
-    pub const ORANGE: [f32; 4] = [1.0, 0.65, 0., 1.];
-    pub const PURPLE: [f32; 4] = [0.5, 0., 0.5, 1.];
-    pub const PINK: [f32; 4] = [1., 0.75, 0.8, 1.];
+    pub const WHITE: [f32; 3] = [1.; 3];
+    pub const BLACK: [f32; 3] = [0.; 3];
+    pub const RED: [f32; 3] = [1., 0., 0.];
+    pub const BLUE: [f32; 3] = [0., 0., 1.];
+    pub const YELLOW: [f32; 3] = [1., 1., 0.];
+    pub const MAGENTA: [f32; 3] = [1., 0., 1.];
+    pub const CYAN: [f32; 3] = [0., 1., 1.];
+    pub const ORANGE: [f32; 3] = [1.0, 0.65, 0.];
+    pub const PURPLE: [f32; 3] = [0.5, 0., 0.5];
+    pub const PINK: [f32; 3] = [1., 0.75, 0.8];
 
-    pub const SELECTED_BG: [f32; 4] = [0., 0.5, 1., 1.];
+    pub const SELECTED_BG: [f32; 3] = [0., 0.5, 1.];
 }
 
-pub fn recolor(c: [f32; 4], active: bool) -> [f32; 4] {
+pub fn recolor(c: [f32; 3], active: bool) -> [f32; 3] {
     if active {
         c
     } else {
@@ -29,7 +29,6 @@ pub fn recolor(c: [f32; 4], active: bool) -> [f32; 4] {
             (c[0] + gray) * 0.3,
             (c[1] + gray) * 0.3,
             (c[2] + gray) * 0.3,
-            c[3],
         ]
     }
 }

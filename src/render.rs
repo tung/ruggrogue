@@ -30,7 +30,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
                 Some(ui::recolor(color, active))
             } else {
                 let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
-                Some(ui::recolor([v, v, v, color[3]], active))
+                Some(ui::recolor([v, v, v], active))
             };
 
             grid.put_color_raw([tx - x + cx, ty - y + cy], color, None, ch);
