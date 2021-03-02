@@ -1,4 +1,3 @@
-use piston::input::Button;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
@@ -89,7 +88,7 @@ impl PickUpMenuMode {
         } else {
             inputs.prepare_input();
 
-            if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
+            if let Some(InputEvent::Press(key)) = inputs.get_input() {
                 match key.into() {
                     GameKey::Down => match self.subsection {
                         SubSection::Items => {

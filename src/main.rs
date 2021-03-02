@@ -48,12 +48,11 @@ fn main() {
         grid_size: [80, 48],
         min_grid_size: [80, 24],
         font_path: PathBuf::from("assets/terminal-8x8.png"),
-        min_fps: 30,
-        max_fps: 60,
+        fps: 60,
     };
 
     ruggle::run(
-        settings,
+        &settings,
         |inputs| mode_stack.borrow_mut().update(&world, inputs),
         |grid| {
             grid.clear();

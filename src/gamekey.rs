@@ -1,4 +1,4 @@
-use piston::input::Key;
+use sdl2::keyboard::Keycode;
 
 pub enum GameKey {
     Unmapped,
@@ -17,22 +17,22 @@ pub enum GameKey {
     Inventory,
 }
 
-impl From<Key> for GameKey {
-    fn from(key: Key) -> GameKey {
+impl From<Keycode> for GameKey {
+    fn from(key: Keycode) -> GameKey {
         match key {
-            Key::Up | Key::K | Key::NumPad8 => GameKey::Up,
-            Key::Down | Key::J | Key::NumPad2 => GameKey::Down,
-            Key::Left | Key::H | Key::NumPad4 => GameKey::Left,
-            Key::Right | Key::L | Key::NumPad6 => GameKey::Right,
-            Key::Y | Key::NumPad7 => GameKey::UpLeft,
-            Key::U | Key::NumPad9 => GameKey::UpRight,
-            Key::B | Key::NumPad1 => GameKey::DownLeft,
-            Key::N | Key::NumPad3 => GameKey::DownRight,
-            Key::Period | Key::NumPad5 | Key::Space => GameKey::Wait,
-            Key::Escape => GameKey::Cancel,
-            Key::Return => GameKey::Confirm,
-            Key::Comma | Key::G => GameKey::PickUp,
-            Key::I => GameKey::Inventory,
+            Keycode::Up | Keycode::K | Keycode::Kp8 => GameKey::Up,
+            Keycode::Down | Keycode::J | Keycode::Kp2 => GameKey::Down,
+            Keycode::Left | Keycode::H | Keycode::Kp4 => GameKey::Left,
+            Keycode::Right | Keycode::L | Keycode::Kp6 => GameKey::Right,
+            Keycode::Y | Keycode::Kp7 => GameKey::UpLeft,
+            Keycode::U | Keycode::Kp9 => GameKey::UpRight,
+            Keycode::B | Keycode::Kp1 => GameKey::DownLeft,
+            Keycode::N | Keycode::Kp3 => GameKey::DownRight,
+            Keycode::Period | Keycode::Kp5 | Keycode::Space => GameKey::Wait,
+            Keycode::Escape => GameKey::Cancel,
+            Keycode::Return => GameKey::Confirm,
+            Keycode::Comma | Keycode::G => GameKey::PickUp,
+            Keycode::I => GameKey::Inventory,
             _ => GameKey::Unmapped,
         }
     }

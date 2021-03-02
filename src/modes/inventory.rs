@@ -1,4 +1,3 @@
-use piston::input::Button;
 use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
@@ -80,12 +79,12 @@ impl InventoryMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
+        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             world.run(
                 |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
                     let player_inv = inventories.get(player_id.0);
 
-                    match key.into() {
+                    match keycode.into() {
                         GameKey::Down => match self.subsection {
                             SubSection::SortAll => {
                                 self.subsection = SubSection::Inventory;

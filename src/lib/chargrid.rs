@@ -1,11 +1,17 @@
-use graphics::types::Color;
-use graphics::{Context, Graphics};
-use image::{ImageBuffer, Rgba, RgbaImage};
-use opengl_graphics::{Texture, TextureSettings};
-use std::collections::HashMap;
+use image::{DynamicImage, GenericImageView};
+use sdl2::{
+    pixels::{PixelFormat, PixelFormatEnum},
+    rect::Rect,
+    render::{Texture, TextureCreator, WindowCanvas},
+    video::WindowContext,
+};
+use std::{collections::HashMap, convert::TryInto};
 
+type Color = [f32; 4];
 type Position = [i32; 2];
 type Size = [i32; 2];
+
+const U32_SIZE: usize = std::mem::size_of::<u32>();
 
 fn eq_color(a: &Color, b: &Color) -> bool {
     (a[0] - b[0]).abs() <= f32::EPSILON
@@ -198,36 +204,82 @@ impl RawCharGrid {
     }
 }
 
+struct RgbImage {
+    size: Size,
+    pitch: usize,
+    pixel_format: PixelFormat,
+    buffer: Vec<u8>,
+}
+
+impl RgbImage {
+    fn new([width, height]: Size) -> RgbImage {
+        assert!(width > 0);
+        assert!(height > 0);
+
+        RgbImage {
+            size: [width, height],
+            pitch: U32_SIZE * width as usize,
+            pixel_format: PixelFormatEnum::RGB888.try_into().unwrap(),
+            buffer: vec![0; U32_SIZE * width as usize * height as usize],
+        }
+    }
+
+    fn resize(&mut self, [width, height]: Size) {
+        assert!(width > 0);
+        assert!(height > 0);
+
+        if [width, height] == self.size {
+            return;
+        }
+
+        self.pitch = U32_SIZE * width as usize;
+        self.size = [width, height];
+
+        // Resize the buffer, after which the contents will be nonsense.
+        // The buffer is expected to be fully drawn after this for sensible contents.
+        let new_capacity = self.pitch * height as usize;
+        if new_capacity <= self.buffer.capacity() {
+            self.buffer.resize(new_capacity, 0);
+        } else {
+            self.buffer = vec![0; new_capacity];
+        }
+    }
+
+    fn put_pixel(&mut self, [x, y]: [u32; 2], color: sdl2::pixels::Color) {
+        let idx = y as usize * self.pitch + U32_SIZE * x as usize;
+        let color_bytes = color.to_u32(&self.pixel_format).to_ne_bytes();
+
+        // Unchecked access for performance reasons.
+        self.buffer[idx..idx + U32_SIZE].clone_from_slice(&color_bytes[..U32_SIZE]);
+    }
+}
+
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
 /// color.  To use a CharGrid, create a new one, plot characters and colors onto it, and draw it to
 /// the screen.
-pub struct CharGrid {
+pub struct CharGrid<'r> {
     front: RawCharGrid,
     back: RawCharGrid,
     glyph_cache: HashMap<char, Vec<f32>>,
     min_grid_size: Size,
     cell_size: Size,
     needs_render: bool,
-    buffer: RgbaImage,
-    texture: Option<Texture>,
+    needs_upload: bool,
+    buffer: RgbImage,
+    texture: Option<Texture<'r>>,
 }
 
-impl CharGrid {
+impl<'r> CharGrid<'r> {
     /// Create a new CharGrid with a given [width, height].  White is the default foreground color
     /// and black is the default background color.
-    pub fn new(font_path: &std::path::PathBuf, grid_size: Size, min_grid_size: Size) -> CharGrid {
+    ///
+    /// The font image should consist of a 16-by-16 grid of IBM code page 437 glyphs.
+    pub fn new(font_image: DynamicImage, grid_size: Size, min_grid_size: Size) -> CharGrid<'r> {
         assert!(grid_size[0] > 0 && grid_size[1] > 0);
         assert!(min_grid_size[0] > 0 && min_grid_size[1] > 0);
 
-        use image::GenericImageView;
-
-        // The font image should consist of a 16-by-16 grid of IBM code page 437 glyphs.
-        let image = image::io::Reader::open(font_path)
-            .unwrap()
-            .decode()
-            .unwrap();
-        let cell_width = image.dimensions().0 as i32 / 16;
-        let cell_height = image.dimensions().1 as i32 / 16;
+        let cell_width = font_image.dimensions().0 as i32 / 16;
+        let cell_height = font_image.dimensions().1 as i32 / 16;
         let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
                              !\"#$%&'()*+,-./\
@@ -254,7 +306,7 @@ impl CharGrid {
             for (px_idx, glyph_px) in glyph.iter_mut().enumerate() {
                 let px_x = char_x + px_idx as u32 % cell_width as u32;
                 let px_y = char_y + px_idx as u32 / cell_width as u32;
-                let px = image.get_pixel(px_x, px_y);
+                let px = font_image.get_pixel(px_x, px_y);
 
                 // White for foreground color, black for background color.
                 *glyph_px = px.0[0] as f32 * 0.3 / 255.0
@@ -265,8 +317,8 @@ impl CharGrid {
         }
 
         let grid_size = [
-            std::cmp::min(255, std::cmp::max(min_grid_size[0], grid_size[0])),
-            std::cmp::min(255, std::cmp::max(min_grid_size[1], grid_size[1])),
+            grid_size[0].max(min_grid_size[0]).min(255),
+            grid_size[1].max(min_grid_size[1]).min(255),
         ];
 
         CharGrid {
@@ -276,10 +328,8 @@ impl CharGrid {
             min_grid_size,
             cell_size: [cell_width, cell_height],
             needs_render: true,
-            buffer: ImageBuffer::new(
-                (cell_width * grid_size[0]) as u32,
-                (cell_height * grid_size[1]) as u32,
-            ),
+            needs_upload: true,
+            buffer: RgbImage::new([cell_width * grid_size[0], cell_height * grid_size[1]]),
             texture: None,
         }
     }
@@ -289,33 +339,65 @@ impl CharGrid {
         self.front.size
     }
 
-    /// The pixel width and height of the full CharGrid.
-    pub fn size_px(&self) -> Size {
+    /// Calculate the pixel width and height of a full CharGrid, given a font image and desired
+    /// grid dimensions.
+    pub fn size_px(font_image: &DynamicImage, grid_size: Size, min_grid_size: Size) -> [u32; 2] {
         [
-            self.front.size[0] * self.cell_size[0],
-            self.front.size[1] * self.cell_size[1],
+            font_image.dimensions().0 / 16
+                * (grid_size[0] as u32).max(min_grid_size[0] as u32).min(255),
+            font_image.dimensions().1 / 16
+                * (grid_size[1] as u32).max(min_grid_size[1] as u32).min(255),
         ]
     }
 
-    /// Resize the CharGrid to fill the specified pixel dimensions.
-    pub fn resize_for_px(&mut self, px_size: Size) {
-        let w = std::cmp::min(
-            255,
-            std::cmp::max(self.min_grid_size[0], px_size[0] / self.cell_size[0]),
-        );
-        let h = std::cmp::min(
-            255,
-            std::cmp::max(self.min_grid_size[1], px_size[1] / self.cell_size[1]),
-        );
+    /// Prepare internal CharGrid buffers, optionally adapting to desired pixel dimensions.
+    ///
+    /// Must be called before [CharGrid::draw], and should be called if the window is resized.
+    ///
+    /// # Panics
+    ///
+    /// Panics if texture creation fails.
+    pub fn prepare(
+        &mut self,
+        texture_creator: &'r TextureCreator<WindowContext>,
+        px_size: Option<Size>,
+    ) {
+        let mut buffer_size_changed = false;
 
-        self.front = RawCharGrid::new([w, h]);
-        self.back = RawCharGrid::new([w, h]);
-        self.needs_render = true;
-        self.buffer = ImageBuffer::new(
-            (w * self.cell_size[0]) as u32,
-            (h * self.cell_size[1]) as u32,
-        );
-        self.texture = None;
+        if let Some([px_w, px_h]) = px_size {
+            let new_size_cells = [
+                (px_w / self.cell_size[0])
+                    .max(self.min_grid_size[0])
+                    .min(255),
+                (px_h / self.cell_size[1])
+                    .max(self.min_grid_size[1])
+                    .min(255),
+            ];
+
+            if self.size_cells() != new_size_cells {
+                self.front = RawCharGrid::new(new_size_cells);
+                self.back = RawCharGrid::new(new_size_cells);
+                self.buffer.resize([
+                    new_size_cells[0] * self.cell_size[0],
+                    new_size_cells[1] * self.cell_size[1],
+                ]);
+                self.needs_render = true;
+                buffer_size_changed = true;
+            }
+        }
+
+        if self.texture.is_none() || buffer_size_changed {
+            self.texture = Some(
+                texture_creator
+                    .create_texture_streaming(
+                        PixelFormatEnum::RGB888,
+                        (self.front.size[0] * self.cell_size[0]) as u32,
+                        (self.front.size[1] * self.cell_size[1]) as u32,
+                    )
+                    .unwrap(),
+            );
+            self.needs_upload = true;
+        }
     }
 
     /// Clear the entire CharGrid.
@@ -441,14 +523,15 @@ impl CharGrid {
                 for y in 0..cell_height {
                     for x in 0..cell_width {
                         let v = cached_glyph[(y * cell_width + x) as usize];
-                        let c = Rgba([
-                            ((v * ffg[0] + (1. - v) * fbg[0]) * 255.) as u8,
-                            ((v * ffg[1] + (1. - v) * fbg[1]) * 255.) as u8,
-                            ((v * ffg[2] + (1. - v) * fbg[2]) * 255.) as u8,
-                            ((v * ffg[3] + (1. - v) * fbg[3]) * 255.) as u8,
-                        ]);
 
-                        self.buffer.put_pixel(px + x, py + y, c);
+                        self.buffer.put_pixel(
+                            [px + x, py + y],
+                            sdl2::pixels::Color::RGB(
+                                ((v * ffg[0] + (1. - v) * fbg[0]) * 255.) as u8,
+                                ((v * ffg[1] + (1. - v) * fbg[1]) * 255.) as u8,
+                                ((v * ffg[2] + (1. - v) * fbg[2]) * 255.) as u8,
+                            ),
+                        );
                     }
                 }
 
@@ -463,25 +546,37 @@ impl CharGrid {
     ///
     /// A CharGrid maintains internal buffers to track changes since the last draw, so it needs to
     /// be mutable in order to update those buffers when these changes are detected.
-    pub fn draw<G>(&mut self, c: &Context, g: &mut G)
-    where
-        G: Graphics<Texture = opengl_graphics::Texture>,
-    {
+    ///
+    /// # Panics
+    ///
+    /// Panics if:
+    ///
+    ///  * [CharGrid::prepare] was not called beforehand to prepare the internal texture
+    ///  * the texture fails to be updated
+    ///  * the texture fails to be copied onto the canvas for whatever reason
+    pub fn draw(&mut self, canvas: &mut WindowCanvas) {
         if self.needs_render {
-            let no_texture = self.texture.is_none();
-            let buffer_updated = self.render(no_texture);
-
-            if no_texture {
-                self.texture = Some(Texture::from_image(&self.buffer, &TextureSettings::new()));
-            } else if buffer_updated {
-                self.texture.as_mut().unwrap().update(&self.buffer);
+            if self.render(self.needs_upload) {
+                self.needs_upload = true;
             }
-
             self.needs_render = false;
         }
 
-        if let Some(texture) = &self.texture {
-            graphics::Image::new().draw(texture, &c.draw_state, c.transform, g);
+        if self.needs_upload {
+            if let Some(texture) = &mut self.texture {
+                texture
+                    .update(None, self.buffer.buffer.as_slice(), self.buffer.pitch)
+                    .unwrap();
+            }
+            self.needs_upload = false;
         }
+
+        canvas
+            .copy(
+                self.texture.as_ref().unwrap(),
+                None,
+                Rect::new(0, 0, self.buffer.size[0] as u32, self.buffer.size[1] as u32),
+            )
+            .unwrap();
     }
 }

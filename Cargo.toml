@@ -7,19 +7,13 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-piston = "0.52.0"
-pistoncore-sdl2_window = "0.66.0"
-piston2d-graphics = "0.37.0"
-piston2d-opengl_graphics = "0.74.0"
-image = "0.23.11"
 bitflags = "1.0"
-shipyard = "0.4"
+bitvec = "0.19"
+image = "0.23"
 rand = "0.7"
 rand_pcg = "0.2"
-bitvec = "0.19"
-
-[patch.crates-io]
-pistoncore-sdl2_window = { path = "../sdl2_window" }
+sdl2 = "0.34"
+shipyard = "0.4"
 
 [lib]
 path = "src/lib/lib.rs"

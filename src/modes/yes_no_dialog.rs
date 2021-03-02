@@ -1,4 +1,3 @@
-use piston::input::Button;
 use shipyard::World;
 
 use ruggle::{CharGrid, InputBuffer, InputEvent};
@@ -43,8 +42,8 @@ impl YesNoDialogMode {
     ) -> (ModeControl, ModeUpdate) {
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-            match key.into() {
+        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+            match keycode.into() {
                 GameKey::Left => self.yes_selected = true,
                 GameKey::Right => self.yes_selected = false,
                 GameKey::Confirm => {

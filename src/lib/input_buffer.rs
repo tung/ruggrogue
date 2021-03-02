@@ -1,11 +1,11 @@
-use piston::{Button, GenericEvent, Key};
+use sdl2::{event::Event, keyboard::Keycode};
 use std::collections::VecDeque;
 
 /// Input events buffered by and emitted from an [InputBuffer].
 #[derive(Clone, Copy)]
 pub enum InputEvent {
-    Press(Button),
-    Release(Button),
+    Press(Keycode),
+    Release(Keycode),
 }
 
 bitflags! {
@@ -73,12 +73,15 @@ impl InputBuffer {
     }
 
     /// Check if an event is a relevant input event and buffer it if so.
-    pub fn handle_event<E: GenericEvent>(&mut self, e: &E) {
-        if let Some(args) = e.press_args() {
-            self.buffer.push_back(InputEvent::Press(args));
-        }
-        if let Some(args) = e.release_args() {
-            self.buffer.push_back(InputEvent::Release(args));
+    pub fn handle_event(&mut self, event: &sdl2::event::Event) {
+        match event {
+            Event::KeyDown {
+                keycode: Some(key), ..
+            } => self.buffer.push_back(InputEvent::Press(*key)),
+            Event::KeyUp {
+                keycode: Some(key), ..
+            } => self.buffer.push_back(InputEvent::Release(*key)),
+            _ => {}
         }
     }
 
@@ -91,32 +94,24 @@ impl InputBuffer {
             // Track modifier keys.
             if let Some(input) = self.current_input {
                 match input {
-                    InputEvent::Press(button) => {
-                        if let Button::Keyboard(key) = button {
-                            match key {
-                                Key::LShift => self.keymods |= KeyMods::LSHIFT,
-                                Key::RShift => self.keymods |= KeyMods::RSHIFT,
-                                Key::LCtrl => self.keymods |= KeyMods::LCTRL,
-                                Key::RCtrl => self.keymods |= KeyMods::RCTRL,
-                                Key::LAlt => self.keymods |= KeyMods::LALT,
-                                Key::RAlt => self.keymods |= KeyMods::RALT,
-                                _ => {}
-                            }
-                        }
-                    }
-                    InputEvent::Release(button) => {
-                        if let Button::Keyboard(key) = button {
-                            match key {
-                                Key::LShift => self.keymods &= !KeyMods::LSHIFT,
-                                Key::RShift => self.keymods &= !KeyMods::RSHIFT,
-                                Key::LCtrl => self.keymods &= !KeyMods::LCTRL,
-                                Key::RCtrl => self.keymods &= !KeyMods::RCTRL,
-                                Key::LAlt => self.keymods &= !KeyMods::LALT,
-                                Key::RAlt => self.keymods &= !KeyMods::RALT,
-                                _ => {}
-                            }
-                        }
-                    }
+                    InputEvent::Press(keycode) => match keycode {
+                        Keycode::LShift => self.keymods |= KeyMods::LSHIFT,
+                        Keycode::RShift => self.keymods |= KeyMods::RSHIFT,
+                        Keycode::LCtrl => self.keymods |= KeyMods::LCTRL,
+                        Keycode::RCtrl => self.keymods |= KeyMods::RCTRL,
+                        Keycode::LAlt => self.keymods |= KeyMods::LALT,
+                        Keycode::RAlt => self.keymods |= KeyMods::RALT,
+                        _ => {}
+                    },
+                    InputEvent::Release(keycode) => match keycode {
+                        Keycode::LShift => self.keymods &= !KeyMods::LSHIFT,
+                        Keycode::RShift => self.keymods &= !KeyMods::RSHIFT,
+                        Keycode::LCtrl => self.keymods &= !KeyMods::LCTRL,
+                        Keycode::RCtrl => self.keymods &= !KeyMods::RCTRL,
+                        Keycode::LAlt => self.keymods &= !KeyMods::LALT,
+                        Keycode::RAlt => self.keymods &= !KeyMods::RALT,
+                        _ => {}
+                    },
                 }
             }
         }

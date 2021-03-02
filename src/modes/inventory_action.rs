@@ -1,4 +1,3 @@
-use piston::input::Button;
 use shipyard::{EntityId, Get, View, World};
 
 use crate::{
@@ -103,8 +102,8 @@ impl InventoryActionMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-            match key.into() {
+        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+            match keycode.into() {
                 GameKey::Down => match self.subsection {
                     SubSection::Actions => {
                         if self.selection < self.actions.len() as i32 - 1 {

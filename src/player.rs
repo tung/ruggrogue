@@ -1,4 +1,4 @@
-use piston::input::{Button, Key};
+use sdl2::keyboard::Keycode;
 use shipyard::{
     EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut, World,
 };
@@ -659,8 +659,8 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
     inputs.prepare_input();
 
     if item::is_asleep(world, player_id.0) {
-        if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
-            match key.into() {
+        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+            match keycode.into() {
                 GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
                 _ => {
                     world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
@@ -674,10 +674,8 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             PlayerInputResult::NoResult
         }
     } else if world.run(player_is_auto_running) {
-        if matches!(
-            inputs.get_input(),
-            Some(InputEvent::Press(Button::Keyboard(_)))
-        ) || world.run(player_check_frontier)
+        if matches!(inputs.get_input(), Some(InputEvent::Press(_)))
+            || world.run(player_check_frontier)
             || world.run(player_sees_foes)
         {
             world.run(player_stop_auto_run);
@@ -706,10 +704,10 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
                 PlayerInputResult::NoResult
             }
         }
-    } else if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
+    } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
         let shift = inputs.get_mods(KeyMods::SHIFT);
 
-        match key.into() {
+        match keycode.into() {
             GameKey::Left => try_move_player(world, -1, 0, shift),
             GameKey::Down => try_move_player(world, 0, 1, shift),
             GameKey::Up => try_move_player(world, 0, -1, shift),
@@ -736,8 +734,5 @@ pub fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
 pub fn player_is_dead_input(inputs: &mut InputBuffer) -> bool {
     inputs.prepare_input();
 
-    matches!(
-        inputs.get_input(),
-        Some(InputEvent::Press(Button::Keyboard(Key::Space)))
-    )
+    matches!(inputs.get_input(), Some(InputEvent::Press(Keycode::Space)))
 }

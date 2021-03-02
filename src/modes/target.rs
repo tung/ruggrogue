@@ -1,4 +1,3 @@
-use piston::input::Button;
 use shipyard::{Get, UniqueView, View, World};
 use std::collections::HashSet;
 
@@ -107,13 +106,13 @@ impl TargetMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(Button::Keyboard(key))) = inputs.get_input() {
+        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             let min_x = self.center.0 - self.range;
             let max_x = self.center.0 + self.range;
             let min_y = self.center.1 - self.range;
             let max_y = self.center.1 + self.range;
 
-            match key.into() {
+            match keycode.into() {
                 GameKey::Left => {
                     self.cursor.0 = std::cmp::max(min_x, self.cursor.0 - 1);
                 }

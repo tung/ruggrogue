@@ -1,9 +1,8 @@
-use opengl_graphics::{GlGraphics, OpenGL};
-use piston::event_loop::{EventLoop, EventSettings, Events};
-use piston::input::RenderEvent;
-use piston::window::WindowSettings;
-use piston::{MouseCursorEvent, PressEvent, ResizeEvent, UpdateEvent, Window};
-use sdl2_window::Sdl2Window;
+use sdl2::{
+    event::{Event, WindowEvent},
+    pixels::Color,
+};
+use std::time::{Duration, Instant};
 
 use crate::chargrid::CharGrid;
 use crate::input_buffer::InputBuffer;
@@ -28,105 +27,168 @@ pub struct RunSettings {
     pub min_grid_size: [i32; 2],
     /// Path to font.
     pub font_path: std::path::PathBuf,
-    /// FPS limit when waiting for an event to handle.  Most of the time, the event loop will be
-    /// idle, but this limit can be reached when lots of unhandled events come in at once, e.g.
-    /// mouse movement events.
-    pub min_fps: u64,
-    /// FPS limit when continuous updates are needed.  This occurs automatically when the input
-    /// buffer is non-empty, but can also be requested by returning `true` from `update`.
-    pub max_fps: u64,
+    /// Frames per second.
+    pub fps: u32,
 }
 
 /// Create a [CharGrid] window and run a main event loop that calls `update` and `draw` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
-pub fn run<U, D>(settings: RunSettings, mut update: U, mut draw: D)
+pub fn run<U, D>(settings: &RunSettings, mut update: U, mut draw: D)
 where
     U: FnMut(&mut InputBuffer) -> RunControl,
     D: FnMut(&mut CharGrid),
 {
-    let mut grid = CharGrid::new(
-        &settings.font_path,
-        settings.grid_size,
-        settings.min_grid_size,
-    );
-    let grid_size = {
-        let s = grid.size_px();
-        assert!(s[0] > 0 && s[1] > 0);
-        [s[0] as u32, s[1] as u32]
-    };
+    let font_image = image::io::Reader::open(&settings.font_path)
+        .unwrap()
+        .decode()
+        .unwrap();
+    let [grid_px_width, grid_px_height] =
+        CharGrid::size_px(&font_image, settings.grid_size, settings.min_grid_size);
 
-    let opengl = OpenGL::V3_2;
-    let window_settings = WindowSettings::new(settings.title, grid_size).graphics_api(opengl);
-    let mut window: Sdl2Window = window_settings.build().unwrap();
-    let mut gl = GlGraphics::new(opengl);
-    let mut mouse_shown = true;
+    assert!(grid_px_width > 0 && grid_px_height > 0);
 
-    let mut need_active = false;
-    let mut active_events = false;
-    let active_event_settings = EventSettings::new()
-        .ups(settings.max_fps)
-        .max_fps(settings.max_fps);
-    let inactive_event_settings = EventSettings::new().lazy(true).max_fps(settings.min_fps);
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let window = video_subsystem
+        .window(&settings.title, grid_px_width, grid_px_height)
+        .resizable()
+        .position_centered()
+        .build()
+        .unwrap();
+    let mut canvas = window.into_canvas().build().unwrap();
+    let texture_creator = canvas.texture_creator();
+    let mut event_pump = sdl_context.event_pump().unwrap();
 
+    let mut grid = CharGrid::new(font_image, settings.grid_size, settings.min_grid_size);
     let mut inputs = InputBuffer::new();
 
-    let mut events = Events::new(match update(&mut inputs) {
-        RunControl::WaitForEvent => inactive_event_settings,
-        RunControl::Update => active_event_settings,
-        RunControl::Quit => return,
-    });
-    draw(&mut grid);
+    let mut mouse_shown = true;
+    let mut new_mouse_shown = None;
+    let mut active_update = true;
+    let mut done = false;
 
-    while let Some(e) = events.next(&mut window) {
-        // Show or hide mouse cursor based on keyboard and mouse input.
-        if !mouse_shown && e.mouse_cursor_args().is_some() {
-            mouse_shown = true;
-            window.sdl_context.mouse().show_cursor(true);
-        } else if mouse_shown && e.press_args().is_some() {
-            mouse_shown = false;
-            window.sdl_context.mouse().show_cursor(false);
+    let should_show_mouse = |event: &Event| match event {
+        Event::KeyDown { .. } | Event::KeyUp { .. } => Some(false),
+        Event::MouseMotion { .. }
+        | Event::MouseButtonDown { .. }
+        | Event::MouseButtonUp { .. }
+        | Event::MouseWheel { .. } => Some(true),
+        _ => None,
+    };
+    let should_resize = |event: &Event| {
+        if let Event::Window {
+            win_event: WindowEvent::Resized(w, h),
+            ..
+        } = event
+        {
+            Some([*w, *h])
+        } else {
+            None
+        }
+    };
+
+    assert!(settings.fps > 0);
+
+    let frame_time = Duration::new(0, 1_000_000_000u32 / settings.fps);
+    let mut previous = Instant::now();
+    let mut lag = frame_time; // Update once to start with.
+
+    while !done {
+        let mut new_window_size = None;
+
+        // Wait for an event if waiting is requested.
+        if !active_update && !inputs.more_inputs() {
+            let event = event_pump.wait_event();
+            if let Some(show_it) = should_show_mouse(&event) {
+                new_mouse_shown = Some(show_it);
+            }
+            if let Some(new_size) = should_resize(&event) {
+                new_window_size = Some(new_size);
+            }
+            inputs.handle_event(&event);
         }
 
-        inputs.handle_event(&e);
+        // Poll for additional events.
+        for event in event_pump.poll_iter() {
+            if let Some(show_it) = should_show_mouse(&event) {
+                new_mouse_shown = Some(show_it);
+            }
+            if let Some(new_size) = should_resize(&event) {
+                new_window_size = Some(new_size);
+            }
+            inputs.handle_event(&event);
+        }
 
-        // Update for buffered inputs and update events.
-        if inputs.more_inputs() || e.update_args().is_some() {
+        // Show or hide mouse cursor based on keyboard and mouse input.
+        if new_mouse_shown.is_some() {
+            let show_it = new_mouse_shown.unwrap();
+            if mouse_shown != show_it {
+                sdl_context.mouse().show_cursor(show_it);
+                mouse_shown = show_it;
+            }
+            new_mouse_shown = None;
+        }
+
+        // Prepare internal CharGrid buffers, resizing if necessary.
+        grid.prepare(&texture_creator, new_window_size);
+
+        // Perform update(s).
+        let start = previous;
+        if active_update {
+            let current = Instant::now();
+            lag += current.duration_since(previous);
+            previous = current;
+
+            // Perform update(s) based on wall clock time.
+            while lag >= frame_time {
+                match update(&mut inputs) {
+                    RunControl::Update => lag -= frame_time,
+                    RunControl::WaitForEvent => {
+                        active_update = false;
+                        lag = Duration::new(0, 0);
+                    }
+                    RunControl::Quit => {
+                        done = true;
+                        lag = Duration::new(0, 0);
+                    }
+                }
+            }
+        } else {
+            previous = Instant::now();
+
+            // Update once in response to events.
             match update(&mut inputs) {
-                RunControl::WaitForEvent => need_active = false,
-                RunControl::Update => need_active = true,
-                RunControl::Quit => window.set_should_close(true),
+                RunControl::WaitForEvent => {}
+                RunControl::Update => {
+                    active_update = true;
+                    lag = frame_time;
+                }
+                RunControl::Quit => done = true,
             }
         }
 
-        // Keep driving updates if more inputs are buffered.
-        if inputs.more_inputs() {
-            need_active = true;
+        // Skip rendering if we're going to exit anyway.
+        if done {
+            break;
         }
 
-        if let Some(args) = e.resize_args() {
-            grid.resize_for_px([args.window_size[0] as i32, args.window_size[1] as i32]);
-        }
+        // Draw the grid...
+        draw(&mut grid);
 
-        if let Some(args) = e.render_args() {
-            draw(&mut grid);
-            gl.draw(args.viewport(), |c, g| {
-                use graphics::Graphics;
-
-                g.clear_color([0., 0., 0., 1.]);
-                grid.draw(&c, g);
-            });
-        }
-
-        if !active_events && need_active {
-            active_events = true;
-            events.set_event_settings(active_event_settings);
-        } else if active_events && !need_active {
-            active_events = false;
-            events.set_event_settings(inactive_event_settings);
-        }
+        // ... and draw it onto the screen.
+        canvas.set_draw_color(Color::BLACK);
+        canvas.clear();
+        grid.draw(&mut canvas);
+        canvas.present();
 
         // Discard any current input to make way for the next one.
         inputs.clear_input();
+
+        // Sleep until the next frame is due.
+        let elapsed = Instant::now().duration_since(start);
+        if elapsed < frame_time {
+            std::thread::sleep(frame_time - elapsed);
+        }
     }
 }
