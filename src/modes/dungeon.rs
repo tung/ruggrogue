@@ -43,7 +43,7 @@ impl DungeonMode {
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if world.run(player::player_is_alive) {
-            let (time_passed, player_turn_done) = if let Some(result) = pop_result {
+            let time_passed = if let Some(result) = pop_result {
                 match result {
                     // "Really exit Ruggle?" prompt result.
                     ModeResult::YesNoDialogModeResult(result) => match result {
@@ -53,40 +53,37 @@ impl DungeonMode {
                                 ModeUpdate::Immediate,
                             )
                         }
-                        YesNoDialogModeResult::No => (false, false),
+                        YesNoDialogModeResult::No => false,
                     },
 
                     ModeResult::PickUpMenuModeResult(result) => match result {
                         PickUpMenuModeResult::PickedItem(item_id) => {
                             player::player_pick_up_item(world, *item_id);
-                            (true, true)
+                            true
                         }
-                        PickUpMenuModeResult::Cancelled => (false, false),
+                        PickUpMenuModeResult::Cancelled => false,
                     },
 
                     ModeResult::InventoryModeResult(result) => match result {
-                        InventoryModeResult::DoNothing => (false, false),
+                        InventoryModeResult::DoNothing => false,
                         InventoryModeResult::UseItem(item_id, target) => {
                             let player_id =
                                 world.run(|player_id: UniqueView<PlayerId>| player_id.0);
                             item::use_item(world, player_id, *item_id, *target);
-                            (true, true)
+                            true
                         }
                         InventoryModeResult::DropItem(item_id) => {
                             player::player_drop_item(world, *item_id);
-                            (true, true)
+                            true
                         }
                     },
 
-                    _ => (false, false),
+                    _ => false,
                 }
-            } else if !world.run(monster::monster_turns_empty) {
-                monster::do_monster_turns(world);
-                (true, false)
             } else {
                 match player::player_input(world, inputs) {
-                    PlayerInputResult::NoResult => (false, false),
-                    PlayerInputResult::TurnDone => (true, true),
+                    PlayerInputResult::NoResult => false,
+                    PlayerInputResult::TurnDone => true,
                     PlayerInputResult::ShowExitPrompt => {
                         inputs.clear_input();
                         return (
@@ -118,18 +115,20 @@ impl DungeonMode {
                 world.run(damage::check_for_dead);
                 world.run(damage::delete_dead_entities);
                 world.run(vision::recalculate_fields_of_view);
-                if player_turn_done {
-                    world.run(monster::enqueue_monster_turns);
+                world.run(monster::enqueue_monster_turns);
+
+                while world.run(player::player_is_alive) && !world.run(monster::monster_turns_empty)
+                {
+                    monster::do_monster_turns(world);
+                    world.run(damage::check_for_dead);
+                    world.run(damage::delete_dead_entities);
+                    world.run(vision::recalculate_fields_of_view);
                 }
             }
 
-            let update = world.run(player::player_is_alive)
-                && (!world.run(monster::monster_turns_empty)
-                    || world.run(player::player_is_auto_running));
-
             (
                 ModeControl::Stay,
-                if update {
+                if world.run(player::player_is_alive) && world.run(player::player_is_auto_running) {
                     ModeUpdate::Update
                 } else {
                     ModeUpdate::WaitForEvent

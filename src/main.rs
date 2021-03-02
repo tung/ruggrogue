@@ -48,7 +48,7 @@ fn main() {
         grid_size: [80, 48],
         min_grid_size: [80, 24],
         font_path: PathBuf::from("assets/terminal-8x8.png"),
-        fps: 60,
+        fps: 30,
     };
 
     ruggle::run(
