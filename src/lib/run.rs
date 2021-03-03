@@ -94,6 +94,13 @@ where
     let mut previous = Instant::now();
     let mut lag = frame_time; // Update once to start with.
 
+    #[cfg(feature = "fps")]
+    let mut update_count = 0;
+    #[cfg(feature = "fps")]
+    let mut frame_count = 0;
+    #[cfg(feature = "fps")]
+    let mut last_fps_print = Instant::now();
+
     while !done {
         let mut new_window_size = None;
 
@@ -142,6 +149,11 @@ where
 
             // Perform update(s) based on wall clock time.
             while lag >= frame_time {
+                #[cfg(feature = "fps")]
+                {
+                    update_count += 1;
+                }
+
                 match update(&mut inputs) {
                     RunControl::Update => lag -= frame_time,
                     RunControl::WaitForEvent => {
@@ -156,6 +168,11 @@ where
             }
         } else {
             previous = Instant::now();
+
+            #[cfg(feature = "fps")]
+            {
+                update_count += 1;
+            }
 
             // Update once in response to events.
             match update(&mut inputs) {
@@ -184,6 +201,25 @@ where
 
         // Discard any current input to make way for the next one.
         inputs.clear_input();
+
+        #[cfg(feature = "fps")]
+        {
+            frame_count += 1;
+        }
+
+        // Show updates and frames per second.
+        #[cfg(feature = "fps")]
+        if Instant::now().duration_since(last_fps_print) >= Duration::new(1, 0) {
+            eprintln!(
+                "FPS: {}{}\tUpdates: {}",
+                frame_count,
+                if frame_count < 100 { "\t" } else { "" },
+                update_count,
+            );
+            last_fps_print = Instant::now();
+            update_count = 0;
+            frame_count = 0;
+        }
 
         // Sleep until the next frame is due.
         let elapsed = Instant::now().duration_since(start);

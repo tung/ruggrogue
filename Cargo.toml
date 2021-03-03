@@ -6,6 +6,10 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+# Benchmark and print updates/frames per second to standard error.
+fps = []
+
 [dependencies]
 bitflags = "1.0"
 bitvec = "0.19"
