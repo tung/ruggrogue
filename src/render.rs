@@ -29,7 +29,8 @@ pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
             let color = if fov.get((tx, ty)) {
                 Some(ui::recolor(color, active))
             } else {
-                let v = (0.3 * color[0] + 0.59 * color[1] + 0.11 * color[2]) / 2.;
+                let v = ((color[0] as i32 * 30 + color[1] as i32 * 59 + color[2] as i32 * 11) / 200)
+                    as u8;
                 Some(ui::recolor([v, v, v], active))
             };
 

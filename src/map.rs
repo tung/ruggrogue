@@ -164,7 +164,7 @@ impl Map {
         y1: i32,
         x2: i32,
         y2: i32,
-    ) -> impl Iterator<Item = (i32, i32, Option<(char, [f32; 3])>)> + '_ {
+    ) -> impl Iterator<Item = (i32, i32, Option<(char, [u8; 3])>)> + '_ {
         let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
 
         ys.flat_map(move |y| {
@@ -182,8 +182,8 @@ impl Map {
                 (x, y, None)
             } else {
                 let (ch, color) = match self.get_tile(x, y) {
-                    Tile::Floor => ('·', [0.4, 0.4, 0.4]),
-                    Tile::Wall => (self.wall_char(x, y), [0.7, 0.4, 0.1]),
+                    Tile::Floor => ('·', [102, 102, 102]),
+                    Tile::Wall => (self.wall_char(x, y), [179, 102, 26]),
                 };
 
                 (x, y, Some((ch, color)))

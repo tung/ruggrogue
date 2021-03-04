@@ -7,17 +7,11 @@ use sdl2::{
 };
 use std::collections::HashMap;
 
-type Color = [f32; 3];
+type Color = [u8; 3];
 type Position = [i32; 2];
 type Size = [i32; 2];
 
 const U32_SIZE: usize = std::mem::size_of::<u32>();
-
-fn eq_color(a: &Color, b: &Color) -> bool {
-    (a[0] - b[0]).abs() <= f32::EPSILON
-        && (a[1] - b[1]).abs() <= f32::EPSILON
-        && (a[2] - b[2]).abs() <= f32::EPSILON
-}
 
 struct RawCharGrid {
     size: Size,
@@ -38,8 +32,8 @@ impl RawCharGrid {
         RawCharGrid {
             size,
             chars: vec![' '; vec_size],
-            fg: vec![[1.; 3]; vec_size],
-            bg: vec![[0.; 3]; vec_size],
+            fg: vec![[255; 3]; vec_size],
+            bg: vec![[0; 3]; vec_size],
         }
     }
 
@@ -48,12 +42,12 @@ impl RawCharGrid {
             *e = ' ';
         }
 
-        let fg: Color = fg.unwrap_or([1.; 3]);
+        let fg: Color = fg.unwrap_or([255; 3]);
         for e in self.fg.iter_mut() {
             *e = fg;
         }
 
-        let bg: Color = bg.unwrap_or([0., 0., 0.]);
+        let bg: Color = bg.unwrap_or([0; 3]);
         for e in self.bg.iter_mut() {
             *e = bg;
         }
@@ -479,8 +473,8 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
 
             // Check for any changes between the front and back.
             let char_diff = force || fc != bc;
-            let fg_diff = force || !eq_color(&ffg, &bfg);
-            let bg_diff = force || !eq_color(&fbg, &bbg);
+            let fg_diff = force || ffg != bfg;
+            let bg_diff = force || fbg != bbg;
             let f_space = !force && fc == ' ';
 
             // Update the back data with the front data.
@@ -511,16 +505,8 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
                     .unwrap_or_else(|| self.glyph_positions.get(&' ').copied().unwrap());
                 let src_rect = Rect::new(glyph_x, glyph_y, cell_width, cell_height);
                 let dest_rect = Rect::new(px, py, cell_width, cell_height);
-                let fg_color = Sdl2Color::RGB(
-                    (ffg[0] * 255.0) as u8,
-                    (ffg[1] * 255.0) as u8,
-                    (ffg[2] * 255.0) as u8,
-                );
-                let bg_color = Sdl2Color::RGB(
-                    (fbg[0] * 255.0) as u8,
-                    (fbg[1] * 255.0) as u8,
-                    (fbg[2] * 255.0) as u8,
-                );
+                let fg_color = Sdl2Color::RGB(ffg[0], ffg[1], ffg[2]);
+                let bg_color = Sdl2Color::RGB(fbg[0], fbg[1], fbg[2]);
 
                 self.buffer.fill_rect(dest_rect, bg_color).unwrap();
                 self.font.set_color_mod(fg_color);
