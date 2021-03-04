@@ -498,21 +498,23 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
 
             // Render cell if a visible change has occurred.
             if char_diff || (fg_diff && !f_space) || bg_diff {
-                let [glyph_x, glyph_y] = self
-                    .glyph_positions
-                    .get(&fc)
-                    .copied()
-                    .unwrap_or_else(|| self.glyph_positions.get(&' ').copied().unwrap());
-                let src_rect = Rect::new(glyph_x, glyph_y, cell_width, cell_height);
                 let dest_rect = Rect::new(px, py, cell_width, cell_height);
-                let fg_color = Sdl2Color::RGB(ffg[0], ffg[1], ffg[2]);
                 let bg_color = Sdl2Color::RGB(fbg[0], fbg[1], fbg[2]);
 
                 self.buffer.fill_rect(dest_rect, bg_color).unwrap();
-                self.font.set_color_mod(fg_color);
-                self.font
-                    .blit(src_rect, &mut self.buffer, dest_rect)
-                    .unwrap();
+
+                if !f_space {
+                    if let Some([glyph_x, glyph_y]) = self.glyph_positions.get(&fc) {
+                        let src_rect = Rect::new(*glyph_x, *glyph_y, cell_width, cell_height);
+                        let fg_color = Sdl2Color::RGB(ffg[0], ffg[1], ffg[2]);
+
+                        self.font.set_color_mod(fg_color);
+                        self.font
+                            .blit(src_rect, &mut self.buffer, dest_rect)
+                            .unwrap();
+                    }
+                }
+
                 buffer_updated = true;
             }
         }
