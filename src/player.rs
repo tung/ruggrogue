@@ -691,6 +691,15 @@ pub fn player_do_descend(world: &World) {
     });
     world.run(vision::recalculate_fields_of_view);
 
+    // Heal the player a bit for the next level.
+    world.run(
+        |mut combat_stats: ViewMut<CombatStats>, players: View<Player>| {
+            for (stats, _) in (&mut combat_stats, &players).iter() {
+                stats.hp = stats.hp.max(stats.max_hp / 2);
+            }
+        },
+    );
+
     world.run(
         |map: UniqueView<Map>,
          mut msgs: UniqueViewMut<Messages>,
