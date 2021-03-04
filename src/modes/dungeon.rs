@@ -1,7 +1,8 @@
 use shipyard::{UniqueView, UniqueViewMut, World};
 
 use crate::{
-    damage, item, map,
+    damage, item,
+    map::{self, Map},
     message::Messages,
     monster,
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
@@ -20,20 +21,34 @@ pub enum DungeonModeResult {
     Done,
 }
 
-pub struct DungeonMode;
+enum ResultSource {
+    YesNoDialogReallyQuit,
+    YesNoDialogDescend,
+    PickUpMenu,
+    Inventory,
+}
+
+pub struct DungeonMode {
+    result_source: Option<ResultSource>,
+}
 
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
 /// perform other actions while alive, directly or indirectly.
 impl DungeonMode {
     pub fn new(world: &World) -> Self {
-        world.run(|mut msgs: UniqueViewMut<Messages>| msgs.add("Welcome to Ruggle!".into()));
+        world
+            .borrow::<UniqueViewMut<Messages>>()
+            .add("Welcome to Ruggle!".into());
+        world.borrow::<UniqueViewMut<Map>>().depth = 1;
         world.run(map::generate_rooms_and_corridors);
-        world.run(|mut alive: UniqueViewMut<PlayerAlive>| alive.0 = true);
+        world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
         world.run(map::place_player_in_first_room);
         spawn::fill_rooms_with_spawns(world);
         world.run(vision::recalculate_fields_of_view);
 
-        Self {}
+        Self {
+            result_source: None,
+        }
     }
 
     pub fn update(
@@ -45,16 +60,27 @@ impl DungeonMode {
         if world.run(player::player_is_alive) {
             let time_passed = if let Some(result) = pop_result {
                 match result {
-                    // "Really exit Ruggle?" prompt result.
-                    ModeResult::YesNoDialogModeResult(result) => match result {
-                        YesNoDialogModeResult::Yes => {
-                            return (
-                                ModeControl::Pop(DungeonModeResult::Done.into()),
-                                ModeUpdate::Immediate,
-                            )
+                    ModeResult::YesNoDialogModeResult(result) => {
+                        match self.result_source.as_ref().unwrap() {
+                            ResultSource::YesNoDialogReallyQuit => match result {
+                                YesNoDialogModeResult::Yes => {
+                                    return (
+                                        ModeControl::Pop(DungeonModeResult::Done.into()),
+                                        ModeUpdate::Immediate,
+                                    )
+                                }
+                                YesNoDialogModeResult::No => false,
+                            },
+                            ResultSource::YesNoDialogDescend => match result {
+                                YesNoDialogModeResult::Yes => {
+                                    player::player_do_descend(world);
+                                    false
+                                }
+                                YesNoDialogModeResult::No => false,
+                            },
+                            _ => unreachable!(),
                         }
-                        YesNoDialogModeResult::No => false,
-                    },
+                    }
 
                     ModeResult::PickUpMenuModeResult(result) => match result {
                         PickUpMenuModeResult::PickedItem(item_id) => {
@@ -78,13 +104,14 @@ impl DungeonMode {
                         }
                     },
 
-                    _ => false,
+                    _ => unreachable!(),
                 }
             } else {
                 match player::player_input(world, inputs) {
                     PlayerInputResult::NoResult => false,
                     PlayerInputResult::TurnDone => true,
                     PlayerInputResult::ShowExitPrompt => {
+                        self.result_source = Some(ResultSource::YesNoDialogReallyQuit);
                         inputs.clear_input();
                         return (
                             ModeControl::Push(
@@ -94,7 +121,26 @@ impl DungeonMode {
                             ModeUpdate::Immediate,
                         );
                     }
+                    PlayerInputResult::TryDescend => {
+                        if world.run(player::player_try_descend) {
+                            self.result_source = Some(ResultSource::YesNoDialogDescend);
+                            inputs.clear_input();
+                            return (
+                                ModeControl::Push(
+                                    YesNoDialogMode::new(
+                                        "Descend to the next level?".to_string(),
+                                        false,
+                                    )
+                                    .into(),
+                                ),
+                                ModeUpdate::Immediate,
+                            );
+                        } else {
+                            false
+                        }
+                    }
                     PlayerInputResult::ShowPickUpMenu => {
+                        self.result_source = Some(ResultSource::PickUpMenu);
                         inputs.clear_input();
                         return (
                             ModeControl::Push(PickUpMenuMode::new(world).into()),
@@ -102,6 +148,7 @@ impl DungeonMode {
                         );
                     }
                     PlayerInputResult::ShowInventory => {
+                        self.result_source = Some(ResultSource::Inventory);
                         inputs.clear_input();
                         return (
                             ModeControl::Push(InventoryMode::new(world).into()),

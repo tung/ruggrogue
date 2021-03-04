@@ -2,11 +2,11 @@ use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
     components::{Inventory, Name, Renderable},
-    gamekey::GameKey,
+    gamekey::{self, GameKey},
     player::PlayerId,
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent};
+use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
 
 use super::{
     inventory_action::{InventoryActionMode, InventoryActionModeResult},
@@ -84,7 +84,7 @@ impl InventoryMode {
                 |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
                     let player_inv = inventories.get(player_id.0);
 
-                    match keycode.into() {
+                    match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                         GameKey::Down => match self.subsection {
                             SubSection::SortAll => {
                                 self.subsection = SubSection::Inventory;

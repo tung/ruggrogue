@@ -3,12 +3,12 @@ use std::collections::HashSet;
 
 use crate::{
     components::{FieldOfView, Item, Monster, Name, Player, Position},
-    gamekey::GameKey,
+    gamekey::{self, GameKey},
     map::Map,
     player::PlayerId,
     render, ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent};
+use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -112,7 +112,7 @@ impl TargetMode {
             let min_y = self.center.1 - self.range;
             let max_y = self.center.1 + self.range;
 
-            match keycode.into() {
+            match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Left => {
                     self.cursor.0 = std::cmp::max(min_x, self.cursor.0 - 1);
                 }

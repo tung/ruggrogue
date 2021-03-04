@@ -9,6 +9,7 @@ use crate::{components::Position, player::PlayerId, rect::Rect, RuggleRng};
 pub enum Tile {
     Floor,
     Wall,
+    DownStairs,
 }
 
 impl std::fmt::Display for Tile {
@@ -19,12 +20,14 @@ impl std::fmt::Display for Tile {
             match self {
                 Tile::Floor => "Floor",
                 Tile::Wall => "Wall",
+                Tile::DownStairs => "Down Stairs",
             }
         )
     }
 }
 
 pub struct Map {
+    pub depth: i32,
     pub width: i32,
     pub height: i32,
     tiles: Vec<Tile>,
@@ -43,6 +46,7 @@ impl Map {
         let len = (width * height) as usize;
 
         Self {
+            depth: 0,
             width,
             height,
             tiles: vec![Tile::Floor; len],
@@ -51,6 +55,17 @@ impl Map {
             tile_entities: HashMap::new(),
             empty_entity_vecs: Vec::new(),
         }
+    }
+
+    pub fn clear(&mut self) {
+        let len = (self.width * self.height) as usize;
+
+        self.tiles.clear();
+        self.tiles.resize(len, Tile::Floor);
+        self.rooms.clear();
+        self.seen.clear();
+        self.seen.resize(len, false);
+        self.tile_entities.clear();
     }
 
     fn idx(&self, x: i32, y: i32) -> usize {
@@ -184,6 +199,7 @@ impl Map {
                 let (ch, color) = match self.get_tile(x, y) {
                     Tile::Floor => ('·', [102, 102, 102]),
                     Tile::Wall => (self.wall_char(x, y), [179, 102, 26]),
+                    Tile::DownStairs => ('>', [255, 255, 0]),
                 };
 
                 (x, y, Some((ch, color)))
@@ -313,6 +329,11 @@ pub fn generate_rooms_and_corridors(
 
             map.rooms.push(new_room);
         }
+    }
+
+    if let Some(last_room) = map.rooms.last() {
+        let (center_x, center_y) = last_room.center();
+        map.set_tile(center_x, center_y, Tile::DownStairs);
     }
 }
 
@@ -485,7 +506,7 @@ pub fn place_player_in_first_room(
     let room_center = map.rooms.first().unwrap().center();
     let mut player_pos = (&mut positions).get(player_id.0);
 
-    map.move_entity(player_id.0, player_pos.into(), room_center, false);
+    map.place_entity(player_id.0, room_center, false);
     player_pos.x = room_center.0;
     player_pos.y = room_center.1;
 }

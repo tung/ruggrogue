@@ -1,9 +1,12 @@
 use shipyard::World;
 
-use ruggle::{CharGrid, InputBuffer, InputEvent};
+use crate::{
+    gamekey::{self, GameKey},
+    ui,
+};
+use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
-use crate::{gamekey::GameKey, ui};
 
 pub enum YesNoDialogModeResult {
     Yes,
@@ -43,7 +46,7 @@ impl YesNoDialogMode {
         inputs.prepare_input();
 
         if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            match keycode.into() {
+            match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Left => self.yes_selected = true,
                 GameKey::Right => self.yes_selected = false,
                 GameKey::Confirm => {

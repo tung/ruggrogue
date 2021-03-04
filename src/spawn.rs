@@ -2,7 +2,11 @@ use rand::{
     seq::{IteratorRandom, SliceRandom},
     Rng,
 };
-use shipyard::{EntitiesViewMut, EntityId, UniqueViewMut, ViewMut, World};
+use shipyard::{
+    AllStoragesViewMut, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueViewMut, View,
+    ViewMut, World,
+};
+use std::collections::HashSet;
 
 use crate::{
     components::{
@@ -11,12 +15,15 @@ use crate::{
         RenderOnFloor, RenderOnMap, Renderable,
     },
     map::Map,
+    player,
     rect::Rect,
     ui, RuggleRng,
 };
 
+/// Spawn a player.
+///
+/// NOTE: The player must be positioned on the map at some point after this.
 pub fn spawn_player(
-    mut map: UniqueViewMut<Map>,
     mut entities: EntitiesViewMut,
     mut combat_stats: ViewMut<CombatStats>,
     mut fovs: ViewMut<FieldOfView>,
@@ -27,7 +34,7 @@ pub fn spawn_player(
     mut render_on_maps: ViewMut<RenderOnMap>,
     mut renderables: ViewMut<Renderable>,
 ) -> EntityId {
-    let player_id = entities.add_entity(
+    entities.add_entity(
         (
             &mut players,
             &mut combat_stats,
@@ -57,11 +64,7 @@ pub fn spawn_player(
                 bg: ui::color::BLACK,
             },
         ),
-    );
-
-    map.place_entity(player_id, (0, 0), false);
-
-    player_id
+    )
 }
 
 fn spawn_health_potion(world: &World, pos: (i32, i32)) {
@@ -340,4 +343,37 @@ pub fn fill_rooms_with_spawns(world: &World) {
     for room in rooms {
         fill_room_with_spawns(world, &room);
     }
+}
+
+fn extend_despawn<T>(
+    world: &World,
+    despawn_ids: &mut Vec<EntityId>,
+    preserve_ids: &HashSet<EntityId>,
+) where
+    T: 'static + Send + Sync,
+{
+    world.run(|storage: View<T>| {
+        despawn_ids.extend(
+            storage
+                .iter()
+                .with_id()
+                .map(|(id, _)| id)
+                .filter(|id| !preserve_ids.contains(id)),
+        );
+    });
+}
+
+pub fn despawn_all_but_player(world: &World) {
+    let preserve_ids = world.run(player::all_player_associated_ids);
+    let mut despawn_ids = Vec::new();
+
+    // I really wish Shipyard had some way to iterate over all entity IDs...
+    extend_despawn::<Item>(world, &mut despawn_ids, &preserve_ids);
+    extend_despawn::<Monster>(world, &mut despawn_ids, &preserve_ids);
+
+    world.run(|mut all_storages: AllStoragesViewMut| {
+        for id in despawn_ids {
+            all_storages.delete(id);
+        }
+    });
 }

@@ -2,14 +2,16 @@ use sdl2::keyboard::Keycode;
 use shipyard::{
     EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut, World,
 };
+use std::collections::HashSet;
 
 use crate::{
-    components::{CombatStats, FieldOfView, Item, Monster, Name, Player, Position},
+    components::{CombatStats, FieldOfView, Inventory, Item, Monster, Name, Player, Position},
     damage,
-    gamekey::GameKey,
+    gamekey::{self, GameKey},
     item,
-    map::Map,
+    map::{self, Map, Tile},
     message::Messages,
+    spawn, vision,
 };
 use ruggle::{InputBuffer, InputEvent, KeyMods, PathableMap};
 
@@ -39,6 +41,7 @@ pub struct AutoRun {
 pub enum PlayerInputResult {
     NoResult,
     TurnDone,
+    TryDescend,
     ShowExitPrompt,
     ShowPickUpMenu,
     ShowInventory,
@@ -109,9 +112,22 @@ fn player_check_frontier(
     let real_x = |dx, dy| player_pos.x + dx * real_x_from_x + dy * real_x_from_y;
     let real_y = |dx, dy| player_pos.y + dx * real_y_from_x + dy * real_y_from_y;
     let stop_for = |dx, dy| {
-        // Just stop for items for now.
-        map.iter_entities_at(real_x(dx, dy), real_y(dx, dy))
+        let (map_x, map_y) = (real_x(dx, dy), real_y(dx, dy));
+
+        // Stop for unusual dungeon features.
+        if !matches!(map.get_tile(map_x, map_y), Tile::Floor | Tile::Wall) {
+            return true;
+        }
+
+        // Stop for items.
+        if map
+            .iter_entities_at(map_x, map_y)
             .any(|id| items.contains(id))
+        {
+            return true;
+        }
+
+        false
     };
 
     if auto_run_dx != 0 && auto_run_dy != 0 {
@@ -623,6 +639,72 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
     }
 }
 
+pub fn all_player_associated_ids(
+    inventories: View<Inventory>,
+    players: View<Player>,
+) -> HashSet<EntityId> {
+    let mut ids = HashSet::new();
+
+    for (id, _) in players.iter().with_id() {
+        // Add the player.
+        ids.insert(id);
+
+        // Add the player's inventory items.
+        if let Ok(inv) = inventories.try_get(id) {
+            ids.extend(inv.items.iter());
+        }
+    }
+
+    ids
+}
+
+pub fn player_try_descend(
+    map: UniqueView<Map>,
+    mut msgs: UniqueViewMut<Messages>,
+    player_id: UniqueView<PlayerId>,
+    positions: View<Position>,
+) -> bool {
+    let player_pos = positions.get(player_id.0);
+
+    if matches!(map.get_tile(player_pos.x, player_pos.y), Tile::DownStairs) {
+        true
+    } else {
+        msgs.add("There is no way down here.".into());
+        false
+    }
+}
+
+pub fn player_do_descend(world: &World) {
+    spawn::despawn_all_but_player(world);
+    world.run(|mut map: UniqueViewMut<Map>| {
+        map.clear();
+        map.depth += 1;
+    });
+    world.run(map::generate_rooms_and_corridors);
+    world.run(map::place_player_in_first_room);
+    spawn::fill_rooms_with_spawns(world);
+
+    world.run(|mut fovs: ViewMut<FieldOfView>, players: View<Player>| {
+        for (fov, _) in (&mut fovs, &players).iter() {
+            fov.dirty = true;
+        }
+    });
+    world.run(vision::recalculate_fields_of_view);
+
+    world.run(
+        |map: UniqueView<Map>,
+         mut msgs: UniqueViewMut<Messages>,
+         player_id: UniqueView<PlayerId>,
+         names: View<Name>| {
+            msgs.add(format!(
+                "{} descends to depth {}.",
+                names.get(player_id.0).0,
+                map.depth,
+            ));
+        },
+    );
+}
+
 pub fn player_pick_up_item(world: &World, item_id: EntityId) {
     let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
 
@@ -660,7 +742,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
 
     if item::is_asleep(world, player_id.0) {
         if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            match keycode.into() {
+            match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
                 _ => {
                     world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
@@ -707,7 +789,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
     } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
         let shift = inputs.get_mods(KeyMods::SHIFT);
 
-        match keycode.into() {
+        match gamekey::from_keycode(keycode, shift) {
             GameKey::Left => try_move_player(world, -1, 0, shift),
             GameKey::Down => try_move_player(world, 0, 1, shift),
             GameKey::Up => try_move_player(world, 0, -1, shift),
@@ -718,8 +800,9 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             GameKey::DownRight => try_move_player(world, 1, 1, shift),
             GameKey::Wait => PlayerInputResult::TurnDone,
             GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
+            GameKey::Descend | GameKey::Confirm => PlayerInputResult::TryDescend,
             GameKey::PickUp => PlayerInputResult::ShowPickUpMenu,
-            GameKey::Inventory | GameKey::Confirm => PlayerInputResult::ShowInventory,
+            GameKey::Inventory => PlayerInputResult::ShowInventory,
             _ => PlayerInputResult::NoResult,
         }
     } else {

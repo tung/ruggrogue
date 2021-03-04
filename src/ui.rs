@@ -1,6 +1,6 @@
 use shipyard::{Get, UniqueView, View, World};
 
-use crate::{components::CombatStats, message::Messages, player::PlayerId};
+use crate::{components::CombatStats, map::Map, message::Messages, player::PlayerId};
 use ruggle::CharGrid;
 
 pub mod color {
@@ -36,7 +36,13 @@ pub fn recolor(c: [u8; 3], active: bool) -> [u8; 3] {
 
 pub const HUD_LINES: i32 = 5;
 
-fn draw_player_hp(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
+fn draw_status_line(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
+    let mut x = 2;
+
+    let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
+    grid.print_color([x, y], Some(recolor(color::YELLOW, active)), None, &depth);
+    x += depth.len() as i32 + 1;
+
     let (hp, max_hp) = world.run(
         |player_id: UniqueView<PlayerId>, combat_stats: View<CombatStats>| {
             let player_stats = combat_stats.get(player_id.0);
@@ -45,18 +51,18 @@ fn draw_player_hp(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
         },
     );
     let hp_string = format!(" HP: {} / {} ", hp, max_hp);
-    let hp_bar_begin = hp_string.len() as i32 + 6;
-    let hp_bar_length = grid.size_cells()[0] - 3 - hp_bar_begin;
-
     grid.print_color(
-        [3, y],
+        [x, y],
         Some(recolor(color::YELLOW, active)),
         None,
         &hp_string,
     );
+    x += hp_string.len() as i32 + 1;
+
+    let hp_bar_length = grid.size_cells()[0] - x - 2;
     grid.draw_bar(
         false,
-        [hp_bar_begin, y],
+        [x, y],
         hp_bar_length,
         0,
         hp,
@@ -86,7 +92,7 @@ pub fn draw_ui(world: &World, grid: &mut CharGrid, active: bool, prompt: Option<
         grid.put_color([x, y], fg, None, '─');
     }
 
-    draw_player_hp(world, grid, active, y);
+    draw_status_line(world, grid, active, y);
 
     if let Some(prompt) = prompt {
         grid.print_color([2, y + 1], fg, None, prompt);

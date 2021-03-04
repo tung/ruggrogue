@@ -2,10 +2,10 @@ use shipyard::{EntityId, Get, View, World};
 
 use crate::{
     components::{AreaOfEffect, Name, Ranged, Renderable},
-    gamekey::GameKey,
+    gamekey::{self, GameKey},
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent};
+use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
 
 use super::{
     target::{TargetMode, TargetModeResult},
@@ -103,7 +103,7 @@ impl InventoryActionMode {
         inputs.prepare_input();
 
         if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            match keycode.into() {
+            match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Down => match self.subsection {
                     SubSection::Actions => {
                         if self.selection < self.actions.len() as i32 - 1 {

@@ -2,13 +2,13 @@ use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
     components::{Item, Name, Position, Renderable},
-    gamekey::GameKey,
+    gamekey::{self, GameKey},
     map::Map,
     message::Messages,
     player::PlayerId,
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent};
+use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -88,8 +88,8 @@ impl PickUpMenuMode {
         } else {
             inputs.prepare_input();
 
-            if let Some(InputEvent::Press(key)) = inputs.get_input() {
-                match key.into() {
+            if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+                match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                     GameKey::Down => match self.subsection {
                         SubSection::Items => {
                             if self.selection < self.items.len() as i32 - 1 {
