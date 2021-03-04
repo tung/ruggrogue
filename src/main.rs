@@ -43,17 +43,12 @@ fn main() {
 
     let mode_stack = RefCell::new(ModeStack::new(vec![DungeonMode::new(&world).into()]));
 
-    #[cfg(feature = "fps")]
-    let fps = 60;
-    #[cfg(not(feature = "fps"))]
-    let fps = 30;
-
     let settings = RunSettings {
         title: "Ruggle".to_string(),
         grid_size: [80, 48],
         min_grid_size: [80, 24],
         font_path: PathBuf::from("assets/terminal-8x8.png"),
-        fps,
+        fps: 60,
     };
 
     ruggle::run(
