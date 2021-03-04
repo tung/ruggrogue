@@ -1,11 +1,11 @@
-use image::{DynamicImage, GenericImageView};
 use sdl2::{
-    pixels::{PixelFormat, PixelFormatEnum},
+    pixels::{Color as Sdl2Color, PixelFormatEnum},
     rect::Rect,
-    render::{Texture, TextureCreator, WindowCanvas},
+    render::{BlendMode, Texture, TextureCreator, WindowCanvas},
+    surface::Surface,
     video::WindowContext,
 };
-use std::{collections::HashMap, convert::TryInto};
+use std::collections::HashMap;
 
 type Color = [f32; 3];
 type Position = [i32; 2];
@@ -203,82 +203,33 @@ impl RawCharGrid {
     }
 }
 
-struct RgbImage {
-    size: Size,
-    pitch: usize,
-    pixel_format: PixelFormat,
-    buffer: Vec<u8>,
-}
-
-impl RgbImage {
-    fn new([width, height]: Size) -> RgbImage {
-        assert!(width > 0);
-        assert!(height > 0);
-
-        RgbImage {
-            size: [width, height],
-            pitch: U32_SIZE * width as usize,
-            pixel_format: PixelFormatEnum::RGB888.try_into().unwrap(),
-            buffer: vec![0; U32_SIZE * width as usize * height as usize],
-        }
-    }
-
-    fn resize(&mut self, [width, height]: Size) {
-        assert!(width > 0);
-        assert!(height > 0);
-
-        if [width, height] == self.size {
-            return;
-        }
-
-        self.pitch = U32_SIZE * width as usize;
-        self.size = [width, height];
-
-        // Resize the buffer, after which the contents will be nonsense.
-        // The buffer is expected to be fully drawn after this for sensible contents.
-        let new_capacity = self.pitch * height as usize;
-        if new_capacity <= self.buffer.capacity() {
-            self.buffer.resize(new_capacity, 0);
-        } else {
-            self.buffer = vec![0; new_capacity];
-        }
-    }
-
-    fn put_pixel(&mut self, [x, y]: [u32; 2], color: sdl2::pixels::Color) {
-        let idx = y as usize * self.pitch + U32_SIZE * x as usize;
-        let color_bytes = color.to_u32(&self.pixel_format).to_ne_bytes();
-
-        // Unchecked access for performance reasons.
-        self.buffer[idx..idx + U32_SIZE].clone_from_slice(&color_bytes[..U32_SIZE]);
-    }
-}
-
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
 /// color.  To use a CharGrid, create a new one, plot characters and colors onto it, and draw it to
 /// the screen.
-pub struct CharGrid<'r> {
+pub struct CharGrid<'b, 'f, 'r> {
     front: RawCharGrid,
     back: RawCharGrid,
-    glyph_cache: HashMap<char, Vec<f32>>,
+    font: Surface<'f>,
+    glyph_positions: HashMap<char, Position>,
     min_grid_size: Size,
     cell_size: Size,
     needs_render: bool,
     needs_upload: bool,
-    buffer: RgbImage,
+    buffer: Surface<'b>,
     texture: Option<Texture<'r>>,
 }
 
-impl<'r> CharGrid<'r> {
+impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
     /// Create a new CharGrid with a given [width, height].  White is the default foreground color
     /// and black is the default background color.
     ///
     /// The font image should consist of a 16-by-16 grid of IBM code page 437 glyphs.
-    pub fn new(font_image: DynamicImage, grid_size: Size, min_grid_size: Size) -> CharGrid<'r> {
+    pub fn new(font: Surface, grid_size: Size, min_grid_size: Size) -> CharGrid<'b, 'f, 'r> {
         assert!(grid_size[0] > 0 && grid_size[1] > 0);
         assert!(min_grid_size[0] > 0 && min_grid_size[1] > 0);
 
-        let cell_width = font_image.dimensions().0 as i32 / 16;
-        let cell_height = font_image.dimensions().1 as i32 / 16;
+        let cell_width = font.width() as i32 / 16;
+        let cell_height = font.height() as i32 / 16;
         let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
                              !\"#$%&'()*+,-./\
@@ -294,25 +245,58 @@ impl<'r> CharGrid<'r> {
                              └┴┬├─┼╞╟╚╔╩╦╠═╬╧\
                              ╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀\
                              αßΓπΣσµτΦΘΩδ∞φε∩\
-                             ≡±≥≤⌠⌡÷≈°∙·√ⁿ²■ ";
-        let mut glyph_cache: HashMap<char, Vec<f32>> = HashMap::new();
+                             ≡±≥≤⌠⌡÷≈°∙·√ⁿ²■";
+        let mut glyph_positions = HashMap::new();
 
         for (i, ch) in code_page_437.chars().enumerate() {
-            let mut glyph = vec![0.0f32; (cell_width * cell_height) as usize];
-            let char_x = i as u32 % 16 * cell_width as u32;
-            let char_y = i as u32 / 16 * cell_height as u32;
+            glyph_positions.insert(
+                ch,
+                [i as i32 % 16 * cell_width, i as i32 / 16 * cell_height],
+            );
+        }
 
-            for (px_idx, glyph_px) in glyph.iter_mut().enumerate() {
-                let px_x = char_x + px_idx as u32 % cell_width as u32;
-                let px_y = char_y + px_idx as u32 / cell_width as u32;
-                let px = font_image.get_pixel(px_x, px_y);
+        // Reprocess the font image to make it easier to alpha blit.
+        let mut font = font.convert_format(PixelFormatEnum::ARGB8888).unwrap();
+        font.set_blend_mode(BlendMode::Blend).unwrap();
 
-                // White for foreground color, black for background color.
-                *glyph_px = px.0[0] as f32 * 0.3 / 255.0
-                    + px.0[1] as f32 * 0.59 / 255.0
-                    + px.0[2] as f32 * 0.11 / 255.0;
-            }
-            glyph_cache.insert(ch, glyph);
+        // Convert font image to grayscale and use gray value as alpha.
+        {
+            let width = font.width() as usize;
+            let height = font.height() as usize;
+            let pitch = font.pitch() as usize;
+            let format = font.pixel_format();
+
+            font.with_lock_mut(|bytes| {
+                for y in 0..height {
+                    let row_start = y * pitch;
+
+                    for x in 0..width {
+                        let pixel_start = row_start + x * U32_SIZE;
+                        let in_color = Sdl2Color::from_u32(
+                            &format,
+                            u32::from_ne_bytes([
+                                bytes[pixel_start],
+                                bytes[pixel_start + 1],
+                                bytes[pixel_start + 2],
+                                bytes[pixel_start + 3],
+                            ]),
+                        );
+                        let red = in_color.r as u16;
+                        let green = in_color.r as u16;
+                        let blue = in_color.r as u16;
+                        let gray = ((red * 30 + green * 59 + blue * 11) / 100) as u8;
+                        let out_color = if gray == 0 {
+                            Sdl2Color::RGBA(0, 0, 0, 0)
+                        } else {
+                            Sdl2Color::RGBA(255, 255, 255, gray)
+                        };
+                        let out_bytes = out_color.to_u32(&format).to_ne_bytes();
+
+                        bytes[pixel_start..pixel_start + U32_SIZE]
+                            .copy_from_slice(&out_bytes[..U32_SIZE]);
+                    }
+                }
+            });
         }
 
         let grid_size = [
@@ -323,12 +307,18 @@ impl<'r> CharGrid<'r> {
         CharGrid {
             front: RawCharGrid::new(grid_size),
             back: RawCharGrid::new(grid_size),
-            glyph_cache,
+            font,
+            glyph_positions,
             min_grid_size,
             cell_size: [cell_width, cell_height],
             needs_render: true,
             needs_upload: true,
-            buffer: RgbImage::new([cell_width * grid_size[0], cell_height * grid_size[1]]),
+            buffer: Surface::new(
+                (cell_width * grid_size[0]) as u32,
+                (cell_height * grid_size[1]) as u32,
+                PixelFormatEnum::ARGB8888,
+            )
+            .unwrap(),
             texture: None,
         }
     }
@@ -340,12 +330,10 @@ impl<'r> CharGrid<'r> {
 
     /// Calculate the pixel width and height of a full CharGrid, given a font image and desired
     /// grid dimensions.
-    pub fn size_px(font_image: &DynamicImage, grid_size: Size, min_grid_size: Size) -> [u32; 2] {
+    pub fn size_px(font_image: &Surface, grid_size: Size, min_grid_size: Size) -> [u32; 2] {
         [
-            font_image.dimensions().0 / 16
-                * (grid_size[0] as u32).max(min_grid_size[0] as u32).min(255),
-            font_image.dimensions().1 / 16
-                * (grid_size[1] as u32).max(min_grid_size[1] as u32).min(255),
+            font_image.width() / 16 * (grid_size[0] as u32).max(min_grid_size[0] as u32).min(255),
+            font_image.height() / 16 * (grid_size[1] as u32).max(min_grid_size[1] as u32).min(255),
         ]
     }
 
@@ -376,10 +364,12 @@ impl<'r> CharGrid<'r> {
             if self.size_cells() != new_size_cells {
                 self.front = RawCharGrid::new(new_size_cells);
                 self.back = RawCharGrid::new(new_size_cells);
-                self.buffer.resize([
-                    new_size_cells[0] * self.cell_size[0],
-                    new_size_cells[1] * self.cell_size[1],
-                ]);
+                self.buffer = Surface::new(
+                    (new_size_cells[0] * self.cell_size[0]) as u32,
+                    (new_size_cells[1] * self.cell_size[1]) as u32,
+                    PixelFormatEnum::ARGB8888,
+                )
+                .unwrap();
                 self.needs_render = true;
                 buffer_size_changed = true;
             }
@@ -505,35 +495,38 @@ impl<'r> CharGrid<'r> {
             }
 
             let grid_width = self.front.size[0];
-            let grid_x = index as u32 % grid_width as u32;
-            let grid_y = index as u32 / grid_width as u32;
+            let grid_x = index as i32 % grid_width;
+            let grid_y = index as i32 / grid_width;
             let cell_width = self.cell_size[0] as u32;
             let cell_height = self.cell_size[1] as u32;
-            let px = grid_x * cell_width;
-            let py = grid_y * cell_height;
+            let px = grid_x * cell_width as i32;
+            let py = grid_y * cell_height as i32;
 
             // Render cell if a visible change has occurred.
             if char_diff || (fg_diff && !f_space) || bg_diff {
-                let cached_glyph = match self.glyph_cache.get(&fc) {
-                    Some(data) => data,
-                    None => self.glyph_cache.get(&' ').unwrap(),
-                };
+                let [glyph_x, glyph_y] = self
+                    .glyph_positions
+                    .get(&fc)
+                    .copied()
+                    .unwrap_or_else(|| self.glyph_positions.get(&' ').copied().unwrap());
+                let src_rect = Rect::new(glyph_x, glyph_y, cell_width, cell_height);
+                let dest_rect = Rect::new(px, py, cell_width, cell_height);
+                let fg_color = Sdl2Color::RGB(
+                    (ffg[0] * 255.0) as u8,
+                    (ffg[1] * 255.0) as u8,
+                    (ffg[2] * 255.0) as u8,
+                );
+                let bg_color = Sdl2Color::RGB(
+                    (fbg[0] * 255.0) as u8,
+                    (fbg[1] * 255.0) as u8,
+                    (fbg[2] * 255.0) as u8,
+                );
 
-                for y in 0..cell_height {
-                    for x in 0..cell_width {
-                        let v = cached_glyph[(y * cell_width + x) as usize];
-
-                        self.buffer.put_pixel(
-                            [px + x, py + y],
-                            sdl2::pixels::Color::RGB(
-                                ((v * ffg[0] + (1. - v) * fbg[0]) * 255.) as u8,
-                                ((v * ffg[1] + (1. - v) * fbg[1]) * 255.) as u8,
-                                ((v * ffg[2] + (1. - v) * fbg[2]) * 255.) as u8,
-                            ),
-                        );
-                    }
-                }
-
+                self.buffer.fill_rect(dest_rect, bg_color).unwrap();
+                self.font.set_color_mod(fg_color);
+                self.font
+                    .blit(src_rect, &mut self.buffer, dest_rect)
+                    .unwrap();
                 buffer_updated = true;
             }
         }
@@ -564,7 +557,11 @@ impl<'r> CharGrid<'r> {
         if self.needs_upload {
             if let Some(texture) = &mut self.texture {
                 texture
-                    .update(None, self.buffer.buffer.as_slice(), self.buffer.pitch)
+                    .update(
+                        None,
+                        self.buffer.without_lock().unwrap(),
+                        self.buffer.pitch() as usize,
+                    )
                     .unwrap();
             }
             self.needs_upload = false;
@@ -574,7 +571,7 @@ impl<'r> CharGrid<'r> {
             .copy(
                 self.texture.as_ref().unwrap(),
                 None,
-                Rect::new(0, 0, self.buffer.size[0] as u32, self.buffer.size[1] as u32),
+                Rect::new(0, 0, self.buffer.width(), self.buffer.height()),
             )
             .unwrap();
     }

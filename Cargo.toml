@@ -13,15 +13,18 @@ fps = []
 [dependencies]
 bitflags = "1.0"
 bitvec = "0.19"
-image = "0.23"
 rand = "0.7"
 rand_pcg = "0.2"
-sdl2 = "0.34"
 shipyard = "0.4"
 
 # We don't use this, but bitvec 0.19 breaks on funty 1.2, so we need to specify this.
 [dependencies.funty]
 version = ">=1.0, <=1.1"
+
+[dependencies.sdl2]
+version = "0.34"
+default-features = false
+features = ["image"]
 
 [lib]
 path = "src/lib/lib.rs"

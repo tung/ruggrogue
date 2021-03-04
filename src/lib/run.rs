@@ -1,6 +1,8 @@
 use sdl2::{
     event::{Event, WindowEvent},
+    image::LoadSurface,
     pixels::Color,
+    surface::Surface,
 };
 use std::time::{Duration, Instant};
 
@@ -39,17 +41,16 @@ where
     U: FnMut(&mut InputBuffer) -> RunControl,
     D: FnMut(&mut CharGrid),
 {
-    let font_image = image::io::Reader::open(&settings.font_path)
-        .unwrap()
-        .decode()
-        .unwrap();
+    let sdl_context = sdl2::init().unwrap();
+    let video_subsystem = sdl_context.video().unwrap();
+    let _image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
+
+    let font = Surface::from_file(&settings.font_path).unwrap();
     let [grid_px_width, grid_px_height] =
-        CharGrid::size_px(&font_image, settings.grid_size, settings.min_grid_size);
+        CharGrid::size_px(&font, settings.grid_size, settings.min_grid_size);
 
     assert!(grid_px_width > 0 && grid_px_height > 0);
 
-    let sdl_context = sdl2::init().unwrap();
-    let video_subsystem = sdl_context.video().unwrap();
     let window = video_subsystem
         .window(&settings.title, grid_px_width, grid_px_height)
         .resizable()
@@ -60,7 +61,7 @@ where
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut grid = CharGrid::new(font_image, settings.grid_size, settings.min_grid_size);
+    let mut grid = CharGrid::new(font, settings.grid_size, settings.min_grid_size);
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;
