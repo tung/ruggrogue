@@ -67,6 +67,10 @@ where
     let mut mouse_shown = true;
     let mut new_mouse_shown = None;
     let mut active_update = true;
+    let mut window_size = {
+        let output_size = canvas.output_size().unwrap();
+        [output_size.0 as i32, output_size.1 as i32]
+    };
     let mut done = false;
 
     let should_show_mouse = |event: &Event| match event {
@@ -103,8 +107,6 @@ where
     let mut last_fps_print = Instant::now();
 
     while !done {
-        let mut new_window_size = None;
-
         // Wait for an event if waiting is requested.
         if !active_update && !inputs.more_inputs() {
             let event = event_pump.wait_event();
@@ -112,7 +114,7 @@ where
                 new_mouse_shown = Some(show_it);
             }
             if let Some(new_size) = should_resize(&event) {
-                new_window_size = Some(new_size);
+                window_size = new_size;
             }
             inputs.handle_event(&event);
         }
@@ -123,7 +125,7 @@ where
                 new_mouse_shown = Some(show_it);
             }
             if let Some(new_size) = should_resize(&event) {
-                new_window_size = Some(new_size);
+                window_size = new_size;
             }
             inputs.handle_event(&event);
         }
@@ -139,7 +141,7 @@ where
         }
 
         // Prepare internal CharGrid buffers, resizing if necessary.
-        grid.prepare(&texture_creator, new_window_size);
+        grid.prepare(window_size);
 
         // Perform update(s).
         let start = previous;
@@ -197,7 +199,7 @@ where
         // ... and draw it onto the screen.
         canvas.set_draw_color(Color::BLACK);
         canvas.clear();
-        grid.draw(&mut canvas);
+        grid.draw(&mut canvas, &texture_creator);
         canvas.present();
 
         // Discard any current input to make way for the next one.

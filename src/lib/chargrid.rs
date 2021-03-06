@@ -208,7 +208,6 @@ pub struct CharGrid<'b, 'f, 'r> {
     min_grid_size: Size,
     cell_size: Size,
     needs_render: bool,
-    needs_upload: bool,
     buffer: Surface<'b>,
     texture: Option<Texture<'r>>,
 }
@@ -306,7 +305,6 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             min_grid_size,
             cell_size: [cell_width, cell_height],
             needs_render: true,
-            needs_upload: true,
             buffer: Surface::new(
                 (cell_width * grid_size[0]) as u32,
                 (cell_height * grid_size[1]) as u32,
@@ -331,55 +329,32 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
         ]
     }
 
-    /// Prepare internal CharGrid buffers, optionally adapting to desired pixel dimensions.
-    ///
-    /// Must be called before [CharGrid::draw], and should be called if the window is resized.
+    /// Prepare internal CharGrid buffers, adapting to the given pixel dimensions.
     ///
     /// # Panics
     ///
-    /// Panics if texture creation fails.
-    pub fn prepare(
-        &mut self,
-        texture_creator: &'r TextureCreator<WindowContext>,
-        px_size: Option<Size>,
-    ) {
-        let mut buffer_size_changed = false;
+    /// Panics if the back buffer creation fails.
+    pub fn prepare(&mut self, [px_width, px_height]: Size) {
+        let new_size_cells = [
+            (px_width / self.cell_size[0])
+                .max(self.min_grid_size[0])
+                .min(255),
+            (px_height / self.cell_size[1])
+                .max(self.min_grid_size[1])
+                .min(255),
+        ];
 
-        if let Some([px_w, px_h]) = px_size {
-            let new_size_cells = [
-                (px_w / self.cell_size[0])
-                    .max(self.min_grid_size[0])
-                    .min(255),
-                (px_h / self.cell_size[1])
-                    .max(self.min_grid_size[1])
-                    .min(255),
-            ];
-
-            if self.size_cells() != new_size_cells {
-                self.front = RawCharGrid::new(new_size_cells);
-                self.back = RawCharGrid::new(new_size_cells);
-                self.buffer = Surface::new(
-                    (new_size_cells[0] * self.cell_size[0]) as u32,
-                    (new_size_cells[1] * self.cell_size[1]) as u32,
-                    PixelFormatEnum::ARGB8888,
-                )
-                .unwrap();
-                self.needs_render = true;
-                buffer_size_changed = true;
-            }
-        }
-
-        if self.texture.is_none() || buffer_size_changed {
-            self.texture = Some(
-                texture_creator
-                    .create_texture_streaming(
-                        PixelFormatEnum::RGB888,
-                        (self.front.size[0] * self.cell_size[0]) as u32,
-                        (self.front.size[1] * self.cell_size[1]) as u32,
-                    )
-                    .unwrap(),
-            );
-            self.needs_upload = true;
+        if self.size_cells() != new_size_cells {
+            self.front = RawCharGrid::new(new_size_cells);
+            self.back = RawCharGrid::new(new_size_cells);
+            self.needs_render = true;
+            self.buffer = Surface::new(
+                (new_size_cells[0] * self.cell_size[0]) as u32,
+                (new_size_cells[1] * self.cell_size[1]) as u32,
+                PixelFormatEnum::ARGB8888,
+            )
+            .unwrap();
+            self.texture = None;
         }
     }
 
@@ -531,19 +506,32 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
     ///
     /// Panics if:
     ///
-    ///  * [CharGrid::prepare] was not called beforehand to prepare the internal texture
+    ///  * texture creation fails for whatever reason
     ///  * the texture fails to be updated
     ///  * the texture fails to be copied onto the canvas for whatever reason
-    pub fn draw(&mut self, canvas: &mut WindowCanvas) {
-        if self.needs_render {
-            if self.render(self.needs_upload) {
-                self.needs_upload = true;
-            }
-            self.needs_render = false;
-        }
+    pub fn draw(
+        &mut self,
+        canvas: &mut WindowCanvas,
+        texture_creator: &'r TextureCreator<WindowContext>,
+    ) {
+        if self.needs_render || self.texture.is_none() {
+            if self.render(self.texture.is_none()) {
+                let texture = match &mut self.texture {
+                    Some(texture) => texture,
+                    None => {
+                        self.texture = Some(
+                            texture_creator
+                                .create_texture_streaming(
+                                    PixelFormatEnum::RGB888,
+                                    (self.front.size[0] * self.cell_size[0]) as u32,
+                                    (self.front.size[1] * self.cell_size[1]) as u32,
+                                )
+                                .unwrap(),
+                        );
+                        self.texture.as_mut().unwrap()
+                    }
+                };
 
-        if self.needs_upload {
-            if let Some(texture) = &mut self.texture {
                 texture
                     .update(
                         None,
@@ -552,7 +540,7 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
                     )
                     .unwrap();
             }
-            self.needs_upload = false;
+            self.needs_render = false;
         }
 
         canvas
