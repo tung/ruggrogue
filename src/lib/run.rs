@@ -33,6 +33,23 @@ pub struct RunSettings {
     pub fps: u32,
 }
 
+fn handle_event(event: &Event, window_size: &mut [i32; 2], new_mouse_shown: &mut Option<bool>) {
+    match event {
+        Event::Window {
+            win_event: WindowEvent::Resized(w, h),
+            ..
+        } => {
+            *window_size = [*w, *h];
+        }
+        Event::KeyDown { .. } | Event::KeyUp { .. } => *new_mouse_shown = Some(false),
+        Event::MouseMotion { .. }
+        | Event::MouseButtonDown { .. }
+        | Event::MouseButtonUp { .. }
+        | Event::MouseWheel { .. } => *new_mouse_shown = Some(true),
+        _ => {}
+    }
+}
+
 /// Create a [CharGrid] window and run a main event loop that calls `update` and `draw` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
@@ -65,33 +82,12 @@ where
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;
-    let mut new_mouse_shown = None;
     let mut active_update = true;
     let mut window_size = {
         let output_size = canvas.output_size().unwrap();
         [output_size.0 as i32, output_size.1 as i32]
     };
     let mut done = false;
-
-    let should_show_mouse = |event: &Event| match event {
-        Event::KeyDown { .. } | Event::KeyUp { .. } => Some(false),
-        Event::MouseMotion { .. }
-        | Event::MouseButtonDown { .. }
-        | Event::MouseButtonUp { .. }
-        | Event::MouseWheel { .. } => Some(true),
-        _ => None,
-    };
-    let should_resize = |event: &Event| {
-        if let Event::Window {
-            win_event: WindowEvent::Resized(w, h),
-            ..
-        } = event
-        {
-            Some([*w, *h])
-        } else {
-            None
-        }
-    };
 
     assert!(settings.fps > 0);
 
@@ -107,37 +103,27 @@ where
     let mut last_fps_print = Instant::now();
 
     while !done {
+        let mut new_mouse_shown = None;
+
         // Wait for an event if waiting is requested.
         if !active_update && !inputs.more_inputs() {
             let event = event_pump.wait_event();
-            if let Some(show_it) = should_show_mouse(&event) {
-                new_mouse_shown = Some(show_it);
-            }
-            if let Some(new_size) = should_resize(&event) {
-                window_size = new_size;
-            }
+            handle_event(&event, &mut window_size, &mut new_mouse_shown);
             inputs.handle_event(&event);
         }
 
         // Poll for additional events.
         for event in event_pump.poll_iter() {
-            if let Some(show_it) = should_show_mouse(&event) {
-                new_mouse_shown = Some(show_it);
-            }
-            if let Some(new_size) = should_resize(&event) {
-                window_size = new_size;
-            }
+            handle_event(&event, &mut window_size, &mut new_mouse_shown);
             inputs.handle_event(&event);
         }
 
         // Show or hide mouse cursor based on keyboard and mouse input.
-        if new_mouse_shown.is_some() {
-            let show_it = new_mouse_shown.unwrap();
-            if mouse_shown != show_it {
-                sdl_context.mouse().show_cursor(show_it);
-                mouse_shown = show_it;
+        if let Some(new_mouse_shown) = new_mouse_shown {
+            if mouse_shown != new_mouse_shown {
+                sdl_context.mouse().show_cursor(new_mouse_shown);
+                mouse_shown = new_mouse_shown;
             }
-            new_mouse_shown = None;
         }
 
         // Prepare internal CharGrid buffers, resizing if necessary.
