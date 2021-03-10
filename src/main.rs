@@ -7,7 +7,6 @@ mod message;
 mod modes;
 mod monster;
 mod player;
-mod rect;
 mod render;
 mod spawn;
 mod ui;

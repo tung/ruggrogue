@@ -14,10 +14,8 @@ use crate::{
         InflictsSleep, Inventory, Item, Monster, Name, Player, Position, ProvidesHealing, Ranged,
         RenderOnFloor, RenderOnMap, Renderable,
     },
-    map::Map,
-    player,
-    rect::Rect,
-    ui, RuggleRng,
+    map::{Map, Rect},
+    player, ui, RuggleRng,
 };
 
 /// Spawn a player.
