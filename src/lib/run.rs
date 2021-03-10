@@ -33,7 +33,12 @@ pub struct RunSettings {
     pub fps: u32,
 }
 
-fn handle_event(event: &Event, window_size: &mut [i32; 2], new_mouse_shown: &mut Option<bool>) {
+fn handle_event(
+    event: &Event,
+    grid: &mut CharGrid,
+    window_size: &mut [i32; 2],
+    new_mouse_shown: &mut Option<bool>,
+) {
     match event {
         Event::Window {
             win_event: WindowEvent::Resized(w, h),
@@ -46,6 +51,8 @@ fn handle_event(event: &Event, window_size: &mut [i32; 2], new_mouse_shown: &mut
         | Event::MouseButtonDown { .. }
         | Event::MouseButtonUp { .. }
         | Event::MouseWheel { .. } => *new_mouse_shown = Some(true),
+        Event::RenderTargetsReset { .. } => grid.flag_texture_reset(),
+        Event::RenderDeviceReset { .. } => grid.flag_texture_recreate(),
         _ => {}
     }
 }
@@ -108,13 +115,13 @@ where
         // Wait for an event if waiting is requested.
         if !active_update && !inputs.more_inputs() {
             let event = event_pump.wait_event();
-            handle_event(&event, &mut window_size, &mut new_mouse_shown);
+            handle_event(&event, &mut grid, &mut window_size, &mut new_mouse_shown);
             inputs.handle_event(&event);
         }
 
         // Poll for additional events.
         for event in event_pump.poll_iter() {
-            handle_event(&event, &mut window_size, &mut new_mouse_shown);
+            handle_event(&event, &mut grid, &mut window_size, &mut new_mouse_shown);
             inputs.handle_event(&event);
         }
 

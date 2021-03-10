@@ -207,7 +207,9 @@ pub struct CharGrid<'b, 'f, 'r> {
     glyph_positions: HashMap<char, Position>,
     min_grid_size: Size,
     cell_size: Size,
+    force_render: bool,
     needs_render: bool,
+    needs_upload: bool,
     buffer: Surface<'b>,
     texture: Option<Texture<'r>>,
 }
@@ -304,7 +306,9 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             glyph_positions,
             min_grid_size,
             cell_size: [cell_width, cell_height],
+            force_render: true,
             needs_render: true,
+            needs_upload: true,
             buffer: Surface::new(
                 (cell_width * grid_size[0]) as u32,
                 (cell_height * grid_size[1]) as u32,
@@ -347,7 +351,9 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
         if self.size_cells() != new_size_cells {
             self.front = RawCharGrid::new(new_size_cells);
             self.back = RawCharGrid::new(new_size_cells);
+            self.force_render = true;
             self.needs_render = true;
+            self.needs_upload = true;
             self.buffer = Surface::new(
                 (new_size_cells[0] * self.cell_size[0]) as u32,
                 (new_size_cells[1] * self.cell_size[1]) as u32,
@@ -356,6 +362,16 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             .unwrap();
             self.texture = None;
         }
+    }
+
+    /// Make the CharGrid reupload texture contents in the next call to [CharGrid::draw].
+    pub fn flag_texture_reset(&mut self) {
+        self.needs_upload = true;
+    }
+
+    /// Make the CharGrid recreate its texture in the next call to [CharGrid::draw].
+    pub fn flag_texture_recreate(&mut self) {
+        self.texture = None;
     }
 
     /// Clear the entire CharGrid.
@@ -514,38 +530,45 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
-        if self.needs_render || self.texture.is_none() {
-            if self.render(self.texture.is_none()) {
-                let texture = match &mut self.texture {
-                    Some(texture) => texture,
-                    None => {
-                        self.texture = Some(
-                            texture_creator
-                                .create_texture_streaming(
-                                    PixelFormatEnum::RGB888,
-                                    (self.front.size[0] * self.cell_size[0]) as u32,
-                                    (self.front.size[1] * self.cell_size[1]) as u32,
-                                )
-                                .unwrap(),
-                        );
-                        self.texture.as_mut().unwrap()
-                    }
-                };
-
-                texture
-                    .update(
-                        None,
-                        self.buffer.without_lock().unwrap(),
-                        self.buffer.pitch() as usize,
-                    )
-                    .unwrap();
+        if self.needs_render || self.force_render {
+            if self.render(self.force_render) {
+                self.needs_upload = true;
+                self.force_render = false;
             }
             self.needs_render = false;
         }
 
+        let texture = match &mut self.texture {
+            Some(texture) => texture,
+            None => {
+                self.texture = Some(
+                    texture_creator
+                        .create_texture_streaming(
+                            PixelFormatEnum::RGB888,
+                            (self.front.size[0] * self.cell_size[0]) as u32,
+                            (self.front.size[1] * self.cell_size[1]) as u32,
+                        )
+                        .unwrap(),
+                );
+                self.needs_upload = true;
+                self.texture.as_mut().unwrap()
+            }
+        };
+
+        if self.needs_upload {
+            texture
+                .update(
+                    None,
+                    self.buffer.without_lock().unwrap(),
+                    self.buffer.pitch() as usize,
+                )
+                .unwrap();
+            self.needs_upload = false;
+        }
+
         canvas
             .copy(
-                self.texture.as_ref().unwrap(),
+                texture,
                 None,
                 Rect::new(0, 0, self.buffer.width(), self.buffer.height()),
             )
