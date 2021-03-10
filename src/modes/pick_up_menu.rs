@@ -144,14 +144,14 @@ impl PickUpMenuMode {
         let width = self.width + 4;
         let height = std::cmp::max(
             9,
-            std::cmp::min(grid.size_cells().h, self.items.len() as i32 + 8),
+            std::cmp::min(grid.size_cells().h as i32, self.items.len() as i32 + 8),
         );
-        let x = (grid.size_cells().w - width) / 2;
-        let y = (grid.size_cells().h - height) / 2;
+        let x = (grid.size_cells().w as i32 - width) / 2;
+        let y = (grid.size_cells().h as i32 - height) / 2;
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
 
-        grid.draw_box((x, y), (width, height), fg, bg);
+        grid.draw_box((x, y), (width as u32, height as u32), fg, bg);
         grid.print_color((x + 2, y + 2), fg, None, PROMPT);
 
         let list_height = height - 8;

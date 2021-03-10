@@ -25,12 +25,12 @@ impl From<(i32, i32)> for Position {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Size {
-    pub w: i32,
-    pub h: i32,
+    pub w: u32,
+    pub h: u32,
 }
 
-impl From<(i32, i32)> for Size {
-    fn from((w, h): (i32, i32)) -> Self {
+impl From<(u32, u32)> for Size {
+    fn from((w, h): (u32, u32)) -> Self {
         Self { w, h }
     }
 }

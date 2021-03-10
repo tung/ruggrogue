@@ -265,13 +265,17 @@ impl InventoryMode {
             },
         );
         let inv_height = std::cmp::min(
-            grid.size_cells().h - (2 + TOP_HEIGHT + 3 + 1 + 1 + 2),
+            grid.size_cells().h as i32 - (2 + TOP_HEIGHT + 3 + 1 + 1 + 2),
             std::cmp::max(13, inv_len),
         );
         let full_width = 2 + SIDE_WIDTH + 3 + self.main_width + 2;
         let full_height = 2 + TOP_HEIGHT + 3 + 1 + 1 + inv_height + 2;
-        let base_x = (grid.size_cells().w - full_width) / 2;
-        let base_y = (grid.size_cells().h - full_height) / 2;
+
+        assert!(full_width >= 0);
+        assert!(full_height >= 0);
+
+        let base_x = (grid.size_cells().w as i32 - full_width) / 2;
+        let base_y = (grid.size_cells().h as i32 - full_height) / 2;
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
         let equip_x = base_x + SIDE_WIDTH;
@@ -279,7 +283,12 @@ impl InventoryMode {
         let inv_y = base_y + 2 + TOP_HEIGHT + 1;
 
         // Full box border.
-        grid.draw_box((base_x, base_y), (full_width, full_height), fg, bg);
+        grid.draw_box(
+            (base_x, base_y),
+            (full_width as u32, full_height as u32),
+            fg,
+            bg,
+        );
 
         // Side bar vertical divider.
         grid.put_color((equip_x, base_y), fg, bg, '┬');

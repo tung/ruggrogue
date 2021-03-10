@@ -74,15 +74,15 @@ impl YesNoDialogMode {
         let fg = ui::recolor(ui::color::WHITE, active);
         let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
         let width = std::cmp::max(self.prompt.len(), yes_str.len() + no_str.len() + 2) as i32 + 4;
-        let height = 7i32;
-        let x = (grid.size_cells().w - width) / 2;
-        let y = (grid.size_cells().h - height) / 2;
+        let height = 7;
+        let x = (grid.size_cells().w as i32 - width) / 2;
+        let y = (grid.size_cells().h as i32 - height) / 2;
         let yes_dx = width - yes_str.len() as i32 - no_str.len() as i32 - 4;
         let no_dx = width - no_str.len() as i32 - 2;
 
         grid.draw_box(
             (x, y),
-            (width, height),
+            (width as u32, height as u32),
             ui::recolor(ui::color::WHITE, active),
             ui::recolor(ui::color::BLACK, active),
         );

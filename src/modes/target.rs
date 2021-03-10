@@ -199,8 +199,8 @@ impl TargetMode {
         render::draw_map(world, grid, active);
         render::draw_renderables(world, grid, active);
 
-        let cx = grid.size_cells().w / 2;
-        let cy = (grid.size_cells().h - ui::HUD_LINES) / 2;
+        let cx = grid.size_cells().w as i32 / 2;
+        let cy = (grid.size_cells().h as i32 - ui::HUD_LINES) / 2;
         let (px, py) = world.run(
             |player_id: UniqueView<PlayerId>, positions: View<Position>| {
                 positions.get(player_id.0).into()

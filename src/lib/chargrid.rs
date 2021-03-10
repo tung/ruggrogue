@@ -20,15 +20,12 @@ struct RawCharGrid {
 
 impl RawCharGrid {
     fn new(size: Size) -> RawCharGrid {
-        let Size {
-            w: width,
-            h: height,
-        } = size;
+        assert_ne!(0, size.w);
+        assert_ne!(0, size.h);
+        assert!(size.w <= i32::MAX as u32);
+        assert!(size.h <= i32::MAX as u32);
 
-        assert_ne!(0, width);
-        assert_ne!(0, height);
-
-        let vec_size = (width * height) as usize;
+        let vec_size = (size.w * size.h) as usize;
 
         RawCharGrid {
             size,
@@ -67,7 +64,7 @@ impl RawCharGrid {
 
     fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
         let Position { x, y } = pos;
-        let index = (y * self.size.w + x) as usize;
+        let index = (y * self.size.w as i32 + x) as usize;
 
         self.chars[index] = c;
         if let Some(c) = fg {
@@ -79,21 +76,25 @@ impl RawCharGrid {
     }
 
     fn put_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w && pos.y < self.size.h {
+        if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
             self.put_color_raw(pos, fg, bg, c);
         }
     }
 
     fn set_bg(&mut self, pos: Position, bg: Color) {
-        if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w && pos.y < self.size.h {
-            let index = (pos.y * self.size.w + pos.x) as usize;
+        if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
+            let index = (pos.y * self.size.w as i32 + pos.x) as usize;
 
             self.bg[index] = bg;
         }
     }
 
     fn print_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
-        if pos.y >= 0 && pos.y < self.size.h && pos.x < self.size.w && pos.x + s.len() as i32 > 0 {
+        if pos.y >= 0
+            && pos.y < self.size.h as i32
+            && pos.x < self.size.w as i32
+            && pos.x + s.len() as i32 > 0
+        {
             let skip_chars = if pos.x < 0 { -pos.x as usize } else { 0 };
 
             for (i, c) in s.char_indices().skip(skip_chars).take(self.size.w as usize) {
@@ -112,9 +113,12 @@ impl RawCharGrid {
 
     fn draw_box(&mut self, pos: Position, size: Size, fg: Color, bg: Color) {
         let Position { x, y } = pos;
-        let Size { w, h } = size;
+        let w = size.w as i32;
+        let h = size.h as i32;
+        let grid_w = self.size.w as i32;
+        let grid_h = self.size.h as i32;
 
-        if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < self.size.w && y < self.size.h {
+        if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < grid_w && y < grid_h {
             let fg = Some(fg);
             let bg = Some(bg);
 
@@ -122,21 +126,21 @@ impl RawCharGrid {
                 if x >= 0 {
                     self.put_color_raw(Position { x, y }, fg, bg, '┌');
                 }
-                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size.w, x + w - 1) {
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
                     self.put_color_raw(Position { x: xx, y }, fg, bg, '─');
                 }
-                if x + w - 1 < self.size.w {
+                if x + w - 1 < grid_w {
                     self.put_color_raw(Position { x: x + w - 1, y }, fg, bg, '┐');
                 }
             }
-            for yy in std::cmp::max(0, y + 1)..std::cmp::min(self.size.h, y + h - 1) {
+            for yy in std::cmp::max(0, y + 1)..std::cmp::min(grid_h, y + h - 1) {
                 if x >= 0 {
                     self.put_color_raw(Position { x, y: yy }, fg, bg, '│');
                 }
-                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size.w, x + w - 1) {
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
                     self.put_color_raw(Position { x: xx, y: yy }, fg, bg, ' ');
                 }
-                if x + w - 1 < self.size.w {
+                if x + w - 1 < grid_w {
                     self.put_color_raw(
                         Position {
                             x: x + w - 1,
@@ -148,11 +152,11 @@ impl RawCharGrid {
                     );
                 }
             }
-            if y + h - 1 < self.size.h {
+            if y + h - 1 < grid_h {
                 if x >= 0 {
                     self.put_color_raw(Position { x, y: y + h - 1 }, fg, bg, '└');
                 }
-                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size.w, x + w - 1) {
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
                     self.put_color_raw(
                         Position {
                             x: xx,
@@ -163,7 +167,7 @@ impl RawCharGrid {
                         '─',
                     );
                 }
-                if x + w - 1 < self.size.w {
+                if x + w - 1 < grid_w {
                     self.put_color_raw(
                         Position {
                             x: x + w - 1,
@@ -193,6 +197,8 @@ impl RawCharGrid {
         assert!(max >= 0);
 
         let Position { x, y } = pos;
+        let grid_w = self.size.w as i32;
+        let grid_h = self.size.h as i32;
         let fill_length = if max > 0 {
             (length * amount / max).clamp(0, length)
         } else {
@@ -207,33 +213,33 @@ impl RawCharGrid {
 
         #[allow(clippy::collapsible_if)]
         if vertical {
-            if x >= 0 && x < self.size.w && y < self.size.h && y + length >= 0 {
-                for i in std::cmp::max(0, y)..std::cmp::min(self.size.h, y + fill_start) {
+            if x >= 0 && x < grid_w && y < grid_h && y + length >= 0 {
+                for i in std::cmp::max(0, y)..std::cmp::min(grid_h, y + fill_start) {
                     self.put_color_raw(Position { x, y: i }, fg, bg, '░');
                 }
                 for i in std::cmp::max(0, y + fill_start)
-                    ..std::cmp::min(self.size.h, y + fill_start + fill_length)
+                    ..std::cmp::min(grid_h, y + fill_start + fill_length)
                 {
                     self.put_color_raw(Position { x, y: i }, fg, bg, '█');
                 }
                 for i in std::cmp::max(0, y + fill_start + fill_length)
-                    ..std::cmp::min(self.size.h, y + length)
+                    ..std::cmp::min(grid_h, y + length)
                 {
                     self.put_color_raw(Position { x, y: i }, fg, bg, '░');
                 }
             }
         } else {
-            if y >= 0 && y < self.size.h && x < self.size.w && x + length >= 0 {
-                for i in std::cmp::max(0, x)..std::cmp::min(self.size.w, x + fill_start) {
+            if y >= 0 && y < grid_h && x < grid_w && x + length >= 0 {
+                for i in std::cmp::max(0, x)..std::cmp::min(grid_w, x + fill_start) {
                     self.put_color_raw(Position { x: i, y }, fg, bg, '░');
                 }
                 for i in std::cmp::max(0, x + fill_start)
-                    ..std::cmp::min(self.size.w, x + fill_start + fill_length)
+                    ..std::cmp::min(grid_w, x + fill_start + fill_length)
                 {
                     self.put_color_raw(Position { x: i, y }, fg, bg, '█');
                 }
                 for i in std::cmp::max(0, x + fill_start + fill_length)
-                    ..std::cmp::min(self.size.w, x + length)
+                    ..std::cmp::min(grid_w, x + length)
                 {
                     self.put_color_raw(Position { x: i, y }, fg, bg, '░');
                 }
@@ -275,8 +281,12 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
         assert!(grid_size.w > 0 && grid_size.h > 0);
         assert!(min_grid_size.w > 0 && min_grid_size.h > 0);
 
-        let cell_width = font.width() as i32 / 16;
-        let cell_height = font.height() as i32 / 16;
+        let cell_width = font.width() / 16;
+        let cell_height = font.height() / 16;
+
+        assert!(cell_width <= i32::MAX as u32);
+        assert!(cell_height <= i32::MAX as u32);
+
         let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
                              !\"#$%&'()*+,-./\
@@ -299,8 +309,8 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             glyph_positions.insert(
                 ch,
                 Position {
-                    x: i as i32 % 16 * cell_width,
-                    y: i as i32 / 16 * cell_height,
+                    x: i as i32 % 16 * cell_width as i32,
+                    y: i as i32 / 16 * cell_height as i32,
                 },
             );
         }
@@ -588,7 +598,7 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
                 self.back.bg[index] = fbg;
             }
 
-            let grid_width = self.front.size.w;
+            let grid_width = self.front.size.w as i32;
             let grid_x = index as i32 % grid_width;
             let grid_y = index as i32 / grid_width;
             let cell_width = self.cell_size.w as u32;

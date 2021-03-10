@@ -183,12 +183,16 @@ impl InventoryActionMode {
     pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
         let width = self.inner_width + 4;
         let height = self.actions.len() as i32 + 8;
-        let x = (grid.size_cells().w - width) / 2;
-        let y = (grid.size_cells().h - height) / 2;
+
+        assert!(width >= 0);
+        assert!(height >= 0);
+
+        let x = (grid.size_cells().w as i32 - width) / 2;
+        let y = (grid.size_cells().h as i32 - height) / 2;
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
 
-        grid.draw_box((x, y), (width, height), fg, bg);
+        grid.draw_box((x, y), (width as u32, height as u32), fg, bg);
 
         world.run(|names: View<Name>, renderables: View<Renderable>| {
             let render = renderables.get(self.item_id);

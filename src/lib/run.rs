@@ -35,7 +35,7 @@ pub struct RunSettings {
 fn handle_event(
     event: &Event,
     grid: &mut CharGrid,
-    window_size: &mut (i32, i32),
+    window_size: &mut (u32, u32),
     new_mouse_shown: &mut Option<bool>,
 ) {
     match event {
@@ -43,7 +43,7 @@ fn handle_event(
             win_event: WindowEvent::Resized(w, h),
             ..
         } => {
-            *window_size = (*w, *h);
+            *window_size = (*w as u32, *h as u32);
         }
         Event::KeyDown { .. } | Event::KeyUp { .. } => *new_mouse_shown = Some(false),
         Event::MouseMotion { .. }
@@ -89,10 +89,7 @@ where
 
     let mut mouse_shown = true;
     let mut active_update = true;
-    let mut window_size = {
-        let output_size = canvas.output_size().unwrap();
-        (output_size.0 as i32, output_size.1 as i32)
-    };
+    let mut window_size = canvas.output_size().unwrap();
     let mut done = false;
 
     assert!(settings.fps > 0);

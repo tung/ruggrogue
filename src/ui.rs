@@ -1,10 +1,7 @@
 use shipyard::{Get, UniqueView, View, World};
 
 use crate::{components::CombatStats, map::Map, message::Messages, player::PlayerId};
-use ruggle::{
-    util::{Color, Size},
-    CharGrid,
-};
+use ruggle::{util::Color, CharGrid};
 
 pub mod color {
     use super::Color;
@@ -92,7 +89,7 @@ fn draw_status_line(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
     grid.print_color((x, y), recolor(color::YELLOW, active), None, &hp_string);
     x += hp_string.len() as i32 + 1;
 
-    let hp_bar_length = grid.size_cells().w - x - 2;
+    let hp_bar_length = grid.size_cells().w as i32 - x - 2;
     grid.draw_bar(
         false,
         (x, y),
@@ -117,7 +114,9 @@ fn draw_messages(world: &World, grid: &mut CharGrid, active: bool, min_y: i32, m
 }
 
 pub fn draw_ui(world: &World, grid: &mut CharGrid, active: bool, prompt: Option<&str>) {
-    let Size { w, h } = grid.size_cells();
+    let grid_size = grid.size_cells();
+    let w = grid_size.w as i32;
+    let h = grid_size.h as i32;
     let y = h - HUD_LINES;
     let fg = recolor(color::WHITE, active);
 

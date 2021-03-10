@@ -19,8 +19,8 @@ pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
 
     let (x, y) = positions.get(player_id.0).into();
     let fov = fovs.get(player_id.0);
-    let w = grid.size_cells().w;
-    let h = grid.size_cells().h - ui::HUD_LINES;
+    let w = grid.size_cells().w as i32;
+    let h = grid.size_cells().h as i32 - ui::HUD_LINES;
     let cx = w / 2;
     let cy = h / 2;
 
@@ -52,8 +52,8 @@ pub fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
 
     let (x, y) = positions.get(player_id.0).into();
     let fov = fovs.get(player_id.0);
-    let w = grid.size_cells().w;
-    let h = grid.size_cells().h - ui::HUD_LINES;
+    let w = grid.size_cells().w as i32;
+    let h = grid.size_cells().h as i32 - ui::HUD_LINES;
     let cx = w / 2;
     let cy = h / 2;
     let mut render_entity = |pos: &Position, render: &Renderable| {
