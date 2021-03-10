@@ -43,9 +43,9 @@ fn main() {
     let mode_stack = RefCell::new(ModeStack::new(vec![DungeonMode::new(&world).into()]));
 
     let settings = RunSettings {
-        title: "Ruggle".to_string(),
-        grid_size: [80, 48],
-        min_grid_size: [80, 24],
+        title: "Ruggle".into(),
+        grid_size: (80, 48).into(),
+        min_grid_size: (80, 24).into(),
         font_path: PathBuf::from("assets/terminal-8x8.png"),
         fps: 60,
     };

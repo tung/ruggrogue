@@ -144,15 +144,15 @@ impl PickUpMenuMode {
         let width = self.width + 4;
         let height = std::cmp::max(
             9,
-            std::cmp::min(grid.size_cells()[1], self.items.len() as i32 + 8),
+            std::cmp::min(grid.size_cells().h, self.items.len() as i32 + 8),
         );
-        let x = (grid.size_cells()[0] - width) / 2;
-        let y = (grid.size_cells()[1] - height) / 2;
+        let x = (grid.size_cells().w - width) / 2;
+        let y = (grid.size_cells().h - height) / 2;
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
 
-        grid.draw_box([x, y], [width, height], fg, bg);
-        grid.print_color([x + 2, y + 2], Some(fg), None, PROMPT);
+        grid.draw_box((x, y), (width, height), fg, bg);
+        grid.print_color((x + 2, y + 2), fg, None, PROMPT);
 
         let list_height = height - 8;
         let list_offset = std::cmp::max(
@@ -166,13 +166,13 @@ impl PickUpMenuMode {
         if self.items.len() as i32 > list_height {
             grid.draw_bar(
                 true,
-                [x + width - 1, y + 4],
+                (x + width - 1, y + 4),
                 list_height,
                 list_offset,
                 list_height,
                 self.items.len() as i32,
-                Some(fg),
-                Some(bg),
+                fg,
+                bg,
             );
         }
 
@@ -185,39 +185,39 @@ impl PickUpMenuMode {
                 .take(list_height as usize)
             {
                 let render = renderables.get(*item_id);
-                let bg = Some(ui::recolor(
+                let bg = ui::recolor(
                     if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {
                         ui::color::SELECTED_BG
                     } else {
                         ui::color::BLACK
                     },
                     active,
-                ));
+                );
 
                 grid.put_color(
-                    [x + 2, y + 4 + i as i32 - list_offset],
-                    Some(ui::recolor(render.fg, active)),
-                    Some(ui::recolor(render.bg, active)),
+                    (x + 2, y + 4 + i as i32 - list_offset),
+                    ui::recolor(render.fg, active),
+                    ui::recolor(render.bg, active),
                     render.ch,
                 );
                 grid.print_color(
-                    [x + 4, y + 4 + i as i32 - list_offset],
-                    Some(fg),
+                    (x + 4, y + 4 + i as i32 - list_offset),
+                    fg,
                     bg,
                     &names.get(*item_id).0,
                 );
             }
         });
 
-        let cancel_bg = Some(ui::recolor(
+        let cancel_bg = ui::recolor(
             if matches!(self.subsection, SubSection::Cancel) {
                 ui::color::SELECTED_BG
             } else {
                 ui::color::BLACK
             },
             active,
-        ));
+        );
 
-        grid.print_color([x + 4, y + height - 3], Some(fg), cancel_bg, CANCEL);
+        grid.print_color((x + 4, y + height - 3), fg, cancel_bg, CANCEL);
     }
 }

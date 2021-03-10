@@ -6,7 +6,7 @@ use crate::{
     player::PlayerId,
     ui,
 };
-use ruggle::CharGrid;
+use ruggle::{util::Color, CharGrid};
 
 #[allow(clippy::many_single_char_names)]
 pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
@@ -19,22 +19,22 @@ pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
 
     let (x, y) = positions.get(player_id.0).into();
     let fov = fovs.get(player_id.0);
-    let w = grid.size_cells()[0];
-    let h = grid.size_cells()[1] - ui::HUD_LINES;
+    let w = grid.size_cells().w;
+    let h = grid.size_cells().h - ui::HUD_LINES;
     let cx = w / 2;
     let cy = h / 2;
 
     for (tx, ty, tile) in map.iter_bounds(x - cx, y - cy, x - cx + w - 1, y - cy + h - 1) {
         if let Some((ch, color)) = tile {
             let color = if fov.get((tx, ty)) {
-                Some(ui::recolor(color, active))
+                ui::recolor(color, active)
             } else {
-                let v = ((color[0] as i32 * 30 + color[1] as i32 * 59 + color[2] as i32 * 11) / 200)
-                    as u8;
-                Some(ui::recolor([v, v, v], active))
+                let v =
+                    ((color.r as i32 * 30 + color.g as i32 * 59 + color.b as i32 * 11) / 200) as u8;
+                ui::recolor(Color { r: v, g: v, b: v }, active)
             };
 
-            grid.put_color_raw([tx - x + cx, ty - y + cy], color, None, ch);
+            grid.put_color_raw((tx - x + cx, ty - y + cy), color, None, ch);
         }
     }
 }
@@ -52,8 +52,8 @@ pub fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
 
     let (x, y) = positions.get(player_id.0).into();
     let fov = fovs.get(player_id.0);
-    let w = grid.size_cells()[0];
-    let h = grid.size_cells()[1] - ui::HUD_LINES;
+    let w = grid.size_cells().w;
+    let h = grid.size_cells().h - ui::HUD_LINES;
     let cx = w / 2;
     let cy = h / 2;
     let mut render_entity = |pos: &Position, render: &Renderable| {
@@ -61,9 +61,9 @@ pub fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
         let gy = pos.y - y + cy;
         if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(pos.into()) {
             grid.put_color(
-                [gx, gy],
-                Some(ui::recolor(render.fg, active)),
-                Some(ui::recolor(render.bg, active)),
+                (gx, gy),
+                ui::recolor(render.fg, active),
+                ui::recolor(render.bg, active),
                 render.ch,
             );
         }

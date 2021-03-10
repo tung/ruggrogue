@@ -162,14 +162,14 @@ impl InventoryMode {
         [x, y]: [i32; 2],
         [width, height]: [i32; 2],
     ) {
-        let fg = Some(ui::recolor(ui::color::WHITE, active));
-        let bg = Some(ui::recolor(ui::color::BLACK, active));
-        let selected_bg = Some(ui::recolor(ui::color::SELECTED_BG, active));
+        let fg = ui::recolor(ui::color::WHITE, active);
+        let bg = ui::recolor(ui::color::BLACK, active);
+        let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
 
-        grid.print_color([x + 2, y], fg, bg, "< Inventory >");
+        grid.print_color((x + 2, y), fg, bg, "< Inventory >");
 
         grid.print_color(
-            [x + 2, y + 2],
+            (x + 2, y + 2),
             fg,
             if matches!(self.subsection, SubSection::SortAll) {
                 selected_bg
@@ -190,7 +190,7 @@ impl InventoryMode {
 
                 if player_inv.items.is_empty() {
                     grid.print_color(
-                        [item_x, item_y],
+                        (item_x, item_y),
                         fg,
                         if matches!(self.subsection, SubSection::Inventory) {
                             selected_bg
@@ -212,7 +212,7 @@ impl InventoryMode {
                     if player_inv.items.len() as i32 > item_height {
                         grid.draw_bar(
                             true,
-                            [x + width - 1, item_y],
+                            (x + width - 1, item_y),
                             item_height,
                             item_offset,
                             item_height,
@@ -232,13 +232,13 @@ impl InventoryMode {
                         let render = renderables.get(*item_id);
 
                         grid.put_color(
-                            [item_x, item_y + i as i32 - item_offset],
+                            (item_x, item_y + i as i32 - item_offset),
                             Some(ui::recolor(render.fg, active)),
                             Some(ui::recolor(render.bg, active)),
                             render.ch,
                         );
                         grid.print_color(
-                            [item_x + 2, item_y + i as i32 - item_offset],
+                            (item_x + 2, item_y + i as i32 - item_offset),
                             fg,
                             if matches!(self.subsection, SubSection::Inventory)
                                 && i as i32 == self.inv_selection
@@ -265,13 +265,13 @@ impl InventoryMode {
             },
         );
         let inv_height = std::cmp::min(
-            grid.size_cells()[1] - (2 + TOP_HEIGHT + 3 + 1 + 1 + 2),
+            grid.size_cells().h - (2 + TOP_HEIGHT + 3 + 1 + 1 + 2),
             std::cmp::max(13, inv_len),
         );
         let full_width = 2 + SIDE_WIDTH + 3 + self.main_width + 2;
         let full_height = 2 + TOP_HEIGHT + 3 + 1 + 1 + inv_height + 2;
-        let base_x = (grid.size_cells()[0] - full_width) / 2;
-        let base_y = (grid.size_cells()[1] - full_height) / 2;
+        let base_x = (grid.size_cells().w - full_width) / 2;
+        let base_y = (grid.size_cells().h - full_height) / 2;
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
         let equip_x = base_x + SIDE_WIDTH;
@@ -279,24 +279,21 @@ impl InventoryMode {
         let inv_y = base_y + 2 + TOP_HEIGHT + 1;
 
         // Full box border.
-        grid.draw_box([base_x, base_y], [full_width, full_height], fg, bg);
-
-        let fg = Some(fg);
-        let bg = Some(bg);
+        grid.draw_box((base_x, base_y), (full_width, full_height), fg, bg);
 
         // Side bar vertical divider.
-        grid.put_color([equip_x, base_y], fg, bg, '┬');
+        grid.put_color((equip_x, base_y), fg, bg, '┬');
         for y in (base_y + 1)..(base_y + full_height - 1) {
-            grid.put_color([equip_x, y], fg, bg, '│');
+            grid.put_color((equip_x, y), fg, bg, '│');
         }
-        grid.put_color([equip_x, base_y + full_height - 1], fg, bg, '┴');
+        grid.put_color((equip_x, base_y + full_height - 1), fg, bg, '┴');
 
         // Equipment/inventory horizontal divider.
-        grid.put_color([inv_x, inv_y], fg, bg, '├');
+        grid.put_color((inv_x, inv_y), fg, bg, '├');
         for x in (inv_x + 1)..(base_x + full_width - 1) {
-            grid.put_color([x, inv_y], fg, bg, '─');
+            grid.put_color((x, inv_y), fg, bg, '─');
         }
-        grid.put_color([base_x + full_width - 1, inv_y], fg, bg, '┤');
+        grid.put_color((base_x + full_width - 1, inv_y), fg, bg, '┤');
 
         self.draw_inventory(
             world,

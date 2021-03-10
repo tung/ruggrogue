@@ -183,41 +183,36 @@ impl InventoryActionMode {
     pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
         let width = self.inner_width + 4;
         let height = self.actions.len() as i32 + 8;
-        let x = (grid.size_cells()[0] - width) / 2;
-        let y = (grid.size_cells()[1] - height) / 2;
+        let x = (grid.size_cells().w - width) / 2;
+        let y = (grid.size_cells().h - height) / 2;
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
 
-        grid.draw_box([x, y], [width, height], fg, bg);
+        grid.draw_box((x, y), (width, height), fg, bg);
 
         world.run(|names: View<Name>, renderables: View<Renderable>| {
             let render = renderables.get(self.item_id);
 
             grid.put_color(
-                [x + 2, y + 2],
-                Some(ui::recolor(render.fg, active)),
-                Some(ui::recolor(render.bg, active)),
+                (x + 2, y + 2),
+                ui::recolor(render.fg, active),
+                ui::recolor(render.bg, active),
                 render.ch,
             );
-            grid.print_color([x + 4, y + 2], Some(fg), None, &names.get(self.item_id).0);
+            grid.print_color((x + 4, y + 2), fg, None, &names.get(self.item_id).0);
         });
 
         for (i, action) in self.actions.iter().enumerate() {
-            let action_bg = Some(ui::recolor(
+            let action_bg = ui::recolor(
                 if matches!(self.subsection, SubSection::Actions) && i as i32 == self.selection {
                     ui::color::SELECTED_BG
                 } else {
                     ui::color::BLACK
                 },
                 active,
-            ));
-
-            grid.print_color(
-                [x + 4, y + 4 + i as i32],
-                Some(fg),
-                action_bg,
-                action.name(),
             );
+
+            grid.print_color((x + 4, y + 4 + i as i32), fg, action_bg, action.name());
         }
 
         let cancel_bg = Some(ui::recolor(
@@ -229,6 +224,6 @@ impl InventoryActionMode {
             active,
         ));
 
-        grid.print_color([x + 4, y + height - 3], Some(fg), cancel_bg, CANCEL);
+        grid.print_color((x + 4, y + height - 3), fg, cancel_bg, CANCEL);
     }
 }

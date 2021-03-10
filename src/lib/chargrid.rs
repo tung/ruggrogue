@@ -7,9 +7,7 @@ use sdl2::{
 };
 use std::collections::HashMap;
 
-type Color = [u8; 3];
-type Position = [i32; 2];
-type Size = [i32; 2];
+use crate::util::{Color, Position, Size};
 
 const U32_SIZE: usize = std::mem::size_of::<u32>();
 
@@ -22,7 +20,10 @@ struct RawCharGrid {
 
 impl RawCharGrid {
     fn new(size: Size) -> RawCharGrid {
-        let [width, height] = size;
+        let Size {
+            w: width,
+            h: height,
+        } = size;
 
         assert_ne!(0, width);
         assert_ne!(0, height);
@@ -32,8 +33,15 @@ impl RawCharGrid {
         RawCharGrid {
             size,
             chars: vec![' '; vec_size],
-            fg: vec![[255; 3]; vec_size],
-            bg: vec![[0; 3]; vec_size],
+            fg: vec![
+                Color {
+                    r: 255,
+                    g: 255,
+                    b: 255
+                };
+                vec_size
+            ],
+            bg: vec![Color { r: 0, g: 0, b: 0 }; vec_size],
         }
     }
 
@@ -42,19 +50,24 @@ impl RawCharGrid {
             *e = ' ';
         }
 
-        let fg: Color = fg.unwrap_or([255; 3]);
+        let fg = fg.unwrap_or(Color {
+            r: 255,
+            g: 255,
+            b: 255,
+        });
         for e in self.fg.iter_mut() {
             *e = fg;
         }
 
-        let bg: Color = bg.unwrap_or([0; 3]);
+        let bg = bg.unwrap_or(Color { r: 0, g: 0, b: 0 });
         for e in self.bg.iter_mut() {
             *e = bg;
         }
     }
 
-    fn put_color_raw(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        let index = (y * self.size[0] + x) as usize;
+    fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
+        let Position { x, y } = pos;
+        let index = (y * self.size.w + x) as usize;
 
         self.chars[index] = c;
         if let Some(c) = fg {
@@ -66,69 +79,100 @@ impl RawCharGrid {
     }
 
     fn put_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        if pos[0] >= 0 && pos[1] >= 0 && pos[0] < self.size[0] && pos[1] < self.size[1] {
+        if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w && pos.y < self.size.h {
             self.put_color_raw(pos, fg, bg, c);
         }
     }
 
-    fn set_bg(&mut self, [x, y]: Position, bg: Color) {
-        if x >= 0 && y >= 0 && x < self.size[0] && y < self.size[1] {
-            let index = (y * self.size[0] + x) as usize;
+    fn set_bg(&mut self, pos: Position, bg: Color) {
+        if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w && pos.y < self.size.h {
+            let index = (pos.y * self.size.w + pos.x) as usize;
 
             self.bg[index] = bg;
         }
     }
 
-    fn print_color(&mut self, [x, y]: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
-        if y >= 0 && y < self.size[1] && x < self.size[0] && x + s.len() as i32 > 0 {
-            let skip_chars = if x < 0 { -x as usize } else { 0 };
+    fn print_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
+        if pos.y >= 0 && pos.y < self.size.h && pos.x < self.size.w && pos.x + s.len() as i32 > 0 {
+            let skip_chars = if pos.x < 0 { -pos.x as usize } else { 0 };
 
-            for (i, c) in s
-                .char_indices()
-                .skip(skip_chars)
-                .take(self.size[0] as usize)
-            {
-                self.put_color_raw([x + i as i32, y], fg, bg, c);
+            for (i, c) in s.char_indices().skip(skip_chars).take(self.size.w as usize) {
+                self.put_color_raw(
+                    Position {
+                        x: pos.x + i as i32,
+                        y: pos.y,
+                    },
+                    fg,
+                    bg,
+                    c,
+                );
             }
         }
     }
 
-    fn draw_box(&mut self, [x, y]: Position, [w, h]: Size, fg: Color, bg: Color) {
-        if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < self.size[0] && y < self.size[1] {
+    fn draw_box(&mut self, pos: Position, size: Size, fg: Color, bg: Color) {
+        let Position { x, y } = pos;
+        let Size { w, h } = size;
+
+        if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < self.size.w && y < self.size.h {
             let fg = Some(fg);
             let bg = Some(bg);
 
             if y >= 0 {
                 if x >= 0 {
-                    self.put_color_raw([x, y], fg, bg, '┌');
+                    self.put_color_raw(Position { x, y }, fg, bg, '┌');
                 }
-                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size[0], x + w - 1) {
-                    self.put_color_raw([xx, y], fg, bg, '─');
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size.w, x + w - 1) {
+                    self.put_color_raw(Position { x: xx, y }, fg, bg, '─');
                 }
-                if x + w - 1 < self.size[0] {
-                    self.put_color_raw([x + w - 1, y], fg, bg, '┐');
-                }
-            }
-            for yy in std::cmp::max(0, y + 1)..std::cmp::min(self.size[1], y + h - 1) {
-                if x >= 0 {
-                    self.put_color_raw([x, yy], fg, bg, '│');
-                }
-                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size[0], x + w - 1) {
-                    self.put_color_raw([xx, yy], fg, bg, ' ');
-                }
-                if x + w - 1 < self.size[0] {
-                    self.put_color_raw([x + w - 1, yy], fg, bg, '│');
+                if x + w - 1 < self.size.w {
+                    self.put_color_raw(Position { x: x + w - 1, y }, fg, bg, '┐');
                 }
             }
-            if y + h - 1 < self.size[1] {
+            for yy in std::cmp::max(0, y + 1)..std::cmp::min(self.size.h, y + h - 1) {
                 if x >= 0 {
-                    self.put_color_raw([x, y + h - 1], fg, bg, '└');
+                    self.put_color_raw(Position { x, y: yy }, fg, bg, '│');
                 }
-                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size[0], x + w - 1) {
-                    self.put_color_raw([xx, y + h - 1], fg, bg, '─');
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size.w, x + w - 1) {
+                    self.put_color_raw(Position { x: xx, y: yy }, fg, bg, ' ');
                 }
-                if x + w - 1 < self.size[0] {
-                    self.put_color_raw([x + w - 1, y + h - 1], fg, bg, '┘');
+                if x + w - 1 < self.size.w {
+                    self.put_color_raw(
+                        Position {
+                            x: x + w - 1,
+                            y: yy,
+                        },
+                        fg,
+                        bg,
+                        '│',
+                    );
+                }
+            }
+            if y + h - 1 < self.size.h {
+                if x >= 0 {
+                    self.put_color_raw(Position { x, y: y + h - 1 }, fg, bg, '└');
+                }
+                for xx in std::cmp::max(0, x + 1)..std::cmp::min(self.size.w, x + w - 1) {
+                    self.put_color_raw(
+                        Position {
+                            x: xx,
+                            y: y + h - 1,
+                        },
+                        fg,
+                        bg,
+                        '─',
+                    );
+                }
+                if x + w - 1 < self.size.w {
+                    self.put_color_raw(
+                        Position {
+                            x: x + w - 1,
+                            y: y + h - 1,
+                        },
+                        fg,
+                        bg,
+                        '┘',
+                    );
                 }
             }
         }
@@ -137,7 +181,7 @@ impl RawCharGrid {
     fn draw_bar(
         &mut self,
         vertical: bool,
-        [x, y]: Position,
+        pos: Position,
         length: i32,
         offset: i32,
         amount: i32,
@@ -148,6 +192,7 @@ impl RawCharGrid {
         assert!(length > 0);
         assert!(max >= 0);
 
+        let Position { x, y } = pos;
         let fill_length = if max > 0 {
             (length * amount / max).clamp(0, length)
         } else {
@@ -162,35 +207,35 @@ impl RawCharGrid {
 
         #[allow(clippy::collapsible_if)]
         if vertical {
-            if x >= 0 && x < self.size[0] && y < self.size[1] && y + length >= 0 {
-                for i in std::cmp::max(0, y)..std::cmp::min(self.size[1], y + fill_start) {
-                    self.put_color_raw([x, i], fg, bg, '░');
+            if x >= 0 && x < self.size.w && y < self.size.h && y + length >= 0 {
+                for i in std::cmp::max(0, y)..std::cmp::min(self.size.h, y + fill_start) {
+                    self.put_color_raw(Position { x, y: i }, fg, bg, '░');
                 }
                 for i in std::cmp::max(0, y + fill_start)
-                    ..std::cmp::min(self.size[1], y + fill_start + fill_length)
+                    ..std::cmp::min(self.size.h, y + fill_start + fill_length)
                 {
-                    self.put_color_raw([x, i], fg, bg, '█');
+                    self.put_color_raw(Position { x, y: i }, fg, bg, '█');
                 }
                 for i in std::cmp::max(0, y + fill_start + fill_length)
-                    ..std::cmp::min(self.size[1], y + length)
+                    ..std::cmp::min(self.size.h, y + length)
                 {
-                    self.put_color_raw([x, i], fg, bg, '░');
+                    self.put_color_raw(Position { x, y: i }, fg, bg, '░');
                 }
             }
         } else {
-            if y >= 0 && y < self.size[1] && x < self.size[0] && x + length >= 0 {
-                for i in std::cmp::max(0, x)..std::cmp::min(self.size[0], x + fill_start) {
-                    self.put_color_raw([i, y], fg, bg, '░');
+            if y >= 0 && y < self.size.h && x < self.size.w && x + length >= 0 {
+                for i in std::cmp::max(0, x)..std::cmp::min(self.size.w, x + fill_start) {
+                    self.put_color_raw(Position { x: i, y }, fg, bg, '░');
                 }
                 for i in std::cmp::max(0, x + fill_start)
-                    ..std::cmp::min(self.size[0], x + fill_start + fill_length)
+                    ..std::cmp::min(self.size.w, x + fill_start + fill_length)
                 {
-                    self.put_color_raw([i, y], fg, bg, '█');
+                    self.put_color_raw(Position { x: i, y }, fg, bg, '█');
                 }
                 for i in std::cmp::max(0, x + fill_start + fill_length)
-                    ..std::cmp::min(self.size[0], x + length)
+                    ..std::cmp::min(self.size.w, x + length)
                 {
-                    self.put_color_raw([i, y], fg, bg, '░');
+                    self.put_color_raw(Position { x: i, y }, fg, bg, '░');
                 }
             }
         }
@@ -215,13 +260,20 @@ pub struct CharGrid<'b, 'f, 'r> {
 }
 
 impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
-    /// Create a new CharGrid with a given [width, height].  White is the default foreground color
+    /// Create a new CharGrid with a given width and height.  White is the default foreground color
     /// and black is the default background color.
     ///
     /// The font image should consist of a 16-by-16 grid of IBM code page 437 glyphs.
-    pub fn new(font: Surface, grid_size: Size, min_grid_size: Size) -> CharGrid<'b, 'f, 'r> {
-        assert!(grid_size[0] > 0 && grid_size[1] > 0);
-        assert!(min_grid_size[0] > 0 && min_grid_size[1] > 0);
+    pub fn new<G, M>(font: Surface, grid_size: G, min_grid_size: M) -> CharGrid<'b, 'f, 'r>
+    where
+        G: Into<Size>,
+        M: Into<Size>,
+    {
+        let grid_size: Size = grid_size.into();
+        let min_grid_size: Size = min_grid_size.into();
+
+        assert!(grid_size.w > 0 && grid_size.h > 0);
+        assert!(min_grid_size.w > 0 && min_grid_size.h > 0);
 
         let cell_width = font.width() as i32 / 16;
         let cell_height = font.height() as i32 / 16;
@@ -246,7 +298,10 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
         for (i, ch) in code_page_437.chars().enumerate() {
             glyph_positions.insert(
                 ch,
-                [i as i32 % 16 * cell_width, i as i32 / 16 * cell_height],
+                Position {
+                    x: i as i32 % 16 * cell_width,
+                    y: i as i32 / 16 * cell_height,
+                },
             );
         }
 
@@ -294,10 +349,10 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             });
         }
 
-        let grid_size = [
-            grid_size[0].max(min_grid_size[0]).min(255),
-            grid_size[1].max(min_grid_size[1]).min(255),
-        ];
+        let grid_size = Size {
+            w: grid_size.w.max(min_grid_size.w).min(255),
+            h: grid_size.h.max(min_grid_size.h).min(255),
+        };
 
         CharGrid {
             front: RawCharGrid::new(grid_size),
@@ -305,13 +360,16 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             font,
             glyph_positions,
             min_grid_size,
-            cell_size: [cell_width, cell_height],
+            cell_size: Size {
+                w: cell_width,
+                h: cell_height,
+            },
             force_render: true,
             needs_render: true,
             needs_upload: true,
             buffer: Surface::new(
-                (cell_width * grid_size[0]) as u32,
-                (cell_height * grid_size[1]) as u32,
+                (cell_width * grid_size.w) as u32,
+                (cell_height * grid_size.h) as u32,
                 PixelFormatEnum::ARGB8888,
             )
             .unwrap(),
@@ -326,10 +384,14 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
 
     /// Calculate the pixel width and height of a full CharGrid, given a font image and desired
     /// grid dimensions.
-    pub fn size_px(font_image: &Surface, grid_size: Size, min_grid_size: Size) -> [u32; 2] {
+    pub fn size_px<G, M>(font_image: &Surface, grid_size: Size, min_grid_size: Size) -> [u32; 2]
+    where
+        G: Into<Size>,
+        M: Into<Size>,
+    {
         [
-            font_image.width() / 16 * (grid_size[0] as u32).max(min_grid_size[0] as u32).min(255),
-            font_image.height() / 16 * (grid_size[1] as u32).max(min_grid_size[1] as u32).min(255),
+            font_image.width() / 16 * (grid_size.w as u32).max(min_grid_size.w as u32).min(255),
+            font_image.height() / 16 * (grid_size.h as u32).max(min_grid_size.h as u32).min(255),
         ]
     }
 
@@ -338,15 +400,19 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
     /// # Panics
     ///
     /// Panics if the back buffer creation fails.
-    pub fn prepare(&mut self, [px_width, px_height]: Size) {
-        let new_size_cells = [
-            (px_width / self.cell_size[0])
-                .max(self.min_grid_size[0])
+    pub fn prepare<P: Into<Size>>(&mut self, px_size: P) {
+        let Size {
+            w: px_width,
+            h: px_height,
+        } = px_size.into();
+        let new_size_cells = Size {
+            w: (px_width / self.cell_size.w)
+                .max(self.min_grid_size.w)
                 .min(255),
-            (px_height / self.cell_size[1])
-                .max(self.min_grid_size[1])
+            h: (px_height / self.cell_size.h)
+                .max(self.min_grid_size.h)
                 .min(255),
-        ];
+        };
 
         if self.size_cells() != new_size_cells {
             self.front = RawCharGrid::new(new_size_cells);
@@ -355,8 +421,8 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
             self.needs_render = true;
             self.needs_upload = true;
             self.buffer = Surface::new(
-                (new_size_cells[0] * self.cell_size[0]) as u32,
-                (new_size_cells[1] * self.cell_size[1]) as u32,
+                (new_size_cells.w * self.cell_size.w) as u32,
+                (new_size_cells.h * self.cell_size.h) as u32,
                 PixelFormatEnum::ARGB8888,
             )
             .unwrap();
@@ -380,72 +446,115 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
     }
 
     /// Clear the entire CharGrid, optionally changing the foreground and/or background colors.
-    pub fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
-        self.front.clear_color(fg, bg);
+    pub fn clear_color<F, B>(&mut self, fg: F, bg: B)
+    where
+        F: Into<Option<Color>>,
+        B: Into<Option<Color>>,
+    {
+        self.front.clear_color(fg.into(), bg.into());
         self.needs_render = true;
     }
 
     /// Put a single character in a given position.
-    pub fn put(&mut self, pos: Position, c: char) {
-        self.put_color(pos, None, None, c);
+    pub fn put<P: Into<Position>>(&mut self, pos: P, c: char) {
+        self.put_color(pos.into(), None, None, c);
     }
 
     /// Put a single character in a given position, optionally changing the foreground and/or
     /// background colors.
-    pub fn put_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        self.front.put_color(pos, fg, bg, c);
+    pub fn put_color<P, F, B>(&mut self, pos: P, fg: F, bg: B, c: char)
+    where
+        P: Into<Position>,
+        F: Into<Option<Color>>,
+        B: Into<Option<Color>>,
+    {
+        self.front.put_color(pos.into(), fg.into(), bg.into(), c);
         self.needs_render = true;
     }
 
     /// Like [CharGrid::put_color], but skips bounds checking.
-    pub fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        self.front.put_color_raw(pos, fg, bg, c);
+    pub fn put_color_raw<P, F, B>(&mut self, pos: P, fg: F, bg: B, c: char)
+    where
+        P: Into<Position>,
+        F: Into<Option<Color>>,
+        B: Into<Option<Color>>,
+    {
+        self.front
+            .put_color_raw(pos.into(), fg.into(), bg.into(), c);
         self.needs_render = true;
     }
 
     /// Set background color at a given position.
-    pub fn set_bg(&mut self, pos: Position, bg: Color) {
-        self.front.set_bg(pos, bg);
+    pub fn set_bg<P, B>(&mut self, pos: P, bg: B)
+    where
+        P: Into<Position>,
+        B: Into<Color>,
+    {
+        self.front.set_bg(pos.into(), bg.into());
         self.needs_render = true;
     }
 
     /// Print a string on the CharGrid starting at the given position.  If the string goes past the
     /// right edge of the CharGrid it will be truncated.
-    pub fn print(&mut self, pos: Position, s: &str) {
-        self.print_color(pos, None, None, s);
+    pub fn print<P: Into<Position>>(&mut self, pos: P, s: &str) {
+        self.print_color(pos.into(), None, None, s);
     }
 
     /// Print a string on the CharGrid starting at the given position, optionally changing the
     /// foreground and/or background colors.  If the string goes past the right edge of the
     /// CharGrid it will be truncated.
-    pub fn print_color(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, s: &str) {
-        self.front.print_color(pos, fg, bg, s);
+    pub fn print_color<P, F, B>(&mut self, pos: P, fg: F, bg: B, s: &str)
+    where
+        P: Into<Position>,
+        F: Into<Option<Color>>,
+        B: Into<Option<Color>>,
+    {
+        self.front.print_color(pos.into(), fg.into(), bg.into(), s);
         self.needs_render = true;
     }
 
     /// Draw a box on the CharGrid with the given size, position and foreground/background colors.
     /// Any part of the box that falls outside of the CharGrid will be clipped off.
-    pub fn draw_box(&mut self, pos: Position, size: Size, fg: Color, bg: Color) {
-        self.front.draw_box(pos, size, fg, bg);
+    pub fn draw_box<P, S, F, B>(&mut self, pos: P, size: S, fg: F, bg: B)
+    where
+        P: Into<Position>,
+        S: Into<Size>,
+        F: Into<Color>,
+        B: Into<Color>,
+    {
+        self.front
+            .draw_box(pos.into(), size.into(), fg.into(), bg.into());
         self.needs_render = true;
     }
 
     /// Draw a bar of a given length starting at the given position.  Part of the bar is filled
     /// based on the offset, amount and max values, and the entire bar is colored based on the fg
     /// and bg colors provided.
-    pub fn draw_bar(
+    pub fn draw_bar<P, F, B>(
         &mut self,
         vertical: bool,
-        pos: Position,
+        pos: P,
         length: i32,
         offset: i32,
         amount: i32,
         max: i32,
-        fg: Option<Color>,
-        bg: Option<Color>,
-    ) {
-        self.front
-            .draw_bar(vertical, pos, length, offset, amount, max, fg, bg);
+        fg: F,
+        bg: B,
+    ) where
+        P: Into<Position>,
+        F: Into<Option<Color>>,
+        B: Into<Option<Color>>,
+    {
+        self.front.draw_bar(
+            vertical,
+            pos.into(),
+            length,
+            offset,
+            amount,
+            max,
+            fg.into(),
+            bg.into(),
+        );
         self.needs_render = true;
     }
 
@@ -479,25 +588,29 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
                 self.back.bg[index] = fbg;
             }
 
-            let grid_width = self.front.size[0];
+            let grid_width = self.front.size.w;
             let grid_x = index as i32 % grid_width;
             let grid_y = index as i32 / grid_width;
-            let cell_width = self.cell_size[0] as u32;
-            let cell_height = self.cell_size[1] as u32;
+            let cell_width = self.cell_size.w as u32;
+            let cell_height = self.cell_size.h as u32;
             let px = grid_x * cell_width as i32;
             let py = grid_y * cell_height as i32;
 
             // Render cell if a visible change has occurred.
             if char_diff || (fg_diff && !f_space) || bg_diff {
                 let dest_rect = Rect::new(px, py, cell_width, cell_height);
-                let bg_color = Sdl2Color::RGB(fbg[0], fbg[1], fbg[2]);
+                let bg_color = Sdl2Color::RGB(fbg.r, fbg.g, fbg.b);
 
                 self.buffer.fill_rect(dest_rect, bg_color).unwrap();
 
                 if !f_space {
-                    if let Some([glyph_x, glyph_y]) = self.glyph_positions.get(&fc) {
+                    if let Some(Position {
+                        x: glyph_x,
+                        y: glyph_y,
+                    }) = self.glyph_positions.get(&fc)
+                    {
                         let src_rect = Rect::new(*glyph_x, *glyph_y, cell_width, cell_height);
-                        let fg_color = Sdl2Color::RGB(ffg[0], ffg[1], ffg[2]);
+                        let fg_color = Sdl2Color::RGB(ffg.r, ffg.g, ffg.b);
 
                         self.font.set_color_mod(fg_color);
                         self.font
@@ -545,8 +658,8 @@ impl<'b, 'f, 'r> CharGrid<'b, 'f, 'r> {
                     texture_creator
                         .create_texture_streaming(
                             PixelFormatEnum::RGB888,
-                            (self.front.size[0] * self.cell_size[0]) as u32,
-                            (self.front.size[1] * self.cell_size[1]) as u32,
+                            (self.front.size.w * self.cell_size.w) as u32,
+                            (self.front.size.h * self.cell_size.h) as u32,
                         )
                         .unwrap(),
                 );

@@ -199,8 +199,8 @@ impl TargetMode {
         render::draw_map(world, grid, active);
         render::draw_renderables(world, grid, active);
 
-        let cx = grid.size_cells()[0] / 2;
-        let cy = (grid.size_cells()[1] - ui::HUD_LINES) / 2;
+        let cx = grid.size_cells().w / 2;
+        let cy = (grid.size_cells().h - ui::HUD_LINES) / 2;
         let (px, py) = world.run(
             |player_id: UniqueView<PlayerId>, positions: View<Position>| {
                 positions.get(player_id.0).into()
@@ -214,7 +214,7 @@ impl TargetMode {
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
-                    grid.set_bg([x - px + cx, y - py + cy], target_bg);
+                    grid.set_bg((x - px + cx, y - py + cy), target_bg);
                 }
             }
         }
@@ -223,14 +223,14 @@ impl TargetMode {
         for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
             for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
                 if dist2((x, y), self.cursor) <= radius2 {
-                    grid.set_bg([x - px + cx, y - py + cy], aoe_bg);
+                    grid.set_bg((x - px + cx, y - py + cy), aoe_bg);
                 }
             }
         }
 
         // Highlight cursor position.
         grid.set_bg(
-            [self.cursor.0 - px + cx, self.cursor.1 - py + cy],
+            (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
             ui::recolor(ui::color::MAGENTA, active),
         );
 

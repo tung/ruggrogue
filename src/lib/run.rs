@@ -1,13 +1,12 @@
 use sdl2::{
     event::{Event, WindowEvent},
     image::LoadSurface,
-    pixels::Color,
+    pixels::Color as Sdl2Color,
     surface::Surface,
 };
 use std::time::{Duration, Instant};
 
-use crate::chargrid::CharGrid;
-use crate::input_buffer::InputBuffer;
+use crate::{chargrid::CharGrid, input_buffer::InputBuffer, util::Size};
 
 /// Return value for `update` callback sent into [run] that controls the main event loop.
 pub enum RunControl {
@@ -24,9 +23,9 @@ pub struct RunSettings {
     /// Window title.
     pub title: String,
     /// Dimensions of the character grid.
-    pub grid_size: [i32; 2],
+    pub grid_size: Size,
     /// Minimum dimensions of the character grid.
-    pub min_grid_size: [i32; 2],
+    pub min_grid_size: Size,
     /// Path to font.
     pub font_path: std::path::PathBuf,
     /// Frames per second.
@@ -36,7 +35,7 @@ pub struct RunSettings {
 fn handle_event(
     event: &Event,
     grid: &mut CharGrid,
-    window_size: &mut [i32; 2],
+    window_size: &mut (i32, i32),
     new_mouse_shown: &mut Option<bool>,
 ) {
     match event {
@@ -44,7 +43,7 @@ fn handle_event(
             win_event: WindowEvent::Resized(w, h),
             ..
         } => {
-            *window_size = [*w, *h];
+            *window_size = (*w, *h);
         }
         Event::KeyDown { .. } | Event::KeyUp { .. } => *new_mouse_shown = Some(false),
         Event::MouseMotion { .. }
@@ -71,7 +70,7 @@ where
 
     let font = Surface::from_file(&settings.font_path).unwrap();
     let [grid_px_width, grid_px_height] =
-        CharGrid::size_px(&font, settings.grid_size, settings.min_grid_size);
+        CharGrid::size_px::<Size, Size>(&font, settings.grid_size, settings.min_grid_size);
 
     assert!(grid_px_width > 0 && grid_px_height > 0);
 
@@ -92,7 +91,7 @@ where
     let mut active_update = true;
     let mut window_size = {
         let output_size = canvas.output_size().unwrap();
-        [output_size.0 as i32, output_size.1 as i32]
+        (output_size.0 as i32, output_size.1 as i32)
     };
     let mut done = false;
 
@@ -190,7 +189,7 @@ where
         draw(&mut grid);
 
         // ... and draw it onto the screen.
-        canvas.set_draw_color(Color::BLACK);
+        canvas.set_draw_color(Sdl2Color::BLACK);
         canvas.clear();
         grid.draw(&mut canvas, &texture_creator);
         canvas.present();

@@ -2,6 +2,7 @@ use bitvec::prelude::*;
 use shipyard::EntityId;
 
 use crate::player::AutoRun;
+use ruggle::util::Color;
 
 pub struct AreaOfEffect {
     pub radius: i32,
@@ -152,6 +153,6 @@ pub struct RenderOnMap;
 
 pub struct Renderable {
     pub ch: char,
-    pub fg: [u8; 3],
-    pub bg: [u8; 3],
+    pub fg: Color,
+    pub bg: Color,
 }

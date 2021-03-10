@@ -6,6 +6,7 @@ mod field_of_view;
 mod input_buffer;
 mod path_find;
 mod run;
+pub mod util;
 
 pub use chargrid::CharGrid;
 pub use field_of_view::{field_of_view, FovIter, FovShape, ViewableField};
