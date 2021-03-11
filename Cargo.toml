@@ -12,13 +12,9 @@ fps = []
 
 [dependencies]
 bitflags = "1.0"
-bitvec = "0.19"
+bitvec = "0.21"
 rand = "0.7"
 rand_pcg = "0.2"
-
-# We don't use this, but bitvec 0.19 breaks on funty 1.2, so we need to specify this.
-[dependencies.funty]
-version = ">=1.0, <=1.1"
 
 [dependencies.sdl2]
 version = "0.34"
