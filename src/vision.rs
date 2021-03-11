@@ -15,7 +15,7 @@ pub fn recalculate_fields_of_view(
     for (id, (pos, mut fov)) in (&positions, &mut fovs).iter().with_id() {
         if fov.dirty {
             fov.center = pos.into();
-            fov.tiles.set_elements(0);
+            fov.tiles.zero_out_bits();
 
             // Update field of view.
             for (x, y, symmetric) in
@@ -30,14 +30,7 @@ pub fn recalculate_fields_of_view(
 
             // Update map seen tiles if this field of view belongs to a player.
             if players.contains(id) {
-                for y in fov.center.1 - fov.range..=fov.center.1 + fov.range {
-                    for x in fov.center.0 - fov.range..=fov.center.0 + fov.range {
-                        if fov.get((x, y)) {
-                            let idx = (y * map.width + x) as usize;
-                            map.seen.set(idx, true);
-                        }
-                    }
-                }
+                fov.mark_seen(&mut map.seen);
             }
         }
     }

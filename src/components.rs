@@ -1,7 +1,6 @@
-use bitvec::prelude::*;
 use shipyard::EntityId;
 
-use crate::player::AutoRun;
+use crate::{bitgrid::BitGrid, player::AutoRun};
 use ruggle::util::Color;
 
 pub struct AreaOfEffect {
@@ -25,9 +24,8 @@ pub struct CombatStats {
 pub struct Consumable;
 
 pub struct FieldOfView {
-    pub tiles: BitVec,
+    pub tiles: BitGrid,
     pub range: i32,
-    span: i32,
     pub center: (i32, i32),
     pub dirty: bool,
 }
@@ -39,33 +37,28 @@ impl FieldOfView {
         let span = 2 * range + 1;
 
         FieldOfView {
-            tiles: bitvec![0; (span * span) as usize],
+            tiles: BitGrid::new(span, span),
             range,
-            span,
             center: (0, 0),
             dirty: true,
         }
     }
 
-    fn idx(&self, (x, y): (i32, i32)) -> usize {
-        let tx = x - self.center.0 + self.range;
-        let ty = y - self.center.1 + self.range;
-        (ty * self.span + tx) as usize
+    fn offset_xy(&self, (x, y): (i32, i32)) -> (i32, i32) {
+        (
+            x - self.center.0 + self.range,
+            y - self.center.1 + self.range,
+        )
     }
 
     pub fn set(&mut self, pos: (i32, i32), value: bool) {
-        let idx = self.idx(pos);
-        self.tiles.set(idx, value);
+        let offset_pos = self.offset_xy(pos);
+        self.tiles.set_bit(offset_pos.0, offset_pos.1, value);
     }
 
     pub fn get(&self, pos: (i32, i32)) -> bool {
-        if (pos.0 - self.center.0).abs() <= self.range
-            && (pos.1 - self.center.1).abs() <= self.range
-        {
-            self.tiles[self.idx(pos)]
-        } else {
-            false
-        }
+        let offset_pos = self.offset_xy(pos);
+        self.tiles.get_bit(offset_pos.0, offset_pos.1)
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (i32, i32)> + '_ {
@@ -85,6 +78,11 @@ impl FieldOfView {
                 }
             },
         )
+    }
+
+    pub fn mark_seen(&self, seen: &mut BitGrid) {
+        self.tiles
+            .apply_bits_onto(seen, self.center.0 - self.range, self.center.1 - self.range);
     }
 }
 

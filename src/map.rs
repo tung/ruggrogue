@@ -1,9 +1,8 @@
-use bitvec::prelude::*;
 use rand::Rng;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
 use std::collections::HashMap;
 
-use crate::{components::Position, player::PlayerId, RuggleRng};
+use crate::{bitgrid::BitGrid, components::Position, player::PlayerId, RuggleRng};
 use ruggle::util::Color;
 
 #[derive(Clone, Copy)]
@@ -76,7 +75,7 @@ pub struct Map {
     pub height: i32,
     tiles: Vec<Tile>,
     pub rooms: Vec<Rect>,
-    pub seen: BitVec,
+    pub seen: BitGrid,
     // (x, y) -> (blocking_entity_count, entities_here)
     tile_entities: HashMap<(i32, i32), (i32, Vec<EntityId>)>,
     // zero-length non-zero-capacity vectors for reuse in tile_entities
@@ -87,15 +86,13 @@ impl Map {
     pub fn new(width: i32, height: i32) -> Self {
         assert!(width > 0 && height > 0);
 
-        let len = (width * height) as usize;
-
         Self {
             depth: 0,
             width,
             height,
-            tiles: vec![Tile::Floor; len],
+            tiles: vec![Tile::Floor; (width * height) as usize],
             rooms: Vec::new(),
-            seen: bitvec![0; len],
+            seen: BitGrid::new(width, height),
             tile_entities: HashMap::new(),
             empty_entity_vecs: Vec::new(),
         }
@@ -107,8 +104,7 @@ impl Map {
         self.tiles.clear();
         self.tiles.resize(len, Tile::Floor);
         self.rooms.clear();
-        self.seen.clear();
-        self.seen.resize(len, false);
+        self.seen.zero_out_bits();
         self.tile_entities.clear();
     }
 
@@ -232,12 +228,7 @@ impl Map {
             std::iter::repeat(y).zip(xs)
         })
         .map(move |(y, x)| {
-            if x < 0
-                || y < 0
-                || x >= self.width
-                || y >= self.height
-                || !self.seen[(y * self.width + x) as usize]
-            {
+            if !self.seen.get_bit(x, y) {
                 (x, y, None)
             } else {
                 let (ch, color) = match self.get_tile(x, y) {

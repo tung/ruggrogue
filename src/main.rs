@@ -1,3 +1,4 @@
+mod bitgrid;
 mod components;
 mod damage;
 mod gamekey;
