@@ -2,7 +2,7 @@ use shipyard::{Get, UniqueView, View, World};
 use std::collections::HashSet;
 
 use crate::{
-    components::{FieldOfView, Item, Monster, Name, Player, Position},
+    components::{Coord, FieldOfView, Item, Monster, Name, Player},
     gamekey::{self, GameKey},
     map::Map,
     player::PlayerId,
@@ -40,11 +40,10 @@ impl TargetMode {
         assert!(range >= 0);
         assert!(radius >= 0);
 
-        let player_pos: (i32, i32) = world.run(
-            |player_id: UniqueView<PlayerId>, positions: View<Position>| {
-                positions.get(player_id.0).into()
-            },
-        );
+        let player_pos: (i32, i32) =
+            world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
+                coords.get(player_id.0).0.into()
+            });
 
         let valid = world.run(|player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>| {
             // Add 0.5 to the range to prevent 'bumps' at the edge of the range circle.
@@ -201,11 +200,9 @@ impl TargetMode {
 
         let cx = grid.size_cells().w as i32 / 2;
         let cy = (grid.size_cells().h as i32 - ui::HUD_LINES) / 2;
-        let (px, py) = world.run(
-            |player_id: UniqueView<PlayerId>, positions: View<Position>| {
-                positions.get(player_id.0).into()
-            },
-        );
+        let (px, py) = world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
+            coords.get(player_id.0).0.into()
+        });
         let target_bg = ui::recolor(ui::color::BLUE, active);
         let aoe_bg = ui::recolor(ui::color::PURPLE, active);
         let radius2 = self.radius * (self.radius + 1);

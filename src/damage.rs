@@ -4,7 +4,7 @@ use shipyard::{
 use std::collections::VecDeque;
 
 use crate::{
-    components::{BlocksTile, CombatStats, Name, Player, Position},
+    components::{BlocksTile, CombatStats, Coord, Name, Player},
     map::Map,
     message::Messages,
     player::PlayerAlive,
@@ -77,10 +77,10 @@ pub fn delete_dead_entities(mut all_storages: AllStoragesViewMut) {
             all_storages.run(
                 |mut map: UniqueViewMut<Map>,
                  blocks_tile: View<BlocksTile>,
-                 positions: View<Position>| {
+                 coords: View<Coord>| {
                     map.remove_entity(
                         dead_entity,
-                        positions.get(dead_entity).into(),
+                        coords.get(dead_entity).0.into(),
                         blocks_tile.contains(dead_entity),
                     );
                 },

@@ -5,7 +5,7 @@ use shipyard::{
 use std::{cmp::Reverse, collections::BinaryHeap};
 
 use crate::{
-    components::{BlocksTile, FieldOfView, Monster, Position},
+    components::{BlocksTile, Coord, FieldOfView, Monster},
     damage, item,
     map::Map,
     player::{self, PlayerId},
@@ -32,16 +32,16 @@ pub fn monster_turns_empty(monster_turns: UniqueView<MonsterTurns>) -> bool {
 pub fn enqueue_monster_turns(
     mut monster_turns: UniqueViewMut<MonsterTurns>,
     player_id: UniqueView<PlayerId>,
+    coords: View<Coord>,
     monsters: View<Monster>,
-    positions: View<Position>,
 ) {
-    let player_position = positions.get(player_id.0);
+    let player_coord = coords.get(player_id.0);
 
-    for (id, (_, pos)) in (&monsters, &positions).iter().with_id() {
+    for (id, (_, coord)) in (&monsters, &coords).iter().with_id() {
         // Monsters close to the player get their turns first.
         monster_turns
             .0
-            .push((Reverse(pos.dist(&player_position)), id));
+            .push((Reverse(coord.dist(&player_coord)), id));
     }
 }
 
@@ -49,24 +49,24 @@ fn do_turn_for_one_monster(world: &World, monster: EntityId) {
     if item::is_asleep(world, monster) {
         item::handle_sleep_turn(world, monster);
     } else if player::can_see_player(world, monster) {
-        let (mut map, player_id, blocks, mut fovs, mut positions) = world.borrow::<(
+        let (mut map, player_id, blocks, mut coords, mut fovs) = world.borrow::<(
             UniqueViewMut<Map>,
             UniqueView<PlayerId>,
             View<BlocksTile>,
+            ViewMut<Coord>,
             ViewMut<FieldOfView>,
-            ViewMut<Position>,
         )>();
         let fov = (&mut fovs).get(monster);
-        let player_pos: (i32, i32) = positions.get(player_id.0).into();
-        let pos_mut = (&mut positions).get(monster);
-        let pos: (i32, i32) = pos_mut.into();
+        let player_pos: (i32, i32) = coords.get(player_id.0).0.into();
+        let coord_mut = (&mut coords).get(monster);
+        let pos: (i32, i32) = coord_mut.0.into();
 
         if let Some(step) = ruggle::find_path(&*map, pos, player_pos, 4, true).nth(1) {
             if step == player_pos {
                 damage::melee_attack(world, monster, player_id.0);
             } else {
                 map.move_entity(monster, pos, step, blocks.contains(monster));
-                *pos_mut = step.into();
+                coord_mut.0 = step.into();
                 fov.dirty = true;
             }
         }

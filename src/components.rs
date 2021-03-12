@@ -1,7 +1,7 @@
 use shipyard::EntityId;
 
 use crate::{bitgrid::BitGrid, player::AutoRun};
-use ruggle::util::Color;
+use ruggle::util::{Color, Position};
 
 pub struct AreaOfEffect {
     pub radius: i32,
@@ -22,6 +22,14 @@ pub struct CombatStats {
 }
 
 pub struct Consumable;
+
+pub struct Coord(pub Position);
+
+impl Coord {
+    pub fn dist(&self, other: &Coord) -> i32 {
+        std::cmp::max((other.0.x - self.0.x).abs(), (other.0.y - self.0.y).abs())
+    }
+}
 
 pub struct FieldOfView {
     pub tiles: BitGrid,
@@ -106,35 +114,6 @@ pub struct Name(pub String);
 
 pub struct Player {
     pub auto_run: Option<AutoRun>,
-}
-
-pub struct Position {
-    pub x: i32,
-    pub y: i32,
-}
-
-impl Position {
-    pub fn dist(&self, other: &Position) -> i32 {
-        std::cmp::max((other.x - self.x).abs(), (other.y - self.y).abs())
-    }
-}
-
-impl From<&Position> for (i32, i32) {
-    fn from(pos: &Position) -> Self {
-        (pos.x, pos.y)
-    }
-}
-
-impl From<&mut Position> for (i32, i32) {
-    fn from(pos: &mut Position) -> Self {
-        (pos.x, pos.y)
-    }
-}
-
-impl From<(i32, i32)> for Position {
-    fn from((x, y): (i32, i32)) -> Self {
-        Position { x, y }
-    }
 }
 
 pub struct ProvidesHealing {

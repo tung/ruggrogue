@@ -10,8 +10,8 @@ use std::collections::HashSet;
 
 use crate::{
     components::{
-        AreaOfEffect, BlocksTile, CombatStats, Consumable, FieldOfView, InflictsDamage,
-        InflictsSleep, Inventory, Item, Monster, Name, Player, Position, ProvidesHealing, Ranged,
+        AreaOfEffect, BlocksTile, CombatStats, Consumable, Coord, FieldOfView, InflictsDamage,
+        InflictsSleep, Inventory, Item, Monster, Name, Player, ProvidesHealing, Ranged,
         RenderOnFloor, RenderOnMap, Renderable,
     },
     map::{Map, Rect},
@@ -25,11 +25,11 @@ use ruggle::util::Color;
 pub fn spawn_player(
     mut entities: EntitiesViewMut,
     mut combat_stats: ViewMut<CombatStats>,
+    mut coords: ViewMut<Coord>,
     mut fovs: ViewMut<FieldOfView>,
     mut inventories: ViewMut<Inventory>,
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
-    mut positions: ViewMut<Position>,
     mut render_on_maps: ViewMut<RenderOnMap>,
     mut renderables: ViewMut<Renderable>,
 ) -> EntityId {
@@ -37,10 +37,10 @@ pub fn spawn_player(
         (
             &mut players,
             &mut combat_stats,
+            &mut coords,
             &mut fovs,
             &mut inventories,
             &mut names,
-            &mut positions,
             &mut render_on_maps,
             &mut renderables,
         ),
@@ -52,10 +52,10 @@ pub fn spawn_player(
                 defense: 2,
                 power: 5,
             },
+            Coord((0, 0).into()),
             FieldOfView::new(8),
             Inventory { items: Vec::new() },
             Name("Player".into()),
-            Position { x: 0, y: 0 },
             RenderOnMap {},
             Renderable {
                 ch: '@',
@@ -71,9 +71,9 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
          mut consumables: ViewMut<Consumable>,
+         mut coords: ViewMut<Coord>,
          mut items: ViewMut<Item>,
          mut names: ViewMut<Name>,
-         mut positions: ViewMut<Position>,
          mut provides_healings: ViewMut<ProvidesHealing>,
          mut render_on_floors: ViewMut<RenderOnFloor>,
          mut renderables: ViewMut<Renderable>| {
@@ -81,8 +81,8 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                 (
                     &mut items,
                     &mut consumables,
+                    &mut coords,
                     &mut names,
-                    &mut positions,
                     &mut provides_healings,
                     &mut render_on_floors,
                     &mut renderables,
@@ -90,8 +90,8 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                 (
                     Item {},
                     Consumable {},
+                    Coord(pos.into()),
                     Name("Health Potion".into()),
-                    pos.into(),
                     ProvidesHealing { heal_amount: 8 },
                     RenderOnFloor {},
                     Renderable {
@@ -112,10 +112,10 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
          mut consumables: ViewMut<Consumable>,
+         mut coords: ViewMut<Coord>,
          mut inflicts_damages: ViewMut<InflictsDamage>,
          mut items: ViewMut<Item>,
          mut names: ViewMut<Name>,
-         mut positions: ViewMut<Position>,
          mut rangeds: ViewMut<Ranged>,
          mut render_on_floors: ViewMut<RenderOnFloor>,
          mut renderables: ViewMut<Renderable>| {
@@ -123,9 +123,9 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
                 (
                     &mut items,
                     &mut consumables,
+                    &mut coords,
                     &mut inflicts_damages,
                     &mut names,
-                    &mut positions,
                     &mut rangeds,
                     &mut render_on_floors,
                     &mut renderables,
@@ -133,9 +133,9 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
                 (
                     Item {},
                     Consumable {},
+                    Coord(pos.into()),
                     InflictsDamage { damage: 8 },
                     Name("Magic Missile Scroll".into()),
-                    pos.into(),
                     Ranged { range: 6 },
                     RenderOnFloor {},
                     Renderable {
@@ -157,10 +157,10 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
          mut entities: EntitiesViewMut,
          mut aoes: ViewMut<AreaOfEffect>,
          mut consumables: ViewMut<Consumable>,
+         mut coords: ViewMut<Coord>,
          mut inflicts_damages: ViewMut<InflictsDamage>,
          mut items: ViewMut<Item>,
          mut names: ViewMut<Name>,
-         mut positions: ViewMut<Position>,
          mut rangeds: ViewMut<Ranged>,
          (mut render_on_floors, mut renderables): (ViewMut<RenderOnFloor>, ViewMut<Renderable>)| {
             let item_id = entities.add_entity(
@@ -168,9 +168,9 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
                     &mut items,
                     &mut aoes,
                     &mut consumables,
+                    &mut coords,
                     &mut inflicts_damages,
                     &mut names,
-                    &mut positions,
                     &mut rangeds,
                     &mut render_on_floors,
                     &mut renderables,
@@ -179,9 +179,9 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
                     Item {},
                     AreaOfEffect { radius: 3 },
                     Consumable {},
+                    Coord(pos.into()),
                     InflictsDamage { damage: 20 },
                     Name("Fireball Scroll".into()),
-                    pos.into(),
                     Ranged { range: 6 },
                     RenderOnFloor {},
                     Renderable {
@@ -203,10 +203,10 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
          mut entities: EntitiesViewMut,
          mut aoes: ViewMut<AreaOfEffect>,
          mut consumables: ViewMut<Consumable>,
+         mut coords: ViewMut<Coord>,
          mut inflicts_sleeps: ViewMut<InflictsSleep>,
          mut items: ViewMut<Item>,
          mut names: ViewMut<Name>,
-         mut positions: ViewMut<Position>,
          mut rangeds: ViewMut<Ranged>,
          (mut render_on_floors, mut renderables): (ViewMut<RenderOnFloor>, ViewMut<Renderable>)| {
             let item_id = entities.add_entity(
@@ -214,9 +214,9 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
                     &mut items,
                     &mut aoes,
                     &mut consumables,
+                    &mut coords,
                     &mut inflicts_sleeps,
                     &mut names,
-                    &mut positions,
                     &mut rangeds,
                     &mut render_on_floors,
                     &mut renderables,
@@ -225,9 +225,9 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
                     Item {},
                     AreaOfEffect { radius: 1 },
                     Consumable {},
+                    Coord(pos.into()),
                     InflictsSleep { sleepiness: 36 },
                     Name("Sleep Scroll".into()),
-                    pos.into(),
                     Ranged { range: 6 },
                     RenderOnFloor {},
                     Renderable {
@@ -249,10 +249,10 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: Col
          mut entities: EntitiesViewMut,
          mut blocks: ViewMut<BlocksTile>,
          mut combat_stats: ViewMut<CombatStats>,
+         mut coords: ViewMut<Coord>,
          mut fovs: ViewMut<FieldOfView>,
          mut monsters: ViewMut<Monster>,
          mut names: ViewMut<Name>,
-         mut positions: ViewMut<Position>,
          mut render_on_maps: ViewMut<RenderOnMap>,
          mut renderables: ViewMut<Renderable>| {
             let monster_id = entities.add_entity(
@@ -260,9 +260,9 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: Col
                     &mut monsters,
                     &mut blocks,
                     &mut combat_stats,
+                    &mut coords,
                     &mut fovs,
                     &mut names,
-                    &mut positions,
                     &mut render_on_maps,
                     &mut renderables,
                 ),
@@ -275,9 +275,9 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: Col
                         defense: 1,
                         power: 4,
                     },
+                    Coord(pos.into()),
                     FieldOfView::new(8),
                     Name(name),
-                    pos.into(),
                     RenderOnMap {},
                     Renderable {
                         ch,

@@ -5,8 +5,8 @@ use shipyard::{
 
 use crate::{
     components::{
-        AreaOfEffect, Asleep, CombatStats, Consumable, FieldOfView, InflictsDamage, InflictsSleep,
-        Inventory, Monster, Name, Player, Position, ProvidesHealing, RenderOnFloor,
+        AreaOfEffect, Asleep, CombatStats, Consumable, Coord, FieldOfView, InflictsDamage,
+        InflictsSleep, Inventory, Monster, Name, Player, ProvidesHealing, RenderOnFloor,
     },
     map::Map,
     message::Messages,
@@ -14,31 +14,28 @@ use crate::{
 };
 use ruggle::FovShape;
 
-pub fn add_item_to_map(world: &World, item_id: EntityId, (x, y): (i32, i32)) {
-    let (mut map, entities, mut positions, mut render_on_floors) = world.borrow::<(
+pub fn add_item_to_map(world: &World, item_id: EntityId, pos: (i32, i32)) {
+    let (mut map, entities, mut coords, mut render_on_floors) = world.borrow::<(
         UniqueViewMut<Map>,
         EntitiesView,
-        ViewMut<Position>,
+        ViewMut<Coord>,
         ViewMut<RenderOnFloor>,
     )>();
 
     entities.add_component(
-        (&mut positions, &mut render_on_floors),
-        (Position { x, y }, RenderOnFloor {}),
+        (&mut coords, &mut render_on_floors),
+        (Coord(pos.into()), RenderOnFloor {}),
         item_id,
     );
-    map.place_entity(item_id, (x, y), false);
+    map.place_entity(item_id, pos, false);
 }
 
 pub fn remove_item_from_map(world: &World, item_id: EntityId) {
-    let (mut map, mut positions, mut render_on_floors) = world.borrow::<(
-        UniqueViewMut<Map>,
-        ViewMut<Position>,
-        ViewMut<RenderOnFloor>,
-    )>();
+    let (mut map, mut coords, mut render_on_floors) =
+        world.borrow::<(UniqueViewMut<Map>, ViewMut<Coord>, ViewMut<RenderOnFloor>)>();
 
-    map.remove_entity(item_id, positions.get(item_id).into(), false);
-    Remove::<(Position, RenderOnFloor)>::remove((&mut positions, &mut render_on_floors), item_id);
+    map.remove_entity(item_id, coords.get(item_id).0.into(), false);
+    Remove::<(Coord, RenderOnFloor)>::remove((&mut coords, &mut render_on_floors), item_id);
 }
 
 pub fn add_item_to_inventory(world: &World, picker_id: EntityId, item_id: EntityId) {
@@ -64,12 +61,12 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
          aoes: View<AreaOfEffect>,
          mut asleeps: ViewMut<Asleep>,
          mut combat_stats: ViewMut<CombatStats>,
+         coords: View<Coord>,
          inflicts_damages: View<InflictsDamage>,
          inflicts_sleeps: View<InflictsSleep>,
          (monsters, names, players): (View<Monster>, View<Name>, View<Player>),
-         positions: View<Position>,
          provides_healings: View<ProvidesHealing>| {
-            let center = target.unwrap_or_else(|| positions.get(user_id).into());
+            let center = target.unwrap_or_else(|| coords.get(user_id).0.into());
             let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
             let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
                 .filter(|(_, _, symmetric)| *symmetric)
@@ -131,13 +128,13 @@ pub fn handle_sleep_turn(world: &World, who: EntityId) {
     let mut asleeps = world.borrow::<ViewMut<Asleep>>();
 
     if let Ok(mut asleep) = (&mut asleeps).try_get(who) {
-        let (mut msgs, player_id, combat_stats, fovs, names, positions) = world.borrow::<(
+        let (mut msgs, player_id, combat_stats, coords, fovs, names) = world.borrow::<(
             UniqueViewMut<Messages>,
             UniqueView<PlayerId>,
             View<CombatStats>,
+            View<Coord>,
             View<FieldOfView>,
             View<Name>,
-            View<Position>,
         )>();
 
         asleep.sleepiness -= 1;
@@ -156,9 +153,9 @@ pub fn handle_sleep_turn(world: &World, who: EntityId) {
         if asleep.sleepiness <= 0 {
             let show_msg = if who == player_id.0 {
                 true
-            } else if let Ok(who_pos) = positions.try_get(who) {
+            } else if let Ok(who_coord) = coords.try_get(who) {
                 let player_fov = fovs.get(player_id.0);
-                player_fov.get(who_pos.into())
+                player_fov.get(who_coord.0.into())
             } else {
                 false
             };

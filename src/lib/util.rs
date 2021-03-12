@@ -23,6 +23,12 @@ impl From<(i32, i32)> for Position {
     }
 }
 
+impl From<Position> for (i32, i32) {
+    fn from(pos: Position) -> Self {
+        (pos.x, pos.y)
+    }
+}
+
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub struct Size {
     pub w: u32,

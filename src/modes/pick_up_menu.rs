@@ -1,7 +1,7 @@
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
-    components::{Item, Name, Position, Renderable},
+    components::{Coord, Item, Name, Renderable},
     gamekey::{self, GameKey},
     map::Map,
     message::Messages,
@@ -38,12 +38,12 @@ impl PickUpMenuMode {
         let (items, width) = world.run(
             |map: UniqueView<Map>,
              player_id: UniqueView<PlayerId>,
+             coords: View<Coord>,
              items: View<Item>,
-             names: View<Name>,
-             positions: View<Position>| {
-                let player_pos = positions.get(player_id.0);
+             names: View<Name>| {
+                let player_coord = coords.get(player_id.0);
                 let items = map
-                    .iter_entities_at(player_pos.x, player_pos.y)
+                    .iter_entities_at(player_coord.0.x, player_coord.0.y)
                     .filter(|id| items.contains(*id))
                     .collect::<Vec<_>>();
                 let width = std::cmp::max(

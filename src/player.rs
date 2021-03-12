@@ -5,7 +5,7 @@ use shipyard::{
 use std::collections::HashSet;
 
 use crate::{
-    components::{CombatStats, FieldOfView, Inventory, Item, Monster, Name, Player, Position},
+    components::{CombatStats, Coord, FieldOfView, Inventory, Item, Monster, Name, Player},
     damage,
     gamekey::{self, GameKey},
     item,
@@ -67,13 +67,13 @@ pub fn player_sees_foes(
 }
 
 pub fn can_see_player(world: &World, who: EntityId) -> bool {
-    let (player_id, fovs, positions) =
-        world.borrow::<(UniqueView<PlayerId>, View<FieldOfView>, View<Position>)>();
+    let (player_id, coords, fovs) =
+        world.borrow::<(UniqueView<PlayerId>, View<Coord>, View<FieldOfView>)>();
 
     if let Ok(fov) = fovs.try_get(who) {
-        let player_pos = positions.get(player_id.0);
+        let player_coord = coords.get(player_id.0);
 
-        fov.get(player_pos.into())
+        fov.get(player_coord.0.into())
     } else {
         false
     }
@@ -100,17 +100,17 @@ fn rotate_view(dx: i32, dy: i32) -> (i32, i32, i32, i32) {
 fn player_check_frontier(
     map: UniqueView<Map>,
     player_id: UniqueView<PlayerId>,
+    coords: View<Coord>,
     items: View<Item>,
     players: View<Player>,
-    positions: View<Position>,
 ) -> bool {
     let player = players.get(player_id.0);
     let (auto_run_dx, auto_run_dy) = player.auto_run.as_ref().unwrap().dir;
-    let player_pos = positions.get(player_id.0);
+    let player_coord = coords.get(player_id.0);
     let (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y) =
         rotate_view(auto_run_dx, auto_run_dy);
-    let real_x = |dx, dy| player_pos.x + dx * real_x_from_x + dy * real_x_from_y;
-    let real_y = |dx, dy| player_pos.y + dx * real_y_from_x + dy * real_y_from_y;
+    let real_x = |dx, dy| player_coord.0.x + dx * real_x_from_x + dy * real_x_from_y;
+    let real_y = |dx, dy| player_coord.0.y + dx * real_y_from_x + dy * real_y_from_y;
     let stop_for = |dx, dy| {
         let (map_x, map_y) = (real_x(dx, dy), real_y(dx, dy));
 
@@ -144,12 +144,10 @@ fn player_check_frontier(
 ///
 /// Returns the new direction, or `None` if the corridor seems to have ended.
 fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i32, i32)> {
-    let (player_x, player_y) = world.run(
-        |player_id: UniqueView<PlayerId>, positions: View<Position>| {
-            let pos = positions.get(player_id.0);
-            (pos.x, pos.y)
-        },
-    );
+    let (player_x, player_y): (i32, i32) =
+        world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
+            coords.get(player_id.0).0.into()
+        });
     let (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y) = rotate_view(run_dx, run_dy);
     let real_x = |dx, dy| player_x + dx * real_x_from_x + dy * real_x_from_y;
     let real_y = |dx, dy| player_y + dx * real_y_from_x + dy * real_y_from_y;
@@ -412,12 +410,12 @@ fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i
 /// partially present.
 fn auto_run_straight_check(world: &World, run_dx: i32, run_dy: i32) -> Option<AutoRunWallSide> {
     let (player_x, player_y, forward_blocked) = world.run(
-        |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, positions: View<Position>| {
-            let pos = positions.get(player_id.0);
+        |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, coords: View<Coord>| {
+            let coord = coords.get(player_id.0);
             (
-                pos.x,
-                pos.y,
-                map.wall_or_oob(pos.x + run_dx, pos.y + run_dy),
+                coord.0.x,
+                coord.0.y,
+                map.wall_or_oob(coord.0.x + run_dx, coord.0.y + run_dy),
             )
         },
     );
@@ -569,15 +567,15 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
     let (took_time, moved) = world.run(
         |mut map: UniqueViewMut<Map>,
          combat_stats: View<CombatStats>,
+         mut coords: ViewMut<Coord>,
          mut fovs: ViewMut<FieldOfView>,
-         players: View<Player>,
-         mut positions: ViewMut<Position>| {
+         players: View<Player>| {
             let mut took_time = false;
             let mut moved = false;
 
-            for (id, (_, pos, fov)) in (&players, &mut positions, &mut fovs).iter().with_id() {
-                let new_x = pos.x + dx;
-                let new_y = pos.y + dy;
+            for (id, (_, coord, fov)) in (&players, &mut coords, &mut fovs).iter().with_id() {
+                let new_x = coord.0.x + dx;
+                let new_y = coord.0.y + dy;
 
                 if new_x >= 0 && new_y >= 0 && new_x < map.width && new_y < map.height {
                     let melee_target = map
@@ -588,9 +586,8 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
                         melee_queue.push((id, melee_target));
                         took_time = true;
                     } else if !map.is_blocked(new_x, new_y) {
-                        map.move_entity(id, pos.into(), (new_x, new_y), false);
-                        pos.x = new_x;
-                        pos.y = new_y;
+                        map.move_entity(id, coord.0.into(), (new_x, new_y), false);
+                        coord.0 = (new_x, new_y).into();
                         fov.dirty = true;
                         took_time = true;
                         moved = true;
@@ -662,11 +659,14 @@ pub fn player_try_descend(
     map: UniqueView<Map>,
     mut msgs: UniqueViewMut<Messages>,
     player_id: UniqueView<PlayerId>,
-    positions: View<Position>,
+    coords: View<Coord>,
 ) -> bool {
-    let player_pos = positions.get(player_id.0);
+    let player_coord = coords.get(player_id.0);
 
-    if matches!(map.get_tile(player_pos.x, player_pos.y), Tile::DownStairs) {
+    if matches!(
+        map.get_tile(player_coord.0.x, player_coord.0.y),
+        Tile::DownStairs
+    ) {
         true
     } else {
         msgs.add("There is no way down here.".into());
@@ -730,8 +730,7 @@ pub fn player_pick_up_item(world: &World, item_id: EntityId) {
 
 pub fn player_drop_item(world: &World, item_id: EntityId) {
     let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
-    let player_pos: (i32, i32) =
-        world.run(|positions: View<Position>| positions.get(player_id).into());
+    let player_pos: (i32, i32) = world.run(|coords: View<Coord>| coords.get(player_id).0.into());
 
     item::remove_item_from_inventory(world, player_id, item_id);
     item::add_item_to_map(world, item_id, player_pos);

@@ -2,7 +2,7 @@ use rand::Rng;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
 use std::collections::HashMap;
 
-use crate::{bitgrid::BitGrid, components::Position, player::PlayerId, RuggleRng};
+use crate::{bitgrid::BitGrid, components::Coord, player::PlayerId, RuggleRng};
 use ruggle::util::Color;
 
 #[derive(Clone, Copy)]
@@ -536,12 +536,11 @@ pub fn generate_test_pattern(mut map: UniqueViewMut<Map>) {
 pub fn place_player_in_first_room(
     mut map: UniqueViewMut<Map>,
     player_id: UniqueView<PlayerId>,
-    mut positions: ViewMut<Position>,
+    mut coords: ViewMut<Coord>,
 ) {
     let room_center = map.rooms.first().unwrap().center();
-    let mut player_pos = (&mut positions).get(player_id.0);
+    let mut player_coord = (&mut coords).get(player_id.0);
 
     map.place_entity(player_id.0, room_center, false);
-    player_pos.x = room_center.0;
-    player_pos.y = room_center.1;
+    player_coord.0 = room_center.into();
 }

@@ -1,25 +1,25 @@
 use shipyard::{IntoIter, Shiperator, UniqueViewMut, View, ViewMut};
 
 use crate::{
-    components::{FieldOfView, Player, Position},
+    components::{Coord, FieldOfView, Player},
     map::{Map, Tile},
 };
 use ruggle::FovShape;
 
 pub fn recalculate_fields_of_view(
     mut map: UniqueViewMut<Map>,
-    positions: View<Position>,
+    coords: View<Coord>,
     mut fovs: ViewMut<FieldOfView>,
     players: View<Player>,
 ) {
-    for (id, (pos, mut fov)) in (&positions, &mut fovs).iter().with_id() {
+    for (id, (coord, mut fov)) in (&coords, &mut fovs).iter().with_id() {
         if fov.dirty {
-            fov.center = pos.into();
+            fov.center = coord.0.into();
             fov.tiles.zero_out_bits();
 
             // Update field of view.
             for (x, y, symmetric) in
-                ruggle::field_of_view(&*map, pos.into(), fov.range, FovShape::CirclePlus)
+                ruggle::field_of_view(&*map, coord.0.into(), fov.range, FovShape::CirclePlus)
             {
                 if symmetric || matches!(map.get_tile(x, y), &Tile::Wall) {
                     fov.set((x, y), true);
