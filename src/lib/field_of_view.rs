@@ -1,3 +1,5 @@
+use super::BoundedMap;
+
 /// Shape of field of view, to be used to [field_of_view].
 pub enum FovShape {
     /// Square FOV.
@@ -11,9 +13,6 @@ pub enum FovShape {
 
 /// A map-like trait that can be sent into [field_of_view] to calculate a field of view.
 pub trait ViewableField {
-    /// `min_x`, `min_y`, `max_x`, `max_y`.  Note that the latter two are inclusive.
-    fn bounds(&self) -> (i32, i32, i32, i32);
-
     /// Returns `true` if the tile at the given coordinates is opaque.
     fn is_opaque(&self, x: i32, y: i32) -> bool;
 }
@@ -22,7 +21,7 @@ pub trait ViewableField {
 ///
 /// Each call to [FovIter::next] returns `x`, `y` and `symmetric`, the last of which is `true` if
 /// the starting position and tile in question are in each other's fields of view.
-pub struct FovIter<'a, T: ViewableField> {
+pub struct FovIter<'a, T: BoundedMap + ViewableField> {
     map: &'a T,
     start_pos: (i32, i32),
     range: i32,
@@ -42,7 +41,7 @@ pub struct FovIter<'a, T: ViewableField> {
     y: Option<i32>,
 }
 
-impl<T: ViewableField> FovIter<'_, T> {
+impl<T: BoundedMap + ViewableField> FovIter<'_, T> {
     /// Advance one step through the field of view calculation.  Returns `x`, `y` and `symmetric` if
     /// this step contains a tile in the field of view.
     ///
@@ -200,7 +199,7 @@ impl<T: ViewableField> FovIter<'_, T> {
     }
 }
 
-impl<T: ViewableField> Iterator for FovIter<'_, T> {
+impl<T: BoundedMap + ViewableField> Iterator for FovIter<'_, T> {
     type Item = (i32, i32, bool);
 
     /// Returns the next `(x, y, symmetric)` tuple, where `symmetric` means that the starting
@@ -243,7 +242,7 @@ pub fn field_of_view<T>(
     fov_shape: FovShape,
 ) -> FovIter<'_, T>
 where
-    T: ViewableField,
+    T: BoundedMap + ViewableField,
 {
     assert!(range >= 0);
 

@@ -3,11 +3,10 @@ use std::{
     collections::{BinaryHeap, HashMap},
 };
 
+use super::BoundedMap;
+
 /// A trait for a map that paths can be found in using [AStarIter].
 pub trait PathableMap {
-    /// `min_x`, `min_y`, `max_x`, `max_y`.  Note that the latter two are inclusive.
-    fn bounds(&self) -> (i32, i32, i32, i32);
-
     /// Returns `true` if the tile at the given coordinates is blocked.
     fn is_blocked(&self, x: i32, y: i32) -> bool;
 }
@@ -57,7 +56,7 @@ const ADJACENT_TILES: [(i32, i32); 8] = [
 ///
 /// The path data are stored in `came_from` where the keys are positions and the values are the
 /// position that they came from; this means that the path is stored in reverse.
-fn a_star<T: PathableMap>(
+fn a_star<T: BoundedMap + PathableMap>(
     map: &T,
     start: (i32, i32),
     dest: (i32, i32),
@@ -147,7 +146,7 @@ fn a_star<T: PathableMap>(
 /// If a path cannot be found and `fallback_closest` is set, find the closest point to `dest`
 /// reachable from `start` (within the `bound_pad` if given) and calculate the path towards that
 /// point instead.
-pub fn find_path<T: PathableMap>(
+pub fn find_path<T: BoundedMap + PathableMap>(
     map: &T,
     start: (i32, i32),
     dest: (i32, i32),

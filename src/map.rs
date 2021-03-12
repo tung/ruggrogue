@@ -304,21 +304,19 @@ impl Map {
     }
 }
 
-impl ruggle::ViewableField for Map {
+impl ruggle::BoundedMap for Map {
     fn bounds(&self) -> (i32, i32, i32, i32) {
         (0, 0, self.width - 1, self.height - 1)
     }
+}
 
+impl ruggle::ViewableField for Map {
     fn is_opaque(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x, y), Tile::Wall)
     }
 }
 
 impl ruggle::PathableMap for Map {
-    fn bounds(&self) -> (i32, i32, i32, i32) {
-        (0, 0, self.width - 1, self.height - 1)
-    }
-
     fn is_blocked(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x, y), &Tile::Wall)
             || self
