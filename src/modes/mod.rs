@@ -228,15 +228,28 @@ impl ModeStack {
         }
     }
 
-    /// Perform update logic for the top-most mode of the stack.  This also converts [ModeUpdate]
-    /// values into [ruggle::RunControl] values to control the behavior of the next update.
-    pub fn update(&mut self, world: &World, inputs: &mut InputBuffer) -> RunControl {
-        while let Some(top_mode) = self.stack.last_mut() {
-            let result = top_mode.update(world, inputs, &self.pop_result);
+    /// Perform update logic for the top mode of the stack, and then drawing logic for all  modes.
+    ///
+    /// This also converts [ModeUpdate] values into [ruggle::RunControl] values to control the
+    /// behavior of the next update.
+    pub fn update(
+        &mut self,
+        world: &World,
+        inputs: &mut InputBuffer,
+        grid: &mut CharGrid,
+    ) -> RunControl {
+        while !self.stack.is_empty() {
+            // Update the top mode.
+            let (mode_control, mode_update) =
+                self.stack
+                    .last_mut()
+                    .unwrap()
+                    .update(world, inputs, &self.pop_result);
 
             self.pop_result = None;
 
-            match result.0 {
+            // Control the stack as requested by the top mode update logic.
+            match mode_control {
                 ModeControl::Stay => {}
                 ModeControl::Switch(mode) => {
                     self.stack.pop();
@@ -255,7 +268,26 @@ impl ModeStack {
                 }
             }
 
-            match result.1 {
+            // Draw modes in the stack from the bottom-up.
+            if !matches!(mode_update, ModeUpdate::Immediate) {
+                let draw_from = self
+                    .stack
+                    .iter()
+                    .rposition(|mode| !mode.draw_behind())
+                    .unwrap_or(0);
+
+                // Draw non-top modes with `active` set to `false`.
+                for i in draw_from..self.stack.len().saturating_sub(1) {
+                    self.stack[i].draw(world, grid, false);
+                }
+
+                // Draw top mode with `active` set to `true`.
+                if let Some(top_mode) = self.stack.last() {
+                    top_mode.draw(world, grid, true);
+                }
+            }
+
+            match mode_update {
                 ModeUpdate::Immediate => (),
                 ModeUpdate::Update => return RunControl::Update,
                 ModeUpdate::WaitForEvent => return RunControl::WaitForEvent,
@@ -263,28 +295,5 @@ impl ModeStack {
         }
 
         RunControl::Quit
-    }
-
-    /// Draw the modes in the stack from the bottom-up.  The mode at the top of the stack will be
-    /// called with `active` set to `true`, while the others will be called with it set to `false`.
-    pub fn draw(&self, world: &World, grid: &mut CharGrid) {
-        let stack_size = self.stack.len();
-        let start_from = self
-            .stack
-            .iter()
-            .rposition(|mode| !mode.draw_behind())
-            .unwrap_or(0);
-
-        if stack_size == 0 {
-            return;
-        }
-
-        for i in start_from..(stack_size - 1) {
-            self.stack[i].draw(world, grid, false);
-        }
-
-        if let Some(top_mode) = self.stack.last() {
-            top_mode.draw(world, grid, true);
-        }
     }
 }

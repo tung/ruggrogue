@@ -56,13 +56,12 @@ fn handle_event(
     }
 }
 
-/// Create a [CharGrid] window and run a main event loop that calls `update` and `draw` repeatedly.
+/// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
-pub fn run<U, D>(settings: &RunSettings, mut update: U, mut draw: D)
+pub fn run<U>(settings: &RunSettings, mut update: U)
 where
-    U: FnMut(&mut InputBuffer) -> RunControl,
-    D: FnMut(&mut CharGrid),
+    U: FnMut(&mut InputBuffer, &mut CharGrid) -> RunControl,
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -146,7 +145,7 @@ where
                     update_count += 1;
                 }
 
-                match update(&mut inputs) {
+                match update(&mut inputs, &mut grid) {
                     RunControl::Update => lag -= frame_time,
                     RunControl::WaitForEvent => {
                         active_update = false;
@@ -167,7 +166,7 @@ where
             }
 
             // Update once in response to events.
-            match update(&mut inputs) {
+            match update(&mut inputs, &mut grid) {
                 RunControl::WaitForEvent => {}
                 RunControl::Update => {
                     active_update = true;
@@ -182,10 +181,7 @@ where
             break;
         }
 
-        // Draw the grid...
-        draw(&mut grid);
-
-        // ... and draw it onto the screen.
+        // Draw the grid onto the screen.
         canvas.set_draw_color(Sdl2Color::BLACK);
         canvas.clear();
         grid.draw(&mut canvas, &texture_creator);

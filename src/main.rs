@@ -16,7 +16,7 @@ mod vision;
 use rand::SeedableRng;
 use rand_pcg::Pcg64Mcg;
 use shipyard::World;
-use std::{cell::RefCell, path::PathBuf};
+use std::path::PathBuf;
 
 use crate::{
     damage::DeadEntities,
@@ -41,7 +41,7 @@ fn main() {
     world.add_unique(MonsterTurns::new());
     world.add_unique(DeadEntities::new());
 
-    let mode_stack = RefCell::new(ModeStack::new(vec![DungeonMode::new(&world).into()]));
+    let mut mode_stack = ModeStack::new(vec![DungeonMode::new(&world).into()]);
 
     let settings = RunSettings {
         title: "Ruggle".into(),
@@ -51,12 +51,8 @@ fn main() {
         fps: 60,
     };
 
-    ruggle::run(
-        &settings,
-        |inputs| mode_stack.borrow_mut().update(&world, inputs),
-        |grid| {
-            grid.clear();
-            mode_stack.borrow().draw(&world, grid);
-        },
-    );
+    ruggle::run(&settings, |inputs, grid| {
+        grid.clear();
+        mode_stack.update(&world, inputs, grid)
+    });
 }
