@@ -6,7 +6,11 @@ use sdl2::{
 };
 use std::time::{Duration, Instant};
 
-use crate::{chargrid::CharGrid, input_buffer::InputBuffer, util::Size};
+use crate::{
+    chargrid::{CharGrid, Font},
+    input_buffer::InputBuffer,
+    util::Size,
+};
 
 /// Return value for `update` callback sent into [run] that controls the main event loop.
 pub enum RunControl {
@@ -67,7 +71,8 @@ where
     let video_subsystem = sdl_context.video().unwrap();
     let _image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
 
-    let font = Surface::from_file(&settings.font_path).unwrap();
+    let font_surface = Surface::from_file(&settings.font_path).unwrap();
+    let mut font = Font::new(font_surface);
     let [grid_px_width, grid_px_height] =
         CharGrid::size_px::<Size, Size>(&font, settings.grid_size, settings.min_grid_size);
 
@@ -83,7 +88,7 @@ where
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut grid = CharGrid::new(font, settings.grid_size, settings.min_grid_size);
+    let mut grid = CharGrid::new(&font, settings.grid_size, settings.min_grid_size);
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;
@@ -129,7 +134,7 @@ where
         }
 
         // Prepare internal CharGrid buffers, resizing if necessary.
-        grid.prepare(window_size);
+        grid.prepare(&font, window_size);
 
         // Perform update(s).
         let start = previous;
@@ -184,7 +189,7 @@ where
         // Draw the grid onto the screen.
         canvas.set_draw_color(Sdl2Color::BLACK);
         canvas.clear();
-        grid.draw(&mut canvas, &texture_creator);
+        grid.draw(&mut font, &mut canvas, &texture_creator);
         canvas.present();
 
         // Discard any current input to make way for the next one.
