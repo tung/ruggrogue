@@ -488,12 +488,12 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
     }
 
-    /// Make the CharGrid reupload texture contents in the next call to [CharGrid::draw].
+    /// Make the CharGrid reupload texture contents in the next call to [CharGrid::display].
     pub fn flag_texture_reset(&mut self) {
         self.needs_upload = true;
     }
 
-    /// Make the CharGrid recreate its texture in the next call to [CharGrid::draw].
+    /// Make the CharGrid recreate its texture in the next call to [CharGrid::display].
     pub fn flag_texture_recreate(&mut self) {
         self.texture = None;
     }
