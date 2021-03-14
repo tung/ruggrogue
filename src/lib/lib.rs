@@ -8,7 +8,7 @@ mod path_find;
 mod run;
 pub mod util;
 
-pub use chargrid::CharGrid;
+pub use chargrid::{CharGrid, FontInfo};
 pub use field_of_view::{field_of_view, FovIter, FovShape, ViewableField};
 pub use input_buffer::{InputBuffer, InputEvent, KeyMods};
 pub use path_find::{find_path, AStarIter, PathableMap};

@@ -26,7 +26,7 @@ use crate::{
     monster::MonsterTurns,
     player::{PlayerAlive, PlayerId},
 };
-use ruggle::RunSettings;
+use ruggle::{FontInfo, RunSettings};
 
 pub struct RuggleRng(Pcg64Mcg);
 
@@ -49,9 +49,14 @@ fn main() {
         min_grid_size: (80, 24).into(),
         font_path: PathBuf::from("assets/terminal-8x8.png"),
         fps: 60,
+        font_info: FontInfo {
+            image_path: PathBuf::from("assets/terminal-8x8.png"),
+            glyph_size: (8, 8).into(),
+            font_map: FontInfo::map_code_page_437(),
+        },
     };
 
-    ruggle::run(&settings, |inputs, grid| {
+    ruggle::run(settings, |inputs, grid| {
         grid.clear();
         mode_stack.update(&world, inputs, grid)
     });

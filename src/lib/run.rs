@@ -1,13 +1,11 @@
 use sdl2::{
     event::{Event, WindowEvent},
-    image::LoadSurface,
     pixels::Color as Sdl2Color,
-    surface::Surface,
 };
 use std::time::{Duration, Instant};
 
 use crate::{
-    chargrid::{CharGrid, Font},
+    chargrid::{CharGrid, Font, FontInfo},
     input_buffer::InputBuffer,
     util::Size,
 };
@@ -34,6 +32,8 @@ pub struct RunSettings {
     pub font_path: std::path::PathBuf,
     /// Frames per second.
     pub fps: u32,
+    /// Font to draw the CharGrid with.
+    pub font_info: FontInfo,
 }
 
 fn handle_event(
@@ -63,7 +63,7 @@ fn handle_event(
 /// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
-pub fn run<U>(settings: &RunSettings, mut update: U)
+pub fn run<U>(settings: RunSettings, mut update: U)
 where
     U: FnMut(&mut InputBuffer, &mut CharGrid) -> RunControl,
 {
@@ -71,8 +71,7 @@ where
     let video_subsystem = sdl_context.video().unwrap();
     let _image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
 
-    let font_surface = Surface::from_file(&settings.font_path).unwrap();
-    let mut font = Font::new(font_surface);
+    let mut font = Font::new(settings.font_info);
     let [grid_px_width, grid_px_height] =
         CharGrid::size_px::<Size, Size>(&font, settings.grid_size, settings.min_grid_size);
 

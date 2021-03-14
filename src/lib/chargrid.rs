@@ -1,33 +1,33 @@
 use sdl2::{
+    image::LoadSurface,
     pixels::{Color as Sdl2Color, PixelFormatEnum},
     rect::Rect,
     render::{BlendMode, Texture, TextureCreator, WindowCanvas},
     surface::Surface,
     video::WindowContext,
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::util::{Color, Position, Size};
 
 const U32_SIZE: usize = std::mem::size_of::<u32>();
 
-/// A set of characters mapped to positions in a font image.
-///
-/// Used by CharGrid to measure out and render its contents to its buffer.
-pub struct Font<'f> {
-    surface: Surface<'f>,
-    glyph_size: Size,
-    font_map: HashMap<char, Position>,
+/// Glyph position of a character in a font image.
+pub type FontIndex = (i32, i32);
+
+/// Data describing a font that can be loaded from an image on a file system.
+pub struct FontInfo {
+    /// Path to the font image.
+    pub image_path: PathBuf,
+    /// Pixel width and height of glyphs in the font.
+    pub glyph_size: Size,
+    /// Map of characters to glyph positions in the font image.
+    pub font_map: HashMap<char, FontIndex>,
 }
 
-impl<'f> Font<'f> {
-    /// Create a new font.
-    ///
-    /// The font image should consist of a 16-by-16 grid of IBM Code Page 437 glyphs.
-    pub fn new(surface: Surface) -> Font<'f> {
-        let glyph_width = surface.width() / 16;
-        let glyph_height = surface.height() / 16;
-
+impl FontInfo {
+    /// Make a font map that maps characters to a 16-by-16 grid of IBM Code Page 437 glyphs.
+    pub fn map_code_page_437() -> HashMap<char, FontIndex> {
         let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
                              !\"#$%&'()*+,-./\
@@ -47,14 +47,67 @@ impl<'f> Font<'f> {
         let mut font_map = HashMap::new();
 
         for (i, ch) in code_page_437.chars().enumerate() {
-            font_map.insert(
-                ch,
-                Position {
-                    x: i as i32 % 16 * glyph_width as i32,
-                    y: i as i32 / 16 * glyph_height as i32,
-                },
-            );
+            font_map.insert(ch, (i as i32 % 16, i as i32 / 16));
         }
+
+        font_map
+    }
+}
+
+/// A set of characters mapped to positions in a font image.
+///
+/// Used by CharGrid to measure out and render its contents to its buffer.
+pub struct Font<'f> {
+    surface: Surface<'f>,
+    glyph_size: Size,
+    font_map: HashMap<char, FontIndex>,
+}
+
+impl<'f> Font<'f> {
+    /// Check that all FontIndex entries in a font map are within the font image bounds.
+    fn validate_font_map(
+        font_map: &HashMap<char, FontIndex>,
+        surface: &Surface,
+        glyph_size: Size,
+    ) -> bool {
+        let glyph_w = glyph_size.w as i32;
+        let glyph_h = glyph_size.h as i32;
+        let glyph_span_x = glyph_w;
+        let glyph_span_y = glyph_h;
+
+        for font_index in font_map.values() {
+            let (glyph_x, glyph_y) = *font_index;
+
+            if glyph_x < 0
+                || glyph_y < 0
+                || glyph_x * glyph_span_x + glyph_w > surface.width() as i32
+                || glyph_y * glyph_span_y + glyph_h > surface.height() as i32
+            {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    /// Create a new font.  An [sdl2::image::Sdl2ImageContext] must be active at the time that this
+    /// is called in order to load the font image.
+    ///
+    /// The font image should consist of a 16-by-16 grid of IBM Code Page 437 glyphs.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the font image cannot be loaded, or if any entry of the font map lies outside the
+    /// font image bounds.
+    pub fn new(font_info: FontInfo) -> Font<'f> {
+        let surface = Surface::from_file(font_info.image_path).unwrap();
+        let glyph_size = font_info.glyph_size;
+
+        assert!(Font::validate_font_map(
+            &font_info.font_map,
+            &surface,
+            glyph_size
+        ));
 
         // Reprocess the font surface to make it easier to alpha blit.
         let mut surface = surface.convert_format(PixelFormatEnum::ARGB8888).unwrap();
@@ -102,19 +155,21 @@ impl<'f> Font<'f> {
 
         Font {
             surface,
-            glyph_size: Size {
-                w: glyph_width,
-                h: glyph_height,
-            },
-            font_map,
+            glyph_size,
+            font_map: font_info.font_map,
         }
     }
 
     /// Draw a font glyph onto `dest` at `rect` with a given `color`.
     fn draw_glyph_to(&mut self, ch: char, color: Color, dest: &mut Surface, rect: Rect) {
-        if let Some(Position { x, y }) = self.font_map.get(&ch) {
+        if let Some((x, y)) = self.font_map.get(&ch) {
             let color = Sdl2Color::RGB(color.r, color.g, color.b);
-            let glyph_rect = Rect::new(*x, *y, self.glyph_size.w, self.glyph_size.h);
+            let glyph_rect = Rect::new(
+                *x * self.glyph_size.w as i32,
+                *y * self.glyph_size.h as i32,
+                self.glyph_size.w,
+                self.glyph_size.h,
+            );
 
             self.surface.set_color_mod(color);
             self.surface.blit(glyph_rect, dest, rect).unwrap();
