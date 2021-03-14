@@ -700,10 +700,10 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         buffer_updated
     }
 
-    /// Draw the CharGrid onto the screen.
+    /// Display the CharGrid onto the screen.
     ///
-    /// A CharGrid maintains internal buffers to track changes since the last draw, so it needs to
-    /// be mutable in order to update those buffers when these changes are detected.
+    /// A CharGrid maintains internal buffers to track changes since the last display, so it needs
+    /// to be mutable in order to update those buffers when these changes are detected.
     ///
     /// # Panics
     ///
@@ -712,7 +712,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     ///  * texture creation fails for whatever reason
     ///  * the texture fails to be updated
     ///  * the texture fails to be copied onto the canvas for whatever reason
-    pub fn draw(
+    pub fn display(
         &mut self,
         font: &mut Font,
         canvas: &mut WindowCanvas,

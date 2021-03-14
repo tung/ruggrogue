@@ -185,10 +185,10 @@ where
             break;
         }
 
-        // Draw the grid onto the screen.
+        // Display the grid on the screen.
         canvas.set_draw_color(Sdl2Color::BLACK);
         canvas.clear();
-        grid.draw(&mut font, &mut canvas, &texture_creator);
+        grid.display(&mut font, &mut canvas, &texture_creator);
         canvas.present();
 
         // Discard any current input to make way for the next one.
