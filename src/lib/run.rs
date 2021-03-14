@@ -24,10 +24,10 @@ pub enum RunControl {
 pub struct RunSettings {
     /// Window title.
     pub title: String,
-    /// Dimensions of the character grid.
-    pub grid_size: Size,
-    /// Minimum dimensions of the character grid.
-    pub min_grid_size: Size,
+    /// Initial pixel width and height of the window.
+    pub window_size: Size,
+    /// Minimum pixel width and height of the window.
+    pub min_window_size: Size,
     /// Frames per second.
     pub fps: u32,
     /// Font to draw the CharGrid with.
@@ -69,28 +69,37 @@ where
     let video_subsystem = sdl_context.video().unwrap();
     let _image_context = sdl2::image::init(sdl2::image::InitFlag::PNG).unwrap();
 
-    let mut font = Font::new(settings.font_info);
-    let [grid_px_width, grid_px_height] =
-        CharGrid::size_px::<Size, Size>(&font, settings.grid_size, settings.min_grid_size);
+    assert!(settings.window_size.w > 0 && settings.window_size.w <= i32::MAX as u32);
+    assert!(settings.window_size.h > 0 && settings.window_size.h <= i32::MAX as u32);
+    assert!(settings.min_window_size.w > 0 && settings.min_window_size.w <= i32::MAX as u32);
+    assert!(settings.min_window_size.h > 0 && settings.min_window_size.h <= i32::MAX as u32);
 
-    assert!(grid_px_width > 0 && grid_px_height > 0);
-
-    let window = video_subsystem
-        .window(&settings.title, grid_px_width, grid_px_height)
+    let mut window = video_subsystem
+        .window(
+            &settings.title,
+            settings.window_size.w,
+            settings.window_size.h,
+        )
         .resizable()
         .position_centered()
         .build()
         .unwrap();
+
+    window
+        .set_minimum_size(settings.window_size.w, settings.window_size.h)
+        .unwrap();
+
     let mut canvas = window.into_canvas().build().unwrap();
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut grid = CharGrid::new(&font, settings.grid_size, settings.min_grid_size);
+    let mut font = Font::new(settings.font_info);
+    let mut window_size = canvas.output_size().unwrap();
+    let mut grid = CharGrid::new(&font, Size::from(window_size));
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;
     let mut active_update = true;
-    let mut window_size = canvas.output_size().unwrap();
     let mut done = false;
 
     assert!(settings.fps > 0);
@@ -128,6 +137,14 @@ where
                 sdl_context.mouse().show_cursor(new_mouse_shown);
                 mouse_shown = new_mouse_shown;
             }
+        }
+
+        // Guarantee minimum window dimensions, even if we have to fake it.
+        if window_size.0 < settings.min_window_size.w {
+            window_size.0 = settings.min_window_size.w;
+        }
+        if window_size.1 < settings.min_window_size.h {
+            window_size.1 = settings.min_window_size.h;
         }
 
         // Prepare internal CharGrid buffers, resizing if necessary.

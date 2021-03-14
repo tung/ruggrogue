@@ -420,7 +420,6 @@ impl RawCharGrid {
 pub struct CharGrid<'b, 'r> {
     front: RawCharGrid,
     back: RawCharGrid,
-    min_grid_size: Size,
     force_render: bool,
     needs_render: bool,
     needs_upload: bool,
@@ -433,32 +432,22 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     /// and black is the default background color.
     ///
     /// The font is used to initialize the CharGrid buffer.
-    pub fn new<G, M>(font: &Font, grid_size: G, min_grid_size: M) -> CharGrid<'b, 'r>
-    where
-        G: Into<Size>,
-        M: Into<Size>,
-    {
-        let grid_size: Size = grid_size.into();
-        let min_grid_size: Size = min_grid_size.into();
-
-        assert!(grid_size.w > 0 && grid_size.h > 0);
-        assert!(min_grid_size.w > 0 && min_grid_size.h > 0);
-
-        let grid_size = Size {
-            w: grid_size.w.max(min_grid_size.w).min(255),
-            h: grid_size.h.max(min_grid_size.h).min(255),
+    pub fn new<P: Into<Size>>(font: &Font, px_size: P) -> CharGrid<'b, 'r> {
+        let px_size: Size = px_size.into();
+        let size_cells = Size {
+            w: px_size.w / font.glyph_size.w,
+            h: px_size.h / font.glyph_size.h,
         };
 
         CharGrid {
-            front: RawCharGrid::new(grid_size),
-            back: RawCharGrid::new(grid_size),
-            min_grid_size,
+            front: RawCharGrid::new(size_cells),
+            back: RawCharGrid::new(size_cells),
             force_render: true,
             needs_render: true,
             needs_upload: true,
             buffer: Surface::new(
-                font.glyph_size.w * grid_size.w,
-                font.glyph_size.h * grid_size.h,
+                font.glyph_size.w * size_cells.w,
+                font.glyph_size.h * size_cells.h,
                 PixelFormatEnum::ARGB8888,
             )
             .unwrap(),
@@ -471,19 +460,6 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.front.size
     }
 
-    /// Calculate the pixel width and height of a full CharGrid, given a font and desired grid
-    /// dimensions.
-    pub fn size_px<G, M>(font: &Font, grid_size: Size, min_grid_size: Size) -> [u32; 2]
-    where
-        G: Into<Size>,
-        M: Into<Size>,
-    {
-        [
-            font.surface.width() / 16 * grid_size.w.max(min_grid_size.w).min(255),
-            font.surface.height() / 16 * grid_size.h.max(min_grid_size.h).min(255),
-        ]
-    }
-
     /// Prepare internal CharGrid buffers, adapting to the given pixel dimensions.
     ///
     /// # Panics
@@ -492,12 +468,8 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     pub fn prepare<P: Into<Size>>(&mut self, font: &Font, px_size: P) {
         let px_size: Size = px_size.into();
         let new_size_cells = Size {
-            w: (px_size.w / font.glyph_size.w)
-                .max(self.min_grid_size.w)
-                .min(255),
-            h: (px_size.h / font.glyph_size.h)
-                .max(self.min_grid_size.h)
-                .min(255),
+            w: px_size.w / font.glyph_size.w,
+            h: px_size.h / font.glyph_size.h,
         };
 
         if self.size_cells() != new_size_cells {

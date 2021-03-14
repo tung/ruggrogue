@@ -45,8 +45,8 @@ fn main() {
 
     let settings = RunSettings {
         title: "Ruggle".into(),
-        grid_size: (80, 48).into(),
-        min_grid_size: (80, 24).into(),
+        window_size: (640, 384).into(),
+        min_window_size: (640, 192).into(),
         fps: 60,
         font_info: FontInfo {
             image_path: PathBuf::from("assets/terminal-8x8.png"),
