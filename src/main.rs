@@ -47,7 +47,6 @@ fn main() {
         title: "Ruggle".into(),
         grid_size: (80, 48).into(),
         min_grid_size: (80, 24).into(),
-        font_path: PathBuf::from("assets/terminal-8x8.png"),
         fps: 60,
         font_info: FontInfo {
             image_path: PathBuf::from("assets/terminal-8x8.png"),

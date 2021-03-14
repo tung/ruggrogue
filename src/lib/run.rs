@@ -28,8 +28,6 @@ pub struct RunSettings {
     pub grid_size: Size,
     /// Minimum dimensions of the character grid.
     pub min_grid_size: Size,
-    /// Path to font.
-    pub font_path: std::path::PathBuf,
     /// Frames per second.
     pub fps: u32,
     /// Font to draw the CharGrid with.
