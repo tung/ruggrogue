@@ -424,6 +424,22 @@ impl RawCharGrid {
     }
 }
 
+/// Where and how a CharGrid should be displayed on screen.
+pub struct CharGridView {
+    /// Top-left pixel position of the clipping rectangle in which the CharGrid will be displayed.
+    pub pos: Position,
+    /// Pixel width and height of the clipping rectangle in which the CharGrid will be displayed.
+    pub size: Size,
+    /// x position of the CharGrid itself relative to pos.x.
+    pub dx: i32,
+    /// y position of the CharGrid itself relative to pos.y.
+    pub dy: i32,
+    /// If false, dont draw the CharGrid or clear behind it.
+    pub visible: bool,
+    /// Color to clear the clipping rectangle area to before drawing the CharGrid; None to skip.
+    pub clear_color: Option<Color>,
+}
+
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
 /// color.  To use a CharGrid, create a new one, plot characters and colors onto it, and draw it to
 /// the screen.
@@ -435,11 +451,16 @@ pub struct CharGrid<'b, 'r> {
     needs_upload: bool,
     buffer: Option<Surface<'b>>,
     texture: Option<Texture<'r>>,
+    pub view: CharGridView,
 }
 
 impl<'b, 'r> CharGrid<'b, 'r> {
-    /// Create a new CharGrid with a given width and height.  White is the default foreground color
-    /// and black is the default background color.
+    /// Create a new CharGrid with a given width and height.
+    ///
+    /// White is the default foreground color and black is the default background color.
+    ///
+    /// By default, the CharGrid will be displayed at (0, 0) with a size of (640, 480) cleared to
+    /// black.
     pub fn new(grid_size: Size) -> CharGrid<'b, 'r> {
         CharGrid {
             front: RawCharGrid::new(grid_size),
@@ -449,6 +470,14 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             needs_upload: true,
             buffer: None,
             texture: None,
+            view: CharGridView {
+                pos: Position { x: 0, y: 0 },
+                size: Size { w: 640, h: 480 },
+                dx: 0,
+                dy: 0,
+                visible: true,
+                clear_color: Some(Color { r: 0, g: 0, b: 0 }),
+            },
         }
     }
 
@@ -701,10 +730,16 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
+        if !self.view.visible {
+            return;
+        }
+
+        // If the buffer doesn't exist yet, it will need to be fully rendered.
         if self.buffer.is_none() {
             self.force_render = true;
         }
 
+        // Render the drawn grid contents to the buffer.
         if self.needs_render || self.force_render {
             if self.render(font, self.force_render) {
                 self.needs_upload = true;
@@ -713,6 +748,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             self.needs_render = false;
         }
 
+        // The buffer is guaranteed to exist here; make sure the texture exists too.
         let buffer = self.buffer.as_ref().unwrap();
         let texture = match &mut self.texture {
             Some(texture) => texture,
@@ -731,6 +767,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             }
         };
 
+        // Upload the buffer contents to the texture if needed.
         if self.needs_upload {
             texture
                 .update(
@@ -742,12 +779,28 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             self.needs_upload = false;
         }
 
-        canvas
-            .copy(
-                texture,
-                None,
-                Rect::new(0, 0, buffer.width(), buffer.height()),
-            )
-            .unwrap();
+        let clip_rect = Rect::new(
+            self.view.pos.x,
+            self.view.pos.y,
+            self.view.size.w,
+            self.view.size.h,
+        );
+        let dest_rect = Rect::new(
+            self.view.pos.x + self.view.dx,
+            self.view.pos.y + self.view.dy,
+            buffer.width(),
+            buffer.height(),
+        );
+
+        // Clear the destination rectangle first if requested.
+        if let Some(clear_color) = self.view.clear_color {
+            canvas.set_draw_color(Sdl2Color::RGB(clear_color.r, clear_color.g, clear_color.b));
+            canvas.draw_rect(clip_rect).unwrap();
+        }
+
+        // Display the texture on the screen.
+        canvas.set_clip_rect(clip_rect);
+        canvas.copy(texture, None, dest_rect).unwrap();
+        canvas.set_clip_rect(None);
     }
 }

@@ -157,6 +157,7 @@ where
             w: window_size.0 / font.glyph_width(),
             h: window_size.1 / font.glyph_height(),
         });
+        grid.view.size = window_size.into();
 
         // Perform update(s).
         let start = previous;
