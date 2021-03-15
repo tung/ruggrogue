@@ -160,6 +160,16 @@ impl<'f> Font<'f> {
         }
     }
 
+    /// Pixel width of each font glyph.
+    pub fn glyph_width(&self) -> u32 {
+        self.glyph_size.w
+    }
+
+    /// Pixel height of each font glyph.
+    pub fn glyph_height(&self) -> u32 {
+        self.glyph_size.h
+    }
+
     /// Draw a font glyph onto `dest` at `rect` with a given `color`.
     fn draw_glyph_to(&mut self, ch: char, color: Color, dest: &mut Surface, rect: Rect) {
         if let Some((x, y)) = self.font_map.get(&ch) {
@@ -430,18 +440,10 @@ pub struct CharGrid<'b, 'r> {
 impl<'b, 'r> CharGrid<'b, 'r> {
     /// Create a new CharGrid with a given width and height.  White is the default foreground color
     /// and black is the default background color.
-    ///
-    /// The font is used to initialize internal buffers.
-    pub fn new<P: Into<Size>>(font: &Font, px_size: P) -> CharGrid<'b, 'r> {
-        let px_size: Size = px_size.into();
-        let size_cells = Size {
-            w: px_size.w / font.glyph_size.w,
-            h: px_size.h / font.glyph_size.h,
-        };
-
+    pub fn new(grid_size: Size) -> CharGrid<'b, 'r> {
         CharGrid {
-            front: RawCharGrid::new(size_cells),
-            back: RawCharGrid::new(size_cells),
+            front: RawCharGrid::new(grid_size),
+            back: RawCharGrid::new(grid_size),
             force_render: true,
             needs_render: true,
             needs_upload: true,
@@ -455,17 +457,13 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.front.size
     }
 
-    /// Prepare internal CharGrid buffers, adapting to the given pixel dimensions.
-    pub fn prepare<P: Into<Size>>(&mut self, font: &Font, px_size: P) {
-        let px_size: Size = px_size.into();
-        let new_size_cells = Size {
-            w: px_size.w / font.glyph_size.w,
-            h: px_size.h / font.glyph_size.h,
-        };
-
-        if self.size_cells() != new_size_cells {
-            self.front = RawCharGrid::new(new_size_cells);
-            self.back = RawCharGrid::new(new_size_cells);
+    /// Resize the CharGrid to the given grid dimensions, skipping if the dimensions are identical.
+    ///
+    /// If a resize occurs, internal flags will be set to remake and redraw internal buffers.
+    pub fn resize(&mut self, new_grid_size: Size) {
+        if self.size_cells() != new_grid_size {
+            self.front = RawCharGrid::new(new_grid_size);
+            self.back = RawCharGrid::new(new_grid_size);
             self.force_render = true;
             self.needs_render = true;
             self.needs_upload = true;

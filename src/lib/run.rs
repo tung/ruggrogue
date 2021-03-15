@@ -73,6 +73,8 @@ where
     assert!(settings.window_size.h > 0 && settings.window_size.h <= i32::MAX as u32);
     assert!(settings.min_window_size.w > 0 && settings.min_window_size.w <= i32::MAX as u32);
     assert!(settings.min_window_size.h > 0 && settings.min_window_size.h <= i32::MAX as u32);
+    assert!(settings.window_size.w >= settings.min_window_size.w);
+    assert!(settings.window_size.h >= settings.min_window_size.h);
 
     let mut window = video_subsystem
         .window(
@@ -95,7 +97,10 @@ where
 
     let mut font = Font::new(settings.font_info);
     let mut window_size = canvas.output_size().unwrap();
-    let mut grid = CharGrid::new(&font, Size::from(window_size));
+    let mut grid = CharGrid::new(Size {
+        w: window_size.0 / font.glyph_width(),
+        h: window_size.1 / font.glyph_height(),
+    });
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;
@@ -147,8 +152,11 @@ where
             window_size.1 = settings.min_window_size.h;
         }
 
-        // Prepare internal CharGrid buffers, resizing if necessary.
-        grid.prepare(&font, window_size);
+        // Resize the CharGrid if necessary.
+        grid.resize(Size {
+            w: window_size.0 / font.glyph_width(),
+            h: window_size.1 / font.glyph_height(),
+        });
 
         // Perform update(s).
         let start = previous;
