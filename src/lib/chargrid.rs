@@ -423,7 +423,7 @@ pub struct CharGrid<'b, 'r> {
     force_render: bool,
     needs_render: bool,
     needs_upload: bool,
-    buffer: Surface<'b>,
+    buffer: Option<Surface<'b>>,
     texture: Option<Texture<'r>>,
 }
 
@@ -431,7 +431,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     /// Create a new CharGrid with a given width and height.  White is the default foreground color
     /// and black is the default background color.
     ///
-    /// The font is used to initialize the CharGrid buffer.
+    /// The font is used to initialize internal buffers.
     pub fn new<P: Into<Size>>(font: &Font, px_size: P) -> CharGrid<'b, 'r> {
         let px_size: Size = px_size.into();
         let size_cells = Size {
@@ -445,12 +445,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             force_render: true,
             needs_render: true,
             needs_upload: true,
-            buffer: Surface::new(
-                font.glyph_size.w * size_cells.w,
-                font.glyph_size.h * size_cells.h,
-                PixelFormatEnum::ARGB8888,
-            )
-            .unwrap(),
+            buffer: None,
             texture: None,
         }
     }
@@ -461,10 +456,6 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     }
 
     /// Prepare internal CharGrid buffers, adapting to the given pixel dimensions.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the back buffer creation fails.
     pub fn prepare<P: Into<Size>>(&mut self, font: &Font, px_size: P) {
         let px_size: Size = px_size.into();
         let new_size_cells = Size {
@@ -478,12 +469,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             self.force_render = true;
             self.needs_render = true;
             self.needs_upload = true;
-            self.buffer = Surface::new(
-                new_size_cells.w * font.glyph_size.w,
-                new_size_cells.h * font.glyph_size.h,
-                PixelFormatEnum::ARGB8888,
-            )
-            .unwrap();
+            self.buffer = None;
             self.texture = None;
         }
     }
@@ -616,11 +602,37 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.needs_render = true;
     }
 
-    fn render(&mut self, font: &mut Font, force: bool) -> bool {
+    fn render(&mut self, font: &mut Font, mut force: bool) -> bool {
         let mut buffer_updated = false;
 
         assert!(self.front.size == self.back.size);
 
+        let buffer_px_w = self.front.size.w * font.glyph_size.w;
+        let buffer_px_h = self.front.size.h * font.glyph_size.h;
+
+        // Reset the buffer if it isn't the correct size to render to.
+        if self.buffer.is_some() {
+            let self_buffer_px_w = self.buffer.as_ref().unwrap().width();
+            let self_buffer_px_h = self.buffer.as_ref().unwrap().height();
+
+            if self_buffer_px_w != buffer_px_w || self_buffer_px_h != buffer_px_h {
+                self.buffer = None;
+            }
+        }
+
+        // Ensure the buffer exists.
+        let buffer = match &mut self.buffer {
+            Some(buffer) => buffer,
+            None => {
+                self.buffer = Some(
+                    Surface::new(buffer_px_w, buffer_px_h, PixelFormatEnum::ARGB8888).unwrap(),
+                );
+                force = true;
+                self.buffer.as_mut().unwrap()
+            }
+        };
+
+        // Check the grid for positions to (re)render and (re)render them.
         for index in 0..self.front.chars.len() {
             let fc = self.front.chars[index];
             let ffg = self.front.fg[index];
@@ -659,10 +671,10 @@ impl<'b, 'r> CharGrid<'b, 'r> {
                 let dest_rect = Rect::new(px, py, cell_width, cell_height);
                 let bg_color = Sdl2Color::RGB(fbg.r, fbg.g, fbg.b);
 
-                self.buffer.fill_rect(dest_rect, bg_color).unwrap();
+                buffer.fill_rect(dest_rect, bg_color).unwrap();
 
                 if !f_space {
-                    font.draw_glyph_to(fc, ffg, &mut self.buffer, dest_rect);
+                    font.draw_glyph_to(fc, ffg, buffer, dest_rect);
                 }
 
                 buffer_updated = true;
@@ -681,15 +693,20 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     ///
     /// Panics if:
     ///
-    ///  * texture creation fails for whatever reason
+    ///  * buffer creation fails
+    ///  * texture creation fails
     ///  * the texture fails to be updated
-    ///  * the texture fails to be copied onto the canvas for whatever reason
+    ///  * the texture fails to be copied onto the canvas
     pub fn display(
         &mut self,
         font: &mut Font,
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
+        if self.buffer.is_none() {
+            self.force_render = true;
+        }
+
         if self.needs_render || self.force_render {
             if self.render(font, self.force_render) {
                 self.needs_upload = true;
@@ -698,6 +715,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             self.needs_render = false;
         }
 
+        let buffer = self.buffer.as_ref().unwrap();
         let texture = match &mut self.texture {
             Some(texture) => texture,
             None => {
@@ -705,8 +723,8 @@ impl<'b, 'r> CharGrid<'b, 'r> {
                     texture_creator
                         .create_texture_streaming(
                             PixelFormatEnum::RGB888,
-                            self.buffer.width(),
-                            self.buffer.height(),
+                            buffer.width(),
+                            buffer.height(),
                         )
                         .unwrap(),
                 );
@@ -719,8 +737,8 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             texture
                 .update(
                     None,
-                    self.buffer.without_lock().unwrap(),
-                    self.buffer.pitch() as usize,
+                    buffer.without_lock().unwrap(),
+                    buffer.pitch() as usize,
                 )
                 .unwrap();
             self.needs_upload = false;
@@ -730,7 +748,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             .copy(
                 texture,
                 None,
-                Rect::new(0, 0, self.buffer.width(), self.buffer.height()),
+                Rect::new(0, 0, buffer.width(), buffer.height()),
             )
             .unwrap();
     }
