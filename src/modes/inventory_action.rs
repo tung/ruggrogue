@@ -5,7 +5,7 @@ use crate::{
     gamekey::{self, GameKey},
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
 use super::{
     target::{TargetMode, TargetModeResult},
@@ -77,6 +77,28 @@ impl InventoryActionMode {
             subsection,
             selection: 0,
         }
+    }
+
+    pub fn prepare_grids(
+        &self,
+        _world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        let new_grid_size = Size {
+            w: 4 + self.inner_width as u32,
+            h: 8 + self.actions.len() as u32,
+        };
+
+        if !grids.is_empty() {
+            grids[0].resize(new_grid_size);
+        } else {
+            grids.push(CharGrid::new(new_grid_size));
+            grids[0].view.clear_color = None;
+        }
+
+        grids[0].view_centered(font, (0, 0).into(), window_size);
     }
 
     pub fn update(
@@ -180,30 +202,23 @@ impl InventoryActionMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
-        let width = self.inner_width + 4;
-        let height = self.actions.len() as i32 + 8;
-
-        assert!(width >= 0);
-        assert!(height >= 0);
-
-        let x = (grid.size_cells().w as i32 - width) / 2;
-        let y = (grid.size_cells().h as i32 - height) / 2;
+    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+        let grid = &mut grids[0];
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
 
-        grid.draw_box((x, y), (width as u32, height as u32), fg, bg);
+        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
 
         world.run(|names: View<Name>, renderables: View<Renderable>| {
             let render = renderables.get(self.item_id);
 
             grid.put_color(
-                (x + 2, y + 2),
+                (2, 2),
                 ui::recolor(render.fg, active),
                 ui::recolor(render.bg, active),
                 render.ch,
             );
-            grid.print_color((x + 4, y + 2), fg, None, &names.get(self.item_id).0);
+            grid.print_color((4, 2), fg, None, &names.get(self.item_id).0);
         });
 
         for (i, action) in self.actions.iter().enumerate() {
@@ -216,7 +231,7 @@ impl InventoryActionMode {
                 active,
             );
 
-            grid.print_color((x + 4, y + 4 + i as i32), fg, action_bg, action.name());
+            grid.print_color((4, 4 + i as i32), fg, action_bg, action.name());
         }
 
         let cancel_bg = Some(ui::recolor(
@@ -228,6 +243,6 @@ impl InventoryActionMode {
             active,
         ));
 
-        grid.print_color((x + 4, y + height - 3), fg, cancel_bg, CANCEL);
+        grid.print_color((4, grid.height() as i32 - 3), fg, cancel_bg, CANCEL);
     }
 }

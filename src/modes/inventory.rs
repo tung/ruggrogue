@@ -6,12 +6,19 @@ use crate::{
     player::PlayerId,
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
+use ruggle::{
+    util::{Color, Size},
+    CharGrid, Font, InputBuffer, InputEvent, KeyMods,
+};
 
 use super::{
     inventory_action::{InventoryActionMode, InventoryActionModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
+
+const STATUS_GRID: usize = 0;
+const EQUIP_GRID: usize = 1;
+const INV_GRID: usize = 2;
 
 pub enum InventoryModeResult {
     DoNothing,
@@ -50,6 +57,103 @@ impl InventoryMode {
             subsection: SubSection::Inventory,
             inv_selection: 0,
         }
+    }
+
+    pub fn prepare_grids(
+        &self,
+        world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        // Equip grid on top.
+        let new_equip_size = Size {
+            w: 4 + self.main_width as u32,
+            h: 5,
+        };
+        // Inventory grid occupies the majority center bottom-right.
+        let inv_len = world.run(
+            |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
+                inventories.get(player_id.0).items.len() as u32
+            },
+        );
+        let new_inv_size = Size {
+            w: new_equip_size.w,
+            h: (inv_len + 6)
+                .max(13)
+                .min((window_size.h / font.glyph_height()).saturating_sub(new_equip_size.h))
+                .max(7),
+        };
+        // Status to the side of both the equip and inventory grids.
+        let new_status_size = Size {
+            w: 15,
+            h: new_equip_size.h + new_inv_size.h,
+        };
+
+        if !grids.is_empty() {
+            grids[STATUS_GRID].resize(new_status_size);
+            grids[EQUIP_GRID].resize(new_equip_size);
+            grids[INV_GRID].resize(new_inv_size);
+        } else {
+            grids.push(CharGrid::new(new_status_size));
+            grids.push(CharGrid::new(new_equip_size));
+            grids.push(CharGrid::new(new_inv_size));
+            grids[STATUS_GRID].view.clear_color = None;
+            grids[EQUIP_GRID].view.clear_color = None;
+            grids[INV_GRID].view.clear_color = None;
+        }
+
+        let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
+        let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
+        let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
+
+        // Calculate sidebar grid x and width.
+        let combined_px_width = (new_inv_size.w + new_status_size.w) * font.glyph_width();
+        if combined_px_width <= window_size.w {
+            status_grid.view.pos.x = (window_size.w - combined_px_width) as i32 / 2;
+            status_grid.view.size.w = new_status_size.w * font.glyph_width();
+            status_grid.view.visible = true;
+        } else if new_inv_size.w * font.glyph_width() < window_size.w {
+            status_grid.view.pos.x = 0;
+            status_grid.view.size.w = window_size.w - new_inv_size.w * font.glyph_width();
+            status_grid.view.visible = true;
+        } else {
+            status_grid.view.pos.x = 0;
+            status_grid.view.size.w = 0;
+            status_grid.view.visible = false;
+        }
+
+        // Calculate equip grid x and width.
+        equip_grid.view.pos.x = status_grid.view.pos.x + status_grid.view.size.w as i32;
+        equip_grid.view.size.w = new_equip_size.w * font.glyph_width();
+
+        // Calculate inventory grid x and width.
+        inv_grid.view.pos.x = equip_grid.view.pos.x;
+        inv_grid.view.size.w = new_inv_size.w * font.glyph_width();
+
+        // Calculate equip grid y and height.
+        let combined_px_height = (new_inv_size.h + new_equip_size.h) * font.glyph_height();
+        if combined_px_height <= window_size.h {
+            equip_grid.view.pos.y = (window_size.h - combined_px_height) as i32 / 2;
+            equip_grid.view.size.h = new_equip_size.h * font.glyph_height();
+            equip_grid.view.visible = true;
+        } else if new_inv_size.h * font.glyph_height() < window_size.h {
+            equip_grid.view.pos.y = 0;
+            equip_grid.view.size.h = window_size.h - new_inv_size.h * font.glyph_height();
+            equip_grid.view.visible = true;
+        } else {
+            equip_grid.view.pos.y = 0;
+            equip_grid.view.size.h = 0;
+            equip_grid.view.visible = false;
+        }
+
+        // Calculate inventory grid y and height.
+        inv_grid.view.pos.y = equip_grid.view.pos.y + equip_grid.view.size.h as i32;
+        inv_grid.view.size.h = new_inv_size.h * font.glyph_height();
+
+        // Calculate status grid y and height.
+        status_grid.view.pos.y = equip_grid.view.pos.y;
+        status_grid.view.size.h = equip_grid.view.size.h + inv_grid.view.size.h;
     }
 
     pub fn update(
@@ -154,22 +258,42 @@ impl InventoryMode {
         }
     }
 
+    fn draw_status(&self, _world: &World, grid: &mut CharGrid, fg: Color, bg: Color) {
+        // Draw box with right edge off-grid.
+        grid.draw_box((0, 0), (grid.width() + 1, grid.height()), fg, bg);
+    }
+
+    fn draw_equip(
+        &self,
+        _world: &World,
+        grid: &mut CharGrid,
+        _active: bool,
+        fg: Color,
+        bg: Color,
+        _selected_bg: Color,
+    ) {
+        // Draw box with bottom edge off-grid.
+        grid.draw_box((0, 0), (grid.width(), grid.height() + 1), fg, bg);
+        grid.put_color((0, 0), fg, bg, '┬');
+    }
+
     fn draw_inventory(
         &self,
         world: &World,
         grid: &mut CharGrid,
         active: bool,
-        [x, y]: [i32; 2],
-        [width, height]: [i32; 2],
+        fg: Color,
+        bg: Color,
+        selected_bg: Color,
     ) {
-        let fg = ui::recolor(ui::color::WHITE, active);
-        let bg = ui::recolor(ui::color::BLACK, active);
-        let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
-
-        grid.print_color((x + 2, y), fg, bg, "< Inventory >");
+        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
+        grid.put_color((0, 0), fg, bg, '├');
+        grid.put_color((grid.width() as i32 - 1, 0), fg, bg, '┤');
+        grid.put_color((0, grid.height() as i32 - 1), fg, bg, '┴');
+        grid.print_color((2, 0), fg, bg, "< Inventory >");
 
         grid.print_color(
-            (x + 2, y + 2),
+            (2, 2),
             fg,
             if matches!(self.subsection, SubSection::SortAll) {
                 selected_bg
@@ -185,8 +309,8 @@ impl InventoryMode {
              names: View<Name>,
              renderables: View<Renderable>| {
                 let player_inv = inventories.get(player_id.0);
-                let item_x = x + 2;
-                let item_y = y + 4;
+                let item_x = 2;
+                let item_y = 4;
 
                 if player_inv.items.is_empty() {
                     grid.print_color(
@@ -200,7 +324,7 @@ impl InventoryMode {
                         "-- nothing --",
                     );
                 } else {
-                    let item_height = std::cmp::max(1, height - 4 - 2);
+                    let item_height = (grid.height() as i32 - 6).max(1);
                     let item_offset = std::cmp::max(
                         0,
                         std::cmp::min(
@@ -212,7 +336,7 @@ impl InventoryMode {
                     if player_inv.items.len() as i32 > item_height {
                         grid.draw_bar(
                             true,
-                            (x + width - 1, item_y),
+                            (grid.width() as i32 - 1, item_y),
                             item_height,
                             item_offset,
                             item_height,
@@ -255,61 +379,20 @@ impl InventoryMode {
         );
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
-        const SIDE_WIDTH: i32 = 15;
-        const TOP_HEIGHT: i32 = 2;
-
-        let inv_len = world.run(
-            |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
-                inventories.get(player_id.0).items.len() as i32
-            },
-        );
-        let inv_height = std::cmp::min(
-            grid.size_cells().h as i32 - (2 + TOP_HEIGHT + 3 + 1 + 1 + 2),
-            std::cmp::max(13, inv_len),
-        );
-        let full_width = 2 + SIDE_WIDTH + 3 + self.main_width + 2;
-        let full_height = 2 + TOP_HEIGHT + 3 + 1 + 1 + inv_height + 2;
-
-        assert!(full_width >= 0);
-        assert!(full_height >= 0);
-
-        let base_x = (grid.size_cells().w as i32 - full_width) / 2;
-        let base_y = (grid.size_cells().h as i32 - full_height) / 2;
+    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+        let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
+        let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
+        let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
-        let equip_x = base_x + SIDE_WIDTH;
-        let inv_x = equip_x;
-        let inv_y = base_y + 2 + TOP_HEIGHT + 1;
+        let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
 
-        // Full box border.
-        grid.draw_box(
-            (base_x, base_y),
-            (full_width as u32, full_height as u32),
-            fg,
-            bg,
-        );
-
-        // Side bar vertical divider.
-        grid.put_color((equip_x, base_y), fg, bg, '┬');
-        for y in (base_y + 1)..(base_y + full_height - 1) {
-            grid.put_color((equip_x, y), fg, bg, '│');
+        if status_grid.view.visible {
+            self.draw_status(world, status_grid, fg, bg);
         }
-        grid.put_color((equip_x, base_y + full_height - 1), fg, bg, '┴');
-
-        // Equipment/inventory horizontal divider.
-        grid.put_color((inv_x, inv_y), fg, bg, '├');
-        for x in (inv_x + 1)..(base_x + full_width - 1) {
-            grid.put_color((x, inv_y), fg, bg, '─');
+        if equip_grid.view.visible {
+            self.draw_equip(world, equip_grid, active, fg, bg, selected_bg);
         }
-        grid.put_color((base_x + full_width - 1, inv_y), fg, bg, '┤');
-
-        self.draw_inventory(
-            world,
-            grid,
-            active,
-            [inv_x, inv_y],
-            [full_width - SIDE_WIDTH, full_height - (2 + TOP_HEIGHT + 1)],
-        );
+        self.draw_inventory(world, inv_grid, active, fg, bg, selected_bg);
     }
 }

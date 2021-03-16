@@ -55,8 +55,7 @@ fn main() {
         },
     };
 
-    ruggle::run(settings, |inputs, grid| {
-        grid.clear();
-        mode_stack.update(&world, inputs, grid)
+    ruggle::run(settings, |inputs, layers, font, window_size| {
+        mode_stack.update(&world, inputs, layers, font, window_size)
     });
 }

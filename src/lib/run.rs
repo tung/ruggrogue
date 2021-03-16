@@ -1,11 +1,12 @@
 use sdl2::{
     event::{Event, WindowEvent},
     pixels::Color as Sdl2Color,
+    rect::Rect,
 };
 use std::time::{Duration, Instant};
 
 use crate::{
-    chargrid::{CharGrid, Font, FontInfo},
+    chargrid::{CharGridLayer, Font, FontInfo},
     input_buffer::InputBuffer,
     util::Size,
 };
@@ -36,7 +37,7 @@ pub struct RunSettings {
 
 fn handle_event(
     event: &Event,
-    grid: &mut CharGrid,
+    layers: &mut [CharGridLayer],
     window_size: &mut (u32, u32),
     new_mouse_shown: &mut Option<bool>,
 ) {
@@ -52,18 +53,30 @@ fn handle_event(
         | Event::MouseButtonDown { .. }
         | Event::MouseButtonUp { .. }
         | Event::MouseWheel { .. } => *new_mouse_shown = Some(true),
-        Event::RenderTargetsReset { .. } => grid.flag_texture_reset(),
-        Event::RenderDeviceReset { .. } => grid.flag_texture_recreate(),
+        Event::RenderTargetsReset { .. } => {
+            for layer in layers.iter_mut() {
+                for grid in &mut layer.grids {
+                    grid.flag_texture_reset();
+                }
+            }
+        }
+        Event::RenderDeviceReset { .. } => {
+            for layer in layers.iter_mut() {
+                for grid in &mut layer.grids {
+                    grid.flag_texture_recreate();
+                }
+            }
+        }
         _ => {}
     }
 }
 
-/// Create a [CharGrid] window and run a main event loop that calls `update` repeatedly.
+/// Create a window and run a main event loop that calls `update` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
 pub fn run<U>(settings: RunSettings, mut update: U)
 where
-    U: FnMut(&mut InputBuffer, &mut CharGrid) -> RunControl,
+    U: FnMut(&mut InputBuffer, &mut Vec<CharGridLayer>, &Font, Size) -> RunControl,
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -97,10 +110,8 @@ where
 
     let mut font = Font::new(settings.font_info);
     let mut window_size = canvas.output_size().unwrap();
-    let mut grid = CharGrid::new(Size {
-        w: window_size.0 / font.glyph_width(),
-        h: window_size.1 / font.glyph_height(),
-    });
+    let mut window_rect = Rect::new(0, 0, window_size.0, window_size.1);
+    let mut layers: Vec<CharGridLayer> = Vec::new();
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;
@@ -126,13 +137,23 @@ where
         // Wait for an event if waiting is requested.
         if !active_update && !inputs.more_inputs() {
             let event = event_pump.wait_event();
-            handle_event(&event, &mut grid, &mut window_size, &mut new_mouse_shown);
+            handle_event(
+                &event,
+                &mut layers[..],
+                &mut window_size,
+                &mut new_mouse_shown,
+            );
             inputs.handle_event(&event);
         }
 
         // Poll for additional events.
         for event in event_pump.poll_iter() {
-            handle_event(&event, &mut grid, &mut window_size, &mut new_mouse_shown);
+            handle_event(
+                &event,
+                &mut layers[..],
+                &mut window_size,
+                &mut new_mouse_shown,
+            );
             inputs.handle_event(&event);
         }
 
@@ -152,13 +173,6 @@ where
             window_size.1 = settings.min_window_size.h;
         }
 
-        // Resize the CharGrid if necessary.
-        grid.resize(Size {
-            w: window_size.0 / font.glyph_width(),
-            h: window_size.1 / font.glyph_height(),
-        });
-        grid.view.size = window_size.into();
-
         // Perform update(s).
         let start = previous;
         if active_update {
@@ -173,7 +187,7 @@ where
                     update_count += 1;
                 }
 
-                match update(&mut inputs, &mut grid) {
+                match update(&mut inputs, &mut layers, &font, window_size.into()) {
                     RunControl::Update => lag -= frame_time,
                     RunControl::WaitForEvent => {
                         active_update = false;
@@ -194,7 +208,7 @@ where
             }
 
             // Update once in response to events.
-            match update(&mut inputs, &mut grid) {
+            match update(&mut inputs, &mut layers, &font, window_size.into()) {
                 RunControl::WaitForEvent => {}
                 RunControl::Update => {
                     active_update = true;
@@ -209,10 +223,21 @@ where
             break;
         }
 
-        // Display the grid on the screen.
+        window_rect.set_width(window_size.0);
+        window_rect.set_height(window_size.1);
+        canvas.set_clip_rect(window_rect);
         canvas.set_draw_color(Sdl2Color::BLACK);
         canvas.clear();
-        grid.display(&mut font, &mut canvas, &texture_creator);
+
+        // Display the grids, starting from the lowest visible layer.
+        let start_layer_draw_from = layers.iter().rposition(|l| !l.draw_behind).unwrap_or(0);
+
+        for layer in &mut layers[start_layer_draw_from..] {
+            for grid in &mut layer.grids {
+                grid.display(&mut font, &mut canvas, &texture_creator);
+            }
+        }
+
         canvas.present();
 
         // Discard any current input to make way for the next one.

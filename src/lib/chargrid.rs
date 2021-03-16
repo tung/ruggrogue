@@ -441,8 +441,8 @@ pub struct CharGridView {
 }
 
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
-/// color.  To use a CharGrid, create a new one, plot characters and colors onto it, and draw it to
-/// the screen.
+/// color.  To use a CharGrid, create a new one, draw characters and colors onto it, and display it
+/// on the screen.
 pub struct CharGrid<'b, 'r> {
     front: RawCharGrid,
     back: RawCharGrid,
@@ -481,16 +481,21 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
     }
 
-    /// The grid width and height of the full CharGrid in cells.
-    pub fn size_cells(&self) -> Size {
-        self.front.size
+    /// The width of the CharGrid in cells.
+    pub fn width(&self) -> u32 {
+        self.front.size.w
+    }
+
+    /// The height of the CharGrid in cells.
+    pub fn height(&self) -> u32 {
+        self.front.size.h
     }
 
     /// Resize the CharGrid to the given grid dimensions, skipping if the dimensions are identical.
     ///
     /// If a resize occurs, internal flags will be set to remake and redraw internal buffers.
     pub fn resize(&mut self, new_grid_size: Size) {
-        if self.size_cells() != new_grid_size {
+        if self.front.size.w != new_grid_size.w || self.front.size.h != new_grid_size.h {
             self.front = RawCharGrid::new(new_grid_size);
             self.back = RawCharGrid::new(new_grid_size);
             self.force_render = true;
@@ -509,6 +514,32 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     /// Make the CharGrid recreate its texture in the next call to [CharGrid::display].
     pub fn flag_texture_recreate(&mut self) {
         self.texture = None;
+    }
+
+    /// Prepare the CharGrid to be displayed centered within a given rectangle, possibly clipped.
+    pub fn view_centered(&mut self, font: &Font, rect_pos: Position, rect_size: Size) {
+        let px_width = self.front.size.w * font.glyph_width();
+        let px_height = self.front.size.h * font.glyph_height();
+
+        if px_width <= rect_size.w {
+            self.view.size.w = px_width;
+            self.view.pos.x = rect_pos.x + (rect_size.w - px_width) as i32 / 2;
+            self.view.dx = 0;
+        } else {
+            self.view.size.w = rect_size.w;
+            self.view.pos.x = rect_pos.x;
+            self.view.dx = -((px_width - rect_size.w) as i32 / 2);
+        }
+
+        if px_height <= rect_size.h {
+            self.view.size.h = px_height;
+            self.view.pos.y = rect_pos.y + (rect_size.h - px_height) as i32 / 2;
+            self.view.dy = 0;
+        } else {
+            self.view.size.h = rect_size.h;
+            self.view.pos.y = rect_pos.y;
+            self.view.dy = -((px_height - rect_size.h) as i32 / 2);
+        }
     }
 
     /// Clear the entire CharGrid.
@@ -801,6 +832,13 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         // Display the texture on the screen.
         canvas.set_clip_rect(clip_rect);
         canvas.copy(texture, None, dest_rect).unwrap();
-        canvas.set_clip_rect(None);
     }
+}
+
+/// A list of CharGrids that should be treated as a single layer.
+pub struct CharGridLayer<'b, 'r> {
+    /// If true, draw layers behind this one in a list of layers.
+    pub draw_behind: bool,
+    /// CharGrids to be drawn to, rendered and displayed as part of the layer.
+    pub grids: Vec<CharGrid<'b, 'r>>,
 }

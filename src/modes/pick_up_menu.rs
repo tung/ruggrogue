@@ -8,7 +8,7 @@ use crate::{
     player::PlayerId,
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -68,6 +68,30 @@ impl PickUpMenuMode {
             subsection: SubSection::Items,
             selection: 0,
         }
+    }
+
+    pub fn prepare_grids(
+        &self,
+        _world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        let new_grid_size = Size {
+            w: self.width as u32 + 4,
+            h: (8 + self.items.len() as u32)
+                .min(window_size.h / font.glyph_height())
+                .max(9),
+        };
+
+        if !grids.is_empty() {
+            grids[0].resize(new_grid_size);
+        } else {
+            grids.push(CharGrid::new(new_grid_size));
+            grids[0].view.clear_color = None;
+        }
+
+        grids[0].view_centered(font, (0, 0).into(), window_size);
     }
 
     pub fn update(
@@ -140,21 +164,17 @@ impl PickUpMenuMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
-        let width = self.width + 4;
-        let height = std::cmp::max(
-            9,
-            std::cmp::min(grid.size_cells().h as i32, self.items.len() as i32 + 8),
-        );
-        let x = (grid.size_cells().w as i32 - width) / 2;
-        let y = (grid.size_cells().h as i32 - height) / 2;
+    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+        let grid = &mut grids[0];
+        let width = grid.width();
+        let height = grid.height();
         let fg = ui::recolor(ui::color::WHITE, active);
         let bg = ui::recolor(ui::color::BLACK, active);
 
-        grid.draw_box((x, y), (width as u32, height as u32), fg, bg);
-        grid.print_color((x + 2, y + 2), fg, None, PROMPT);
+        grid.draw_box((0, 0), (width, height), fg, bg);
+        grid.print_color((2, 2), fg, None, PROMPT);
 
-        let list_height = height - 8;
+        let list_height = height as i32 - 8;
         let list_offset = std::cmp::max(
             0,
             std::cmp::min(
@@ -166,7 +186,7 @@ impl PickUpMenuMode {
         if self.items.len() as i32 > list_height {
             grid.draw_bar(
                 true,
-                (x + width - 1, y + 4),
+                (width as i32 - 1, 4),
                 list_height,
                 list_offset,
                 list_height,
@@ -195,13 +215,13 @@ impl PickUpMenuMode {
                 );
 
                 grid.put_color(
-                    (x + 2, y + 4 + i as i32 - list_offset),
+                    (2, 4 + i as i32 - list_offset),
                     ui::recolor(render.fg, active),
                     ui::recolor(render.bg, active),
                     render.ch,
                 );
                 grid.print_color(
-                    (x + 4, y + 4 + i as i32 - list_offset),
+                    (4, 4 + i as i32 - list_offset),
                     fg,
                     bg,
                     &names.get(*item_id).0,
@@ -218,6 +238,6 @@ impl PickUpMenuMode {
             active,
         );
 
-        grid.print_color((x + 4, y + height - 3), fg, cancel_bg, CANCEL);
+        grid.print_color((4, height as i32 - 3), fg, cancel_bg, CANCEL);
     }
 }

@@ -8,7 +8,7 @@ use crate::{
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
     render, spawn, ui, vision,
 };
-use ruggle::{CharGrid, InputBuffer};
+use ruggle::{util::Size, CharGrid, Font, InputBuffer};
 
 use super::{
     inventory::{InventoryMode, InventoryModeResult},
@@ -49,6 +49,16 @@ impl DungeonMode {
         Self {
             result_source: None,
         }
+    }
+
+    pub fn prepare_grids(
+        &self,
+        _world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        ui::prepare_main_grids(grids, font, window_size);
     }
 
     pub fn update(
@@ -191,9 +201,15 @@ impl DungeonMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
-        render::draw_map(world, grid, active);
-        render::draw_renderables(world, grid, active);
-        ui::draw_ui(world, grid, active, None);
+    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+        let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
+        let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
+
+        map_grid.clear();
+        render::draw_map(world, map_grid, active);
+        render::draw_renderables(world, map_grid, active);
+
+        ui_grid.clear();
+        ui::draw_ui(world, ui_grid, active, None);
     }
 }

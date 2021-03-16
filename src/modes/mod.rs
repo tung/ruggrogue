@@ -32,7 +32,7 @@ pub mod yes_no_dialog;
 
 use shipyard::World;
 
-use ruggle::{CharGrid, InputBuffer, RunControl};
+use ruggle::{util::Size, CharGrid, CharGridLayer, Font, InputBuffer, RunControl};
 
 use dungeon::{DungeonMode, DungeonModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
@@ -167,9 +167,26 @@ pub enum ModeUpdate {
     WaitForEvent,
 }
 
-/// Mode method dispatcher.  Add `update` and `draw` calls for new modes here.
+/// Mode method dispatcher.  Add `prepare_grids`, `update` and `draw` calls for new modes here.
 impl Mode {
-    pub fn update(
+    fn prepare_grids(
+        &self,
+        world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        match self {
+            Mode::DungeonMode(x) => x.prepare_grids(world, grids, font, window_size),
+            Mode::InventoryMode(x) => x.prepare_grids(world, grids, font, window_size),
+            Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, font, window_size),
+            Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, font, window_size),
+            Mode::TargetMode(x) => x.prepare_grids(world, grids, font, window_size),
+            Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, font, window_size),
+        }
+    }
+
+    fn update(
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
@@ -185,14 +202,14 @@ impl Mode {
         }
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
+    fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
         match self {
-            Mode::DungeonMode(x) => x.draw(world, grid, active),
-            Mode::InventoryMode(x) => x.draw(world, grid, active),
-            Mode::InventoryActionMode(x) => x.draw(world, grid, active),
-            Mode::PickUpMenuMode(x) => x.draw(world, grid, active),
-            Mode::TargetMode(x) => x.draw(world, grid, active),
-            Mode::YesNoDialogMode(x) => x.draw(world, grid, active),
+            Mode::DungeonMode(x) => x.draw(world, grids, active),
+            Mode::InventoryMode(x) => x.draw(world, grids, active),
+            Mode::InventoryActionMode(x) => x.draw(world, grids, active),
+            Mode::PickUpMenuMode(x) => x.draw(world, grids, active),
+            Mode::TargetMode(x) => x.draw(world, grids, active),
+            Mode::YesNoDialogMode(x) => x.draw(world, grids, active),
         }
     }
 
@@ -236,9 +253,33 @@ impl ModeStack {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
-        grid: &mut CharGrid,
+        layers: &mut Vec<CharGridLayer>,
+        font: &Font,
+        window_size: Size,
     ) -> RunControl {
+        if !self.stack.is_empty() && layers.is_empty() {
+            // Initialize a layer for each mode in the stack.
+            // There will always be a layer for each mode, even if it doesn't use it.
+            for mode in &self.stack {
+                layers.push(CharGridLayer {
+                    draw_behind: mode.draw_behind(),
+                    grids: Vec::new(),
+                });
+            }
+        }
+
         while !self.stack.is_empty() {
+            // Prepare grids for modes, starting from the lowest visible mode.
+            let prepare_grids_from = self
+                .stack
+                .iter()
+                .rposition(|mode| !mode.draw_behind())
+                .unwrap_or(0);
+
+            for (i, mode) in self.stack.iter_mut().enumerate().skip(prepare_grids_from) {
+                mode.prepare_grids(world, &mut layers[i].grids, &font, window_size);
+            }
+
             // Update the top mode.
             let (mode_control, mode_update) =
                 self.stack
@@ -253,38 +294,48 @@ impl ModeStack {
                 ModeControl::Stay => {}
                 ModeControl::Switch(mode) => {
                     self.stack.pop();
+                    layers.pop();
+                    layers.push(CharGridLayer {
+                        draw_behind: mode.draw_behind(),
+                        grids: Vec::new(),
+                    });
                     self.stack.push(mode);
                 }
                 ModeControl::Push(mode) => {
+                    layers.push(CharGridLayer {
+                        draw_behind: mode.draw_behind(),
+                        grids: Vec::new(),
+                    });
                     self.stack.push(mode);
                 }
                 ModeControl::Pop(mode_result) => {
                     self.pop_result = Some(mode_result);
                     self.stack.pop();
+                    layers.pop();
                 }
                 ModeControl::Terminate(mode_result) => {
                     self.pop_result = Some(mode_result);
                     self.stack.clear();
+                    layers.clear();
                 }
             }
 
             // Draw modes in the stack from the bottom-up.
-            if !matches!(mode_update, ModeUpdate::Immediate) {
+            if !self.stack.is_empty() && !matches!(mode_update, ModeUpdate::Immediate) {
                 let draw_from = self
                     .stack
                     .iter()
                     .rposition(|mode| !mode.draw_behind())
                     .unwrap_or(0);
+                let top = self.stack.len().saturating_sub(1);
 
                 // Draw non-top modes with `active` set to `false`.
-                for i in draw_from..self.stack.len().saturating_sub(1) {
-                    self.stack[i].draw(world, grid, false);
+                for (i, mode) in self.stack.iter().enumerate().skip(draw_from) {
+                    mode.draw(world, &mut layers[i].grids[..], false);
                 }
 
                 // Draw top mode with `active` set to `true`.
-                if let Some(top_mode) = self.stack.last() {
-                    top_mode.draw(world, grid, true);
-                }
+                self.stack[top].draw(world, &mut layers[top].grids[..], true);
             }
 
             match mode_update {

@@ -4,9 +4,12 @@ use crate::{
     gamekey::{self, GameKey},
     ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
+
+const YES_STR: &str = "[ Yes ]";
+const NO_STR: &str = "[ No ]";
 
 pub enum YesNoDialogModeResult {
     Yes,
@@ -35,6 +38,28 @@ impl YesNoDialogMode {
             prompt,
             yes_selected: yes_default,
         }
+    }
+
+    pub fn prepare_grids(
+        &self,
+        _world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        let new_grid_size = Size {
+            w: 4 + self.prompt.len().max(YES_STR.len() + NO_STR.len() + 2) as u32,
+            h: 7,
+        };
+
+        if !grids.is_empty() {
+            grids[0].resize(new_grid_size);
+        } else {
+            grids.push(CharGrid::new(new_grid_size));
+            grids[0].view.clear_color = None;
+        }
+
+        grids[0].view_centered(font, (0, 0).into(), window_size);
     }
 
     pub fn update(
@@ -68,32 +93,27 @@ impl YesNoDialogMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, _world: &World, grid: &mut CharGrid, active: bool) {
-        let yes_str = "[ Yes ]";
-        let no_str = "[ No ]";
+    pub fn draw(&self, _world: &World, grids: &mut [CharGrid], active: bool) {
+        let grid = &mut grids[0];
         let fg = ui::recolor(ui::color::WHITE, active);
         let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
-        let width = std::cmp::max(self.prompt.len(), yes_str.len() + no_str.len() + 2) as i32 + 4;
-        let height = 7;
-        let x = (grid.size_cells().w as i32 - width) / 2;
-        let y = (grid.size_cells().h as i32 - height) / 2;
-        let yes_dx = width - yes_str.len() as i32 - no_str.len() as i32 - 4;
-        let no_dx = width - no_str.len() as i32 - 2;
+        let yes_dx = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
+        let no_dx = grid.width() as i32 - NO_STR.len() as i32 - 2;
 
         grid.draw_box(
-            (x, y),
-            (width as u32, height as u32),
+            (0, 0),
+            (grid.width(), grid.height()),
             ui::recolor(ui::color::WHITE, active),
             ui::recolor(ui::color::BLACK, active),
         );
-        grid.print((x + 2, y + 2), &self.prompt);
+        grid.print((2, 2), &self.prompt);
 
         if self.yes_selected {
-            grid.print_color((x + yes_dx, y + 4), fg, selected_bg, yes_str);
-            grid.print_color((x + no_dx, y + 4), fg, None, no_str);
+            grid.print_color((yes_dx, 4), fg, selected_bg, YES_STR);
+            grid.print_color((no_dx, 4), fg, None, NO_STR);
         } else {
-            grid.print_color((x + yes_dx, y + 4), fg, None, yes_str);
-            grid.print_color((x + no_dx, y + 4), fg, selected_bg, no_str);
+            grid.print_color((yes_dx, 4), fg, None, YES_STR);
+            grid.print_color((no_dx, 4), fg, selected_bg, NO_STR);
         }
     }
 }

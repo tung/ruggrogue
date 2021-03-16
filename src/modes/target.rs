@@ -8,7 +8,7 @@ use crate::{
     player::PlayerId,
     render, ui,
 };
-use ruggle::{CharGrid, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -76,6 +76,16 @@ impl TargetMode {
             cursor,
             warn_self,
         }
+    }
+
+    pub fn prepare_grids(
+        &self,
+        _world: &World,
+        grids: &mut Vec<CharGrid>,
+        font: &Font,
+        window_size: Size,
+    ) {
+        ui::prepare_main_grids(grids, font, window_size);
     }
 
     pub fn update(
@@ -194,12 +204,16 @@ impl TargetMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, world: &World, grid: &mut CharGrid, active: bool) {
-        render::draw_map(world, grid, active);
-        render::draw_renderables(world, grid, active);
+    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+        let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
+        let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
-        let cx = grid.size_cells().w as i32 / 2;
-        let cy = (grid.size_cells().h as i32 - ui::HUD_LINES) / 2;
+        map_grid.clear();
+        render::draw_map(world, map_grid, active);
+        render::draw_renderables(world, map_grid, active);
+
+        let cx = map_grid.width() as i32 / 2;
+        let cy = map_grid.height() as i32 / 2;
         let (px, py) = world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
             coords.get(player_id.0).0.into()
         });
@@ -211,7 +225,7 @@ impl TargetMode {
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
-                    grid.set_bg((x - px + cx, y - py + cy), target_bg);
+                    map_grid.set_bg((x - px + cx, y - py + cy), target_bg);
                 }
             }
         }
@@ -220,13 +234,13 @@ impl TargetMode {
         for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
             for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
                 if dist2((x, y), self.cursor) <= radius2 {
-                    grid.set_bg((x - px + cx, y - py + cy), aoe_bg);
+                    map_grid.set_bg((x - px + cx, y - py + cy), aoe_bg);
                 }
             }
         }
 
         // Highlight cursor position.
-        grid.set_bg(
+        map_grid.set_bg(
             (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
             ui::recolor(ui::color::MAGENTA, active),
         );
@@ -269,9 +283,10 @@ impl TargetMode {
             "Out of range".to_string()
         };
 
+        ui_grid.clear();
         ui::draw_ui(
             world,
-            grid,
+            ui_grid,
             active,
             Some(&format!(
                 "Pick target for {}: {}",
