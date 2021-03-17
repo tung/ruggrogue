@@ -4,7 +4,6 @@ use crate::{
     components::{Coord, FieldOfView, RenderOnFloor, RenderOnMap, Renderable},
     map::Map,
     player::PlayerId,
-    ui,
 };
 use ruggle::{
     util::{Color, Position},
@@ -12,7 +11,7 @@ use ruggle::{
 };
 
 #[allow(clippy::many_single_char_names)]
-pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
+pub fn draw_map(world: &World, grid: &mut CharGrid) {
     let (map, player_id, coords, fovs) = world.borrow::<(
         UniqueView<Map>,
         UniqueView<PlayerId>,
@@ -30,11 +29,11 @@ pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
     for (tx, ty, tile) in map.iter_bounds(x - cx, y - cy, x - cx + w - 1, y - cy + h - 1) {
         if let Some((ch, color)) = tile {
             let color = if fov.get((tx, ty)) {
-                ui::recolor(color, active)
+                color
             } else {
                 let v =
                     ((color.r as i32 * 30 + color.g as i32 * 59 + color.b as i32 * 11) / 200) as u8;
-                ui::recolor(Color { r: v, g: v, b: v }, active)
+                Color { r: v, g: v, b: v }
             };
 
             grid.put_color_raw((tx - x + cx, ty - y + cy), color, None, ch);
@@ -42,7 +41,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid, active: bool) {
     }
 }
 
-pub fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
+pub fn draw_renderables(world: &World, grid: &mut CharGrid) {
     let (player_id, coords, fovs, render_on_floors, render_on_maps, renderables) = world.borrow::<(
         UniqueView<PlayerId>,
         View<Coord>,
@@ -62,12 +61,7 @@ pub fn draw_renderables(world: &World, grid: &mut CharGrid, active: bool) {
         let gx = coord.0.x - x + cx;
         let gy = coord.0.y - y + cy;
         if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(coord.0.into()) {
-            grid.put_color(
-                (gx, gy),
-                ui::recolor(render.fg, active),
-                ui::recolor(render.bg, active),
-                render.ch,
-            );
+            grid.put_color((gx, gy), render.fg, render.bg, render.ch);
         }
     };
 

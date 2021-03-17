@@ -95,16 +95,22 @@ impl YesNoDialogMode {
 
     pub fn draw(&self, _world: &World, grids: &mut [CharGrid], active: bool) {
         let grid = &mut grids[0];
-        let fg = ui::recolor(ui::color::WHITE, active);
-        let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
+        let fg = ui::color::WHITE;
+        let selected_bg = ui::color::SELECTED_BG;
         let yes_dx = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
         let no_dx = grid.width() as i32 - NO_STR.len() as i32 - 2;
+
+        grid.view.color_mod = if active {
+            ui::color::WHITE
+        } else {
+            ui::color::GRAY
+        };
 
         grid.draw_box(
             (0, 0),
             (grid.width(), grid.height()),
-            ui::recolor(ui::color::WHITE, active),
-            ui::recolor(ui::color::BLACK, active),
+            ui::color::WHITE,
+            ui::color::BLACK,
         );
         grid.print((2, 2), &self.prompt);
 

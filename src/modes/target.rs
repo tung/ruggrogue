@@ -208,17 +208,25 @@ impl TargetMode {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
+        if active {
+            map_grid.view.color_mod = ui::color::WHITE;
+            ui_grid.view.color_mod = ui::color::WHITE;
+        } else {
+            map_grid.view.color_mod = ui::color::GRAY;
+            ui_grid.view.color_mod = ui::color::GRAY;
+        }
+
         map_grid.clear();
-        render::draw_map(world, map_grid, active);
-        render::draw_renderables(world, map_grid, active);
+        render::draw_map(world, map_grid);
+        render::draw_renderables(world, map_grid);
 
         let cx = map_grid.width() as i32 / 2;
         let cy = map_grid.height() as i32 / 2;
         let (px, py) = world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
             coords.get(player_id.0).0.into()
         });
-        let target_bg = ui::recolor(ui::color::BLUE, active);
-        let aoe_bg = ui::recolor(ui::color::PURPLE, active);
+        let target_bg = ui::color::BLUE;
+        let aoe_bg = ui::color::PURPLE;
         let radius2 = self.radius * (self.radius + 1);
 
         // Highlight targetable spaces.
@@ -242,7 +250,7 @@ impl TargetMode {
         // Highlight cursor position.
         map_grid.set_bg(
             (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
-            ui::recolor(ui::color::MAGENTA, active),
+            ui::color::MAGENTA,
         );
 
         // Describe the location that the cursor is positioned at.
@@ -287,7 +295,6 @@ impl TargetMode {
         ui::draw_ui(
             world,
             ui_grid,
-            active,
             Some(&format!(
                 "Pick target for {}: {}",
                 self.for_what, cursor_desc

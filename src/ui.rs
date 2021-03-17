@@ -15,6 +15,11 @@ pub mod color {
         b: 255,
     };
     pub const BLACK: Color = Color { r: 0, g: 0, b: 0 };
+    pub const GRAY: Color = Color {
+        r: 128,
+        g: 128,
+        b: 128,
+    };
     pub const RED: Color = Color { r: 255, g: 0, b: 0 };
     pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
     pub const YELLOW: Color = Color {
@@ -55,32 +60,15 @@ pub mod color {
     };
 }
 
-pub fn recolor(c: Color, active: bool) -> Color {
-    if active {
-        c
-    } else {
-        // Dim and desaturate.
-        let Color { r, g, b } = c;
-        let (r, g, b) = (r as i32, g as i32, b as i32);
-        let gray = (r * 30 + g * 59 + b * 11) / 100;
-
-        Color {
-            r: ((r + gray) * 3 / 10) as u8,
-            g: ((g + gray) * 3 / 10) as u8,
-            b: ((b + gray) * 3 / 10) as u8,
-        }
-    }
-}
-
 pub const MAP_GRID: usize = 0;
 pub const UI_GRID: usize = 1;
 pub const DEFAULT_MAP_FONT: usize = 1;
 
-fn draw_status_line(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
+fn draw_status_line(world: &World, grid: &mut CharGrid, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
-    grid.print_color((x, y), recolor(color::YELLOW, active), None, &depth);
+    grid.print_color((x, y), color::YELLOW, None, &depth);
     x += depth.len() as i32 + 1;
 
     let (hp, max_hp) = world.run(
@@ -91,7 +79,7 @@ fn draw_status_line(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
         },
     );
     let hp_string = format!(" HP: {} / {} ", hp, max_hp);
-    grid.print_color((x, y), recolor(color::YELLOW, active), None, &hp_string);
+    grid.print_color((x, y), color::YELLOW, None, &hp_string);
     x += hp_string.len() as i32 + 1;
 
     let hp_bar_length = grid.width() as i32 - x - 2;
@@ -102,14 +90,14 @@ fn draw_status_line(world: &World, grid: &mut CharGrid, active: bool, y: i32) {
         0,
         hp,
         max_hp,
-        recolor(color::RED, active),
+        color::RED,
         None,
     );
 }
 
 fn draw_messages(world: &World, grid: &mut CharGrid, active: bool, min_y: i32, max_y: i32) {
     world.run(|messages: UniqueView<Messages>| {
-        let fg = recolor(color::WHITE, active);
+        let fg = if active { color::WHITE } else { color::GRAY };
 
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
             grid.put_color((0, y), fg, None, '>');
@@ -118,22 +106,22 @@ fn draw_messages(world: &World, grid: &mut CharGrid, active: bool, min_y: i32, m
     });
 }
 
-pub fn draw_ui(world: &World, grid: &mut CharGrid, active: bool, prompt: Option<&str>) {
+pub fn draw_ui(world: &World, grid: &mut CharGrid, prompt: Option<&str>) {
     let w = grid.width() as i32;
     let h = grid.height() as i32;
-    let fg = recolor(color::WHITE, active);
+    let fg = color::WHITE;
 
     for x in 0..w {
         grid.put_color((x, 0), fg, None, '─');
     }
 
-    draw_status_line(world, grid, active, 0);
+    draw_status_line(world, grid, 0);
 
     if let Some(prompt) = prompt {
         grid.print_color((2, 1), fg, None, prompt);
         draw_messages(world, grid, false, 2, h - 1);
     } else {
-        draw_messages(world, grid, active, 1, h);
+        draw_messages(world, grid, true, 1, h);
     }
 }
 

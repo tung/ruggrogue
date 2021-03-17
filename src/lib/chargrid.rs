@@ -461,6 +461,8 @@ pub struct CharGridView {
     pub visible: bool,
     /// Color to clear the clipping rectangle area to before drawing the CharGrid; None to skip.
     pub clear_color: Option<Color>,
+    /// Color to multiply with the texture as it's displayed on the screen.
+    pub color_mod: Color,
 }
 
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
@@ -504,6 +506,11 @@ impl<'b, 'r> CharGrid<'b, 'r> {
                 dy: 0,
                 visible: true,
                 clear_color: Some(Color { r: 0, g: 0, b: 0 }),
+                color_mod: Color {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
             },
         }
     }
@@ -874,6 +881,11 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
 
         // Display the texture on the screen.
+        texture.set_color_mod(
+            self.view.color_mod.r,
+            self.view.color_mod.g,
+            self.view.color_mod.b,
+        );
         canvas.set_clip_rect(clip_rect);
         canvas.copy(texture, None, dest_rect).unwrap();
     }

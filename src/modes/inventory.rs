@@ -269,7 +269,6 @@ impl InventoryMode {
         &self,
         _world: &World,
         grid: &mut CharGrid,
-        _active: bool,
         fg: Color,
         bg: Color,
         _selected_bg: Color,
@@ -283,7 +282,6 @@ impl InventoryMode {
         &self,
         world: &World,
         grid: &mut CharGrid,
-        active: bool,
         fg: Color,
         bg: Color,
         selected_bg: Color,
@@ -359,8 +357,8 @@ impl InventoryMode {
 
                         grid.put_color(
                             (item_x, item_y + i as i32 - item_offset),
-                            Some(ui::recolor(render.fg, active)),
-                            Some(ui::recolor(render.bg, active)),
+                            render.fg,
+                            render.bg,
                             render.ch,
                         );
                         grid.print_color(
@@ -385,16 +383,26 @@ impl InventoryMode {
         let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
-        let fg = ui::recolor(ui::color::WHITE, active);
-        let bg = ui::recolor(ui::color::BLACK, active);
-        let selected_bg = ui::recolor(ui::color::SELECTED_BG, active);
+        let fg = ui::color::WHITE;
+        let bg = ui::color::BLACK;
+        let selected_bg = ui::color::SELECTED_BG;
+
+        if active {
+            status_grid.view.color_mod = ui::color::WHITE;
+            equip_grid.view.color_mod = ui::color::WHITE;
+            inv_grid.view.color_mod = ui::color::WHITE;
+        } else {
+            status_grid.view.color_mod = ui::color::GRAY;
+            equip_grid.view.color_mod = ui::color::GRAY;
+            inv_grid.view.color_mod = ui::color::GRAY;
+        }
 
         if status_grid.view.visible {
             self.draw_status(world, status_grid, fg, bg);
         }
         if equip_grid.view.visible {
-            self.draw_equip(world, equip_grid, active, fg, bg, selected_bg);
+            self.draw_equip(world, equip_grid, fg, bg, selected_bg);
         }
-        self.draw_inventory(world, inv_grid, active, fg, bg, selected_bg);
+        self.draw_inventory(world, inv_grid, fg, bg, selected_bg);
     }
 }

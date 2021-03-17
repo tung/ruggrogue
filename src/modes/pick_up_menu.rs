@@ -169,8 +169,14 @@ impl PickUpMenuMode {
         let grid = &mut grids[0];
         let width = grid.width();
         let height = grid.height();
-        let fg = ui::recolor(ui::color::WHITE, active);
-        let bg = ui::recolor(ui::color::BLACK, active);
+        let fg = ui::color::WHITE;
+        let bg = ui::color::BLACK;
+
+        grid.view.color_mod = if active {
+            ui::color::WHITE
+        } else {
+            ui::color::GRAY
+        };
 
         grid.draw_box((0, 0), (width, height), fg, bg);
         grid.print_color((2, 2), fg, None, PROMPT);
@@ -206,19 +212,17 @@ impl PickUpMenuMode {
                 .take(list_height as usize)
             {
                 let render = renderables.get(*item_id);
-                let bg = ui::recolor(
+                let bg =
                     if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {
                         ui::color::SELECTED_BG
                     } else {
                         ui::color::BLACK
-                    },
-                    active,
-                );
+                    };
 
                 grid.put_color(
                     (2, 4 + i as i32 - list_offset),
-                    ui::recolor(render.fg, active),
-                    ui::recolor(render.bg, active),
+                    render.fg,
+                    render.bg,
                     render.ch,
                 );
                 grid.print_color(
@@ -230,14 +234,11 @@ impl PickUpMenuMode {
             }
         });
 
-        let cancel_bg = ui::recolor(
-            if matches!(self.subsection, SubSection::Cancel) {
-                ui::color::SELECTED_BG
-            } else {
-                ui::color::BLACK
-            },
-            active,
-        );
+        let cancel_bg = if matches!(self.subsection, SubSection::Cancel) {
+            ui::color::SELECTED_BG
+        } else {
+            ui::color::BLACK
+        };
 
         grid.print_color((4, height as i32 - 3), fg, cancel_bg, CANCEL);
     }

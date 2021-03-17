@@ -205,11 +205,19 @@ impl DungeonMode {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
+        if active {
+            map_grid.view.color_mod = ui::color::WHITE;
+            ui_grid.view.color_mod = ui::color::WHITE;
+        } else {
+            map_grid.view.color_mod = ui::color::GRAY;
+            ui_grid.view.color_mod = ui::color::GRAY;
+        }
+
         map_grid.clear();
-        render::draw_map(world, map_grid, active);
-        render::draw_renderables(world, map_grid, active);
+        render::draw_map(world, map_grid);
+        render::draw_renderables(world, map_grid);
 
         ui_grid.clear();
-        ui::draw_ui(world, ui_grid, active, None);
+        ui::draw_ui(world, ui_grid, None);
     }
 }
