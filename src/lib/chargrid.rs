@@ -472,6 +472,7 @@ pub struct CharGrid<'b, 'r> {
     force_render: bool,
     needs_render: bool,
     needs_upload: bool,
+    font_index: usize,
     buffer: Option<Surface<'b>>,
     texture: Option<Texture<'r>>,
     pub view: CharGridView,
@@ -484,13 +485,16 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     ///
     /// By default, the CharGrid will be displayed at (0, 0) with a size of (640, 480) cleared to
     /// black.
-    pub fn new(grid_size: Size) -> CharGrid<'b, 'r> {
+    pub fn new(grid_size: Size, fonts: &[Font], font_index: usize) -> CharGrid<'b, 'r> {
+        assert!(font_index < fonts.len());
+
         CharGrid {
             front: RawCharGrid::new(grid_size),
             back: RawCharGrid::new(grid_size),
             force_render: true,
             needs_render: true,
             needs_upload: true,
+            font_index,
             buffer: None,
             texture: None,
             view: CharGridView {
@@ -540,8 +544,24 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.texture = None;
     }
 
+    /// Get the font index for the Font assigned to the CharGrid.
+    pub fn font(&self) -> usize {
+        self.font_index
+    }
+
+    /// Assign a font for the CharGrid to be rendered with.
+    pub fn set_font(&mut self, fonts: &[Font], new_font_index: usize) {
+        assert!(new_font_index < fonts.len());
+
+        if self.font_index != new_font_index {
+            self.font_index = new_font_index;
+            self.force_render = true;
+        }
+    }
+
     /// Prepare the CharGrid to be displayed centered within a given rectangle, possibly clipped.
-    pub fn view_centered(&mut self, font: &Font, rect_pos: Position, rect_size: Size) {
+    pub fn view_centered(&mut self, fonts: &[Font], rect_pos: Position, rect_size: Size) {
+        let font = &fonts[self.font_index];
         let px_width = self.front.size.w * font.glyph_width();
         let px_height = self.front.size.h * font.glyph_height();
 
@@ -781,7 +801,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     ///  * the texture fails to be copied onto the canvas
     pub fn display(
         &mut self,
-        font: &mut Font,
+        fonts: &mut [Font],
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
@@ -796,7 +816,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
 
         // Render the drawn grid contents to the buffer.
         if self.needs_render || self.force_render {
-            if self.render(font, self.force_render) {
+            if self.render(&mut fonts[self.font_index], self.force_render) {
                 self.needs_upload = true;
                 self.force_render = false;
             }

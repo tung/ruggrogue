@@ -31,8 +31,8 @@ pub struct RunSettings {
     pub min_window_size: Size,
     /// Frames per second.
     pub fps: u32,
-    /// Font to draw the CharGrid with.
-    pub font_info: FontInfo,
+    /// Fonts to draw CharGrids with.
+    pub font_infos: Vec<FontInfo>,
 }
 
 fn handle_event(
@@ -76,7 +76,7 @@ fn handle_event(
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
 pub fn run<U>(settings: RunSettings, mut update: U)
 where
-    U: FnMut(&mut InputBuffer, &mut Vec<CharGridLayer>, &Font, Size) -> RunControl,
+    U: FnMut(&mut InputBuffer, &mut Vec<CharGridLayer>, &[Font], Size) -> RunControl,
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -108,7 +108,13 @@ where
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut font = Font::new(settings.font_info);
+    assert!(!settings.font_infos.is_empty());
+
+    let mut fonts = Vec::with_capacity(settings.font_infos.len());
+    for font_info in settings.font_infos {
+        fonts.push(Font::new(font_info));
+    }
+
     let mut window_size = canvas.output_size().unwrap();
     let mut window_rect = Rect::new(0, 0, window_size.0, window_size.1);
     let mut layers: Vec<CharGridLayer> = Vec::new();
@@ -187,7 +193,7 @@ where
                     update_count += 1;
                 }
 
-                match update(&mut inputs, &mut layers, &font, window_size.into()) {
+                match update(&mut inputs, &mut layers, &fonts[..], window_size.into()) {
                     RunControl::Update => lag -= frame_time,
                     RunControl::WaitForEvent => {
                         active_update = false;
@@ -208,7 +214,7 @@ where
             }
 
             // Update once in response to events.
-            match update(&mut inputs, &mut layers, &font, window_size.into()) {
+            match update(&mut inputs, &mut layers, &fonts[..], window_size.into()) {
                 RunControl::WaitForEvent => {}
                 RunControl::Update => {
                     active_update = true;
@@ -234,7 +240,7 @@ where
 
         for layer in &mut layers[start_layer_draw_from..] {
             for grid in &mut layer.grids {
-                grid.display(&mut font, &mut canvas, &texture_creator);
+                grid.display(&mut fonts[..], &mut canvas, &texture_creator);
             }
         }
 

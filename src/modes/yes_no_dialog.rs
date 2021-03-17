@@ -44,7 +44,7 @@ impl YesNoDialogMode {
         &self,
         _world: &World,
         grids: &mut Vec<CharGrid>,
-        font: &Font,
+        fonts: &[Font],
         window_size: Size,
     ) {
         let new_grid_size = Size {
@@ -55,11 +55,11 @@ impl YesNoDialogMode {
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(CharGrid::new(new_grid_size));
+            grids.push(CharGrid::new(new_grid_size, fonts, 0));
             grids[0].view.clear_color = None;
         }
 
-        grids[0].view_centered(font, (0, 0).into(), window_size);
+        grids[0].view_centered(fonts, (0, 0).into(), window_size);
     }
 
     pub fn update(

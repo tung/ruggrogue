@@ -63,9 +63,11 @@ impl InventoryMode {
         &self,
         world: &World,
         grids: &mut Vec<CharGrid>,
-        font: &Font,
+        fonts: &[Font],
         window_size: Size,
     ) {
+        let font = &fonts[grids.get(0).map_or(0, CharGrid::font)];
+
         // Equip grid on top.
         let new_equip_size = Size {
             w: 4 + self.main_width as u32,
@@ -95,9 +97,9 @@ impl InventoryMode {
             grids[EQUIP_GRID].resize(new_equip_size);
             grids[INV_GRID].resize(new_inv_size);
         } else {
-            grids.push(CharGrid::new(new_status_size));
-            grids.push(CharGrid::new(new_equip_size));
-            grids.push(CharGrid::new(new_inv_size));
+            grids.push(CharGrid::new(new_status_size, fonts, 0));
+            grids.push(CharGrid::new(new_equip_size, fonts, 0));
+            grids.push(CharGrid::new(new_inv_size, fonts, 0));
             grids[STATUS_GRID].view.clear_color = None;
             grids[EQUIP_GRID].view.clear_color = None;
             grids[INV_GRID].view.clear_color = None;

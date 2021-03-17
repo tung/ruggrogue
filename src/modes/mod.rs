@@ -173,16 +173,16 @@ impl Mode {
         &self,
         world: &World,
         grids: &mut Vec<CharGrid>,
-        font: &Font,
+        fonts: &[Font],
         window_size: Size,
     ) {
         match self {
-            Mode::DungeonMode(x) => x.prepare_grids(world, grids, font, window_size),
-            Mode::InventoryMode(x) => x.prepare_grids(world, grids, font, window_size),
-            Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, font, window_size),
-            Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, font, window_size),
-            Mode::TargetMode(x) => x.prepare_grids(world, grids, font, window_size),
-            Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, font, window_size),
+            Mode::DungeonMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::InventoryMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::TargetMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, fonts, window_size),
         }
     }
 
@@ -254,7 +254,7 @@ impl ModeStack {
         world: &World,
         inputs: &mut InputBuffer,
         layers: &mut Vec<CharGridLayer>,
-        font: &Font,
+        fonts: &[Font],
         window_size: Size,
     ) -> RunControl {
         if !self.stack.is_empty() && layers.is_empty() {
@@ -277,7 +277,7 @@ impl ModeStack {
                 .unwrap_or(0);
 
             for (i, mode) in self.stack.iter_mut().enumerate().skip(prepare_grids_from) {
-                mode.prepare_grids(world, &mut layers[i].grids, &font, window_size);
+                mode.prepare_grids(world, &mut layers[i].grids, &fonts, window_size);
             }
 
             // Update the top mode.

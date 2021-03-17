@@ -55,10 +55,10 @@ impl DungeonMode {
         &self,
         _world: &World,
         grids: &mut Vec<CharGrid>,
-        font: &Font,
+        fonts: &[Font],
         window_size: Size,
     ) {
-        ui::prepare_main_grids(grids, font, window_size);
+        ui::prepare_main_grids(grids, fonts, window_size);
     }
 
     pub fn update(

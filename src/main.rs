@@ -48,14 +48,21 @@ fn main() {
         window_size: (640, 384).into(),
         min_window_size: (640, 192).into(),
         fps: 60,
-        font_info: FontInfo {
-            image_path: PathBuf::from("assets/terminal-8x8.png"),
-            glyph_size: (8, 8).into(),
-            font_map: FontInfo::map_code_page_437(),
-        },
+        font_infos: vec![
+            FontInfo {
+                image_path: PathBuf::from("assets/gohufont-8x14.png"),
+                glyph_size: (8, 14).into(),
+                font_map: FontInfo::map_code_page_437(),
+            },
+            FontInfo {
+                image_path: PathBuf::from("assets/terminal-8x8.png"),
+                glyph_size: (8, 8).into(),
+                font_map: FontInfo::map_code_page_437(),
+            },
+        ],
     };
 
-    ruggle::run(settings, |inputs, layers, font, window_size| {
-        mode_stack.update(&world, inputs, layers, font, window_size)
+    ruggle::run(settings, |inputs, layers, fonts, window_size| {
+        mode_stack.update(&world, inputs, layers, fonts, window_size)
     });
 }
