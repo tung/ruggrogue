@@ -218,6 +218,29 @@ impl RawCharGrid {
         }
     }
 
+    fn resize(&mut self, new_size: Size) {
+        if self.size != new_size {
+            assert_ne!(0, new_size.w);
+            assert_ne!(0, new_size.h);
+            assert!(new_size.w <= i32::MAX as u32);
+            assert!(new_size.h <= i32::MAX as u32);
+
+            let new_vec_size = (new_size.w * new_size.h) as usize;
+
+            self.size = new_size;
+            self.chars.resize(new_vec_size, ' ');
+            self.fg.resize(
+                new_vec_size,
+                Color {
+                    r: 255,
+                    g: 255,
+                    b: 255,
+                },
+            );
+            self.bg.resize(new_vec_size, Color { r: 0, g: 0, b: 0 });
+        }
+    }
+
     fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
         for e in self.chars.iter_mut() {
             *e = ' ';
@@ -493,11 +516,12 @@ impl<'b, 'r> CharGrid<'b, 'r> {
 
     /// Resize the CharGrid to the given grid dimensions, skipping if the dimensions are identical.
     ///
-    /// If a resize occurs, internal flags will be set to remake and redraw internal buffers.
+    /// If a resize occurs, the grid contents will need to be redrawn, and internal flags will be
+    /// set to remake and redraw internal buffers.
     pub fn resize(&mut self, new_grid_size: Size) {
-        if self.front.size.w != new_grid_size.w || self.front.size.h != new_grid_size.h {
-            self.front = RawCharGrid::new(new_grid_size);
-            self.back = RawCharGrid::new(new_grid_size);
+        if self.front.size != new_grid_size {
+            self.front.resize(new_grid_size);
+            self.back.resize(new_grid_size);
             self.force_render = true;
             self.needs_render = true;
             self.needs_upload = true;
