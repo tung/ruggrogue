@@ -19,14 +19,21 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
         View<FieldOfView>,
     )>();
 
-    let Position { x, y } = coords.get(player_id.0).0;
+    let player_pos = coords.get(player_id.0).0;
     let fov = fovs.get(player_id.0);
     let w = grid.width() as i32;
     let h = grid.height() as i32;
     let cx = w / 2;
     let cy = h / 2;
 
-    for (tx, ty, tile) in map.iter_bounds(x - cx, y - cy, x - cx + w - 1, y - cy + h - 1) {
+    grid.set_draw_offset(player_pos);
+
+    for (tx, ty, tile) in map.iter_bounds(
+        player_pos.x - cx,
+        player_pos.y - cy,
+        player_pos.x - cx + w - 1,
+        player_pos.y - cy + h - 1,
+    ) {
         if let Some((ch, color)) = tile {
             let color = if fov.get((tx, ty)) {
                 color
@@ -36,7 +43,12 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
                 Color { r: v, g: v, b: v }
             };
 
-            grid.put_color_raw((tx - x + cx, ty - y + cy), color, None, ch);
+            grid.put_color_raw(
+                (tx - player_pos.x + cx, ty - player_pos.y + cy),
+                color,
+                None,
+                ch,
+            );
         }
     }
 }

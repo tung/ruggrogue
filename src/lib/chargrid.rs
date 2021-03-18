@@ -213,6 +213,7 @@ const DEFAULT_CELL: Cell = Cell {
 
 struct RawCharGrid {
     size: Size,
+    draw_offset: Position,
     cells: Vec<Cell>,
 }
 
@@ -225,6 +226,7 @@ impl RawCharGrid {
 
         RawCharGrid {
             size,
+            draw_offset: Position { x: 0, y: 0 },
             cells: vec![DEFAULT_CELL; (size.w * size.h) as usize],
         }
     }
@@ -237,9 +239,24 @@ impl RawCharGrid {
             assert!(new_size.h <= i32::MAX as u32);
 
             self.size = new_size;
+            self.draw_offset = Position { x: 0, y: 0 };
             self.cells
                 .resize((new_size.w * new_size.h) as usize, DEFAULT_CELL);
         }
+    }
+
+    fn set_draw_offset(&mut self, pos: Position) {
+        // Keep draw_offset within the bounds of the grid.
+        self.draw_offset.x = if pos.x >= 0 {
+            pos.x % self.size.w as i32
+        } else {
+            self.size.w as i32 - (-pos.x % self.size.w as i32)
+        };
+        self.draw_offset.y = if pos.y >= 0 {
+            pos.y % self.size.h as i32
+        } else {
+            self.size.h as i32 - (-pos.y % self.size.h as i32)
+        };
     }
 
     fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
@@ -253,8 +270,16 @@ impl RawCharGrid {
         self.cells.fill(clear_cell);
     }
 
+    #[inline]
+    fn index(&self, Position { x, y }: Position) -> usize {
+        let real_x = (x + self.draw_offset.x) % self.size.w as i32;
+        let real_y = (y + self.draw_offset.y) % self.size.h as i32;
+
+        (real_y * self.size.w as i32 + real_x) as usize
+    }
+
     fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        let index = (pos.y * self.size.w as i32 + pos.x) as usize;
+        let index = self.index(pos);
         let cell = &mut self.cells[index];
 
         cell.ch = c;
@@ -274,7 +299,7 @@ impl RawCharGrid {
 
     fn set_bg(&mut self, pos: Position, bg: Color) {
         if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
-            let index = (pos.y * self.size.w as i32 + pos.x) as usize;
+            let index = self.index(pos);
 
             self.cells[index].bg = bg;
         }
@@ -585,6 +610,19 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
     }
 
+    /// Set internal drawing offset hint to take advantage of wrapped offset rendering to reduce
+    /// time spent rendering later on.
+    ///
+    /// This can greatly reduce the amount of rendering needed in the common case of a grid drawing
+    /// a mostly static map centered on a camera position.  By setting the drawing offset to the
+    /// camera position, the grid's internal view of the map can be kept still while the camera
+    /// moves, instead of the other way around, reducing the number of tiles that need to be
+    /// rerendered.  At display time, the internal buffer is rearranged to appear as if the camera
+    /// had been centered with the map shifting around it the whole time.
+    pub fn set_draw_offset(&mut self, pos: Position) {
+        self.front.set_draw_offset(pos);
+    }
+
     /// Clear the entire CharGrid.
     pub fn clear(&mut self) {
         self.clear_color(None, None);
@@ -793,6 +831,8 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             return;
         }
 
+        let font = &mut fonts[self.font_index];
+
         // If the buffer doesn't exist yet, it will need to be fully rendered.
         if self.buffer.is_none() {
             self.force_render = true;
@@ -800,7 +840,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
 
         // Render the drawn grid contents to the buffer.
         if self.needs_render || self.force_render {
-            if self.render(&mut fonts[self.font_index], self.force_render) {
+            if self.render(font, self.force_render) {
                 self.needs_upload = true;
                 self.force_render = false;
             }
@@ -844,12 +884,6 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             self.view.size.w,
             self.view.size.h,
         );
-        let dest_rect = Rect::new(
-            self.view.pos.x + self.view.dx,
-            self.view.pos.y + self.view.dy,
-            buffer.width(),
-            buffer.height(),
-        );
 
         // Clear the destination rectangle first if requested.
         if let Some(clear_color) = self.view.clear_color {
@@ -864,7 +898,75 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             self.view.color_mod.b,
         );
         canvas.set_clip_rect(clip_rect);
-        canvas.copy(texture, None, dest_rect).unwrap();
+
+        let offset_x_px = self.front.draw_offset.x * font.glyph_width() as i32;
+        let offset_y_px = self.front.draw_offset.y * font.glyph_height() as i32;
+
+        // Display bottom-right of the texture at the top-left of the destination.
+        let src_x = offset_x_px;
+        let src_y = offset_y_px;
+        let src_w = buffer.width() - offset_x_px as u32;
+        let src_h = buffer.height() - offset_y_px as u32;
+        let dest_x = self.view.pos.x + self.view.dx;
+        let dest_y = self.view.pos.y + self.view.dy;
+        canvas
+            .copy(
+                texture,
+                Rect::new(src_x, src_y, src_w, src_h),
+                Rect::new(dest_x, dest_y, src_w, src_h),
+            )
+            .unwrap();
+
+        if offset_x_px > 0 {
+            // Display bottom-left of the texture at the top-right of the destination.
+            let src_x = 0;
+            let src_y = offset_y_px;
+            let src_w = offset_x_px as u32;
+            let src_h = buffer.height() - offset_y_px as u32;
+            let dest_x = self.view.pos.x + self.view.dx + buffer.width() as i32 - offset_x_px;
+            let dest_y = self.view.pos.y + self.view.dy;
+            canvas
+                .copy(
+                    texture,
+                    Rect::new(src_x, src_y, src_w, src_h),
+                    Rect::new(dest_x, dest_y, src_w, src_h),
+                )
+                .unwrap();
+
+            if offset_y_px > 0 {
+                // Display top-left of the texture at the bottom-right of the destination.
+                let src_x = 0;
+                let src_y = 0;
+                let src_w = offset_x_px as u32;
+                let src_h = offset_y_px as u32;
+                let dest_x = self.view.pos.x + self.view.dx + buffer.width() as i32 - offset_x_px;
+                let dest_y = self.view.pos.y + self.view.dy + buffer.height() as i32 - offset_y_px;
+                canvas
+                    .copy(
+                        texture,
+                        Rect::new(src_x, src_y, src_w, src_h),
+                        Rect::new(dest_x, dest_y, src_w, src_h),
+                    )
+                    .unwrap();
+            }
+        }
+
+        if offset_y_px > 0 {
+            // Display top-right of the texture at the bottom-left of the destination.
+            let src_x = offset_x_px;
+            let src_y = 0;
+            let src_w = buffer.width() - offset_x_px as u32;
+            let src_h = offset_y_px as u32;
+            let dest_x = self.view.pos.x + self.view.dx;
+            let dest_y = self.view.pos.y + self.view.dy + buffer.height() as i32 - offset_y_px;
+            canvas
+                .copy(
+                    texture,
+                    Rect::new(src_x, src_y, src_w, src_h),
+                    Rect::new(dest_x, dest_y, src_w, src_h),
+                )
+                .unwrap();
+        }
     }
 }
 
