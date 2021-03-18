@@ -187,11 +187,33 @@ impl<'f> Font<'f> {
     }
 }
 
+#[derive(Clone, Copy, Eq, PartialEq)]
+struct Cell {
+    ch: char,
+    fg: Color,
+    bg: Color,
+}
+
+impl Cell {
+    #[inline]
+    fn visible_diff(&self, other: &Cell) -> bool {
+        self.ch != other.ch || (self.ch != ' ' && self.fg != other.bg) || self.bg != other.bg
+    }
+}
+
+const DEFAULT_CELL: Cell = Cell {
+    ch: ' ',
+    fg: Color {
+        r: 255,
+        g: 255,
+        b: 255,
+    },
+    bg: Color { r: 0, g: 0, b: 0 },
+};
+
 struct RawCharGrid {
     size: Size,
-    chars: Vec<char>,
-    fg: Vec<Color>,
-    bg: Vec<Color>,
+    cells: Vec<Cell>,
 }
 
 impl RawCharGrid {
@@ -201,20 +223,9 @@ impl RawCharGrid {
         assert!(size.w <= i32::MAX as u32);
         assert!(size.h <= i32::MAX as u32);
 
-        let vec_size = (size.w * size.h) as usize;
-
         RawCharGrid {
             size,
-            chars: vec![' '; vec_size],
-            fg: vec![
-                Color {
-                    r: 255,
-                    g: 255,
-                    b: 255
-                };
-                vec_size
-            ],
-            bg: vec![Color { r: 0, g: 0, b: 0 }; vec_size],
+            cells: vec![DEFAULT_CELL; (size.w * size.h) as usize],
         }
     }
 
@@ -225,52 +236,33 @@ impl RawCharGrid {
             assert!(new_size.w <= i32::MAX as u32);
             assert!(new_size.h <= i32::MAX as u32);
 
-            let new_vec_size = (new_size.w * new_size.h) as usize;
-
             self.size = new_size;
-            self.chars.resize(new_vec_size, ' ');
-            self.fg.resize(
-                new_vec_size,
-                Color {
-                    r: 255,
-                    g: 255,
-                    b: 255,
-                },
-            );
-            self.bg.resize(new_vec_size, Color { r: 0, g: 0, b: 0 });
+            self.cells
+                .resize((new_size.w * new_size.h) as usize, DEFAULT_CELL);
         }
     }
 
     fn clear_color(&mut self, fg: Option<Color>, bg: Option<Color>) {
-        for e in self.chars.iter_mut() {
-            *e = ' ';
+        let mut clear_cell = DEFAULT_CELL;
+        if let Some(fg) = fg {
+            clear_cell.fg = fg;
         }
-
-        let fg = fg.unwrap_or(Color {
-            r: 255,
-            g: 255,
-            b: 255,
-        });
-        for e in self.fg.iter_mut() {
-            *e = fg;
+        if let Some(bg) = bg {
+            clear_cell.bg = bg;
         }
-
-        let bg = bg.unwrap_or(Color { r: 0, g: 0, b: 0 });
-        for e in self.bg.iter_mut() {
-            *e = bg;
-        }
+        self.cells.fill(clear_cell);
     }
 
     fn put_color_raw(&mut self, pos: Position, fg: Option<Color>, bg: Option<Color>, c: char) {
-        let Position { x, y } = pos;
-        let index = (y * self.size.w as i32 + x) as usize;
+        let index = (pos.y * self.size.w as i32 + pos.x) as usize;
+        let cell = &mut self.cells[index];
 
-        self.chars[index] = c;
+        cell.ch = c;
         if let Some(c) = fg {
-            self.fg[index] = c;
+            cell.fg = c;
         }
         if let Some(c) = bg {
-            self.bg[index] = c;
+            cell.bg = c;
         }
     }
 
@@ -284,7 +276,7 @@ impl RawCharGrid {
         if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
             let index = (pos.y * self.size.w as i32 + pos.x) as usize;
 
-            self.bg[index] = bg;
+            self.cells[index].bg = bg;
         }
     }
 
@@ -742,52 +734,37 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         };
 
         // Check the grid for positions to (re)render and (re)render them.
-        for index in 0..self.front.chars.len() {
-            let fc = self.front.chars[index];
-            let ffg = self.front.fg[index];
-            let fbg = self.front.bg[index];
-            let bc = self.back.chars[index];
-            let bfg = self.back.fg[index];
-            let bbg = self.back.bg[index];
-
-            // Check for any changes between the front and back.
-            let char_diff = force || fc != bc;
-            let fg_diff = force || ffg != bfg;
-            let bg_diff = force || fbg != bbg;
-            let f_space = !force && fc == ' ';
-
-            // Update the back data with the front data.
-            if char_diff {
-                self.back.chars[index] = fc;
-            }
-            if fg_diff {
-                self.back.fg[index] = ffg;
-            }
-            if bg_diff {
-                self.back.bg[index] = fbg;
-            }
-
+        for (i, (fcell, bcell)) in self
+            .front
+            .cells
+            .iter_mut()
+            .zip(self.back.cells.iter_mut())
+            .enumerate()
+        {
             let grid_width = self.front.size.w as i32;
-            let grid_x = index as i32 % grid_width;
-            let grid_y = index as i32 / grid_width;
+            let grid_x = i as i32 % grid_width;
+            let grid_y = i as i32 / grid_width;
             let cell_width = font.glyph_size.w as u32;
             let cell_height = font.glyph_size.h as u32;
             let px = grid_x * cell_width as i32;
             let py = grid_y * cell_height as i32;
 
-            // Render cell if a visible change has occurred.
-            if char_diff || (fg_diff && !f_space) || bg_diff {
+            // Render cell if requested or a visible change has occurred.
+            if force || fcell.visible_diff(bcell) {
                 let dest_rect = Rect::new(px, py, cell_width, cell_height);
-                let bg_color = Sdl2Color::RGB(fbg.r, fbg.g, fbg.b);
+                let bg_color = Sdl2Color::RGB(fcell.bg.r, fcell.bg.g, fcell.bg.b);
 
                 buffer.fill_rect(dest_rect, bg_color).unwrap();
 
-                if !f_space {
-                    font.draw_glyph_to(fc, ffg, buffer, dest_rect);
+                if fcell.ch != ' ' {
+                    font.draw_glyph_to(fcell.ch, fcell.fg, buffer, dest_rect);
                 }
 
                 buffer_updated = true;
             }
+
+            // Update the back data with the front data.
+            *bcell = *fcell;
         }
 
         buffer_updated
