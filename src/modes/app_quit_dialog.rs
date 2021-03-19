@@ -1,0 +1,63 @@
+use shipyard::World;
+
+use ruggle::{util::Size, CharGrid, Font, InputBuffer};
+
+use super::{
+    yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
+    ModeControl, ModeResult, ModeUpdate,
+};
+
+pub enum AppQuitDialogModeResult {
+    Cancelled,
+    Confirmed,
+}
+
+pub struct AppQuitDialogMode(YesNoDialogMode);
+
+/// A yes-or-no dialog box that appears when the use requests that the app be closed.
+impl AppQuitDialogMode {
+    pub fn new() -> Self {
+        Self(YesNoDialogMode::new(
+            "Really quit Ruggle?".to_string(),
+            false,
+        ))
+    }
+
+    pub fn prepare_grids(
+        &self,
+        world: &World,
+        grids: &mut Vec<CharGrid>,
+        fonts: &[Font],
+        window_size: Size,
+    ) {
+        self.0.prepare_grids(world, grids, fonts, window_size);
+    }
+
+    pub fn update(
+        &mut self,
+        world: &World,
+        inputs: &mut InputBuffer,
+        pop_result: &Option<ModeResult>,
+    ) -> (ModeControl, ModeUpdate) {
+        match self.0.update(world, inputs, pop_result) {
+            (ModeControl::Pop(ModeResult::YesNoDialogModeResult(result)), mode_update) => {
+                match result {
+                    YesNoDialogModeResult::AppQuit => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                    YesNoDialogModeResult::Yes => (
+                        ModeControl::Pop(AppQuitDialogModeResult::Confirmed.into()),
+                        mode_update,
+                    ),
+                    YesNoDialogModeResult::No => (
+                        ModeControl::Pop(AppQuitDialogModeResult::Cancelled.into()),
+                        mode_update,
+                    ),
+                }
+            }
+            result => result,
+        }
+    }
+
+    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+        self.0.draw(world, grids, active);
+    }
+}

@@ -4,6 +4,7 @@ use std::collections::VecDeque;
 /// Input events buffered by and emitted from an [InputBuffer].
 #[derive(Clone, Copy)]
 pub enum InputEvent {
+    AppQuit,
     Press(Keycode),
     Release(Keycode),
 }
@@ -81,6 +82,7 @@ impl InputBuffer {
             Event::KeyUp {
                 keycode: Some(key), ..
             } => self.buffer.push_back(InputEvent::Release(*key)),
+            Event::Quit { .. } => self.buffer.push_back(InputEvent::AppQuit),
             _ => {}
         }
     }
@@ -112,6 +114,7 @@ impl InputBuffer {
                         Keycode::RAlt => self.keymods &= !KeyMods::RALT,
                         _ => {}
                     },
+                    _ => {}
                 }
             }
         }

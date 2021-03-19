@@ -15,6 +15,7 @@ use super::{
 const CANCEL: &str = "[ Cancel ]";
 
 pub enum InventoryActionModeResult {
+    AppQuit,
     Cancelled,
     UseItem(EntityId, Option<(i32, i32)>),
     DropItem(EntityId),
@@ -112,6 +113,10 @@ impl InventoryActionMode {
         if let Some(result) = pop_result {
             return match result {
                 ModeResult::TargetModeResult(result) => match result {
+                    TargetModeResult::AppQuit => (
+                        ModeControl::Pop(InventoryActionModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
                     TargetModeResult::Cancelled => (ModeControl::Stay, ModeUpdate::WaitForEvent),
                     TargetModeResult::Target { x, y } => (
                         ModeControl::Pop(
@@ -126,7 +131,12 @@ impl InventoryActionMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        if let Some(InputEvent::AppQuit) = inputs.get_input() {
+            return (
+                ModeControl::Pop(InventoryActionModeResult::AppQuit.into()),
+                ModeUpdate::Immediate,
+            );
+        } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Down => match self.subsection {
                     SubSection::Actions => {

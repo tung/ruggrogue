@@ -11,6 +11,7 @@ use crate::{
 use ruggle::{util::Size, CharGrid, Font, InputBuffer};
 
 use super::{
+    app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult},
     inventory::{InventoryMode, InventoryModeResult},
     options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult},
@@ -23,6 +24,14 @@ pub enum DungeonModeResult {
 }
 
 pub struct DungeonMode;
+
+fn app_quit_dialog(inputs: &mut InputBuffer) -> (ModeControl, ModeUpdate) {
+    inputs.clear_input();
+    (
+        ModeControl::Push(AppQuitDialogMode::new().into()),
+        ModeUpdate::Immediate,
+    )
+}
 
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
 /// perform other actions while alive, directly or indirectly.
@@ -60,7 +69,18 @@ impl DungeonMode {
         if world.run(player::player_is_alive) {
             let time_passed = if let Some(result) = pop_result {
                 match result {
+                    ModeResult::AppQuitDialogModeResult(result) => match result {
+                        AppQuitDialogModeResult::Confirmed => {
+                            return (
+                                ModeControl::Pop(DungeonModeResult::Done.into()),
+                                ModeUpdate::Immediate,
+                            )
+                        }
+                        AppQuitDialogModeResult::Cancelled => false,
+                    },
+
                     ModeResult::YesNoDialogModeResult(result) => match result {
+                        YesNoDialogModeResult::AppQuit => return app_quit_dialog(inputs),
                         YesNoDialogModeResult::Yes => {
                             player::player_do_descend(world);
                             false
@@ -69,6 +89,7 @@ impl DungeonMode {
                     },
 
                     ModeResult::OptionsMenuModeResult(result) => match result {
+                        OptionsMenuModeResult::AppQuit => return app_quit_dialog(inputs),
                         OptionsMenuModeResult::Closed => false,
                         OptionsMenuModeResult::ReallyQuit => {
                             return (
@@ -79,6 +100,7 @@ impl DungeonMode {
                     },
 
                     ModeResult::PickUpMenuModeResult(result) => match result {
+                        PickUpMenuModeResult::AppQuit => return app_quit_dialog(inputs),
                         PickUpMenuModeResult::PickedItem(item_id) => {
                             player::player_pick_up_item(world, *item_id);
                             true
@@ -87,6 +109,7 @@ impl DungeonMode {
                     },
 
                     ModeResult::InventoryModeResult(result) => match result {
+                        InventoryModeResult::AppQuit => return app_quit_dialog(inputs),
                         InventoryModeResult::DoNothing => false,
                         InventoryModeResult::UseItem(item_id, target) => {
                             let player_id =
@@ -104,6 +127,7 @@ impl DungeonMode {
                 }
             } else {
                 match player::player_input(world, inputs) {
+                    PlayerInputResult::AppQuit => return app_quit_dialog(inputs),
                     PlayerInputResult::NoResult => false,
                     PlayerInputResult::TurnDone => true,
                     PlayerInputResult::ShowOptionsMenu => {

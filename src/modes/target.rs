@@ -16,6 +16,7 @@ use super::{
 };
 
 pub enum TargetModeResult {
+    AppQuit,
     Cancelled,
     Target { x: i32, y: i32 },
 }
@@ -97,6 +98,10 @@ impl TargetMode {
         if let Some(result) = pop_result {
             return match result {
                 ModeResult::YesNoDialogModeResult(result) => match result {
+                    YesNoDialogModeResult::AppQuit => (
+                        ModeControl::Pop(TargetModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
                     YesNoDialogModeResult::Yes => (
                         ModeControl::Pop(
                             TargetModeResult::Target {
@@ -115,7 +120,12 @@ impl TargetMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        if let Some(InputEvent::AppQuit) = inputs.get_input() {
+            return (
+                ModeControl::Pop(TargetModeResult::AppQuit.into()),
+                ModeUpdate::Immediate,
+            );
+        } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             let min_x = self.center.0 - self.range;
             let max_x = self.center.0 + self.range;
             let min_y = self.center.1 - self.range;

@@ -23,6 +23,7 @@
 //! so it's possible to have e.g. an inventory menu mode draw itself smaller than the screen, so
 //! the main gameplay mode underneath can be seen behind it.
 
+pub mod app_quit_dialog;
 pub mod dungeon;
 pub mod inventory;
 pub mod inventory_action;
@@ -35,6 +36,7 @@ use shipyard::World;
 
 use ruggle::{util::Size, CharGrid, CharGridLayer, Font, InputBuffer, RunControl};
 
+use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
 use dungeon::{DungeonMode, DungeonModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
@@ -47,6 +49,7 @@ use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 
 /// All possible modes that can be added to the mode stack.  Add new modes here.
 pub enum Mode {
+    AppQuitDialogMode(AppQuitDialogMode),
     DungeonMode(DungeonMode),
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
@@ -54,6 +57,12 @@ pub enum Mode {
     PickUpMenuMode(PickUpMenuMode),
     TargetMode(TargetMode),
     YesNoDialogMode(YesNoDialogMode),
+}
+
+impl From<AppQuitDialogMode> for Mode {
+    fn from(mode: AppQuitDialogMode) -> Self {
+        Self::AppQuitDialogMode(mode)
+    }
 }
 
 impl From<DungeonMode> for Mode {
@@ -103,6 +112,7 @@ impl From<YesNoDialogMode> for Mode {
 /// All possible mode results that each mode can return when removed from the mode stack.  A result
 /// should be added for every mode added.
 pub enum ModeResult {
+    AppQuitDialogModeResult(AppQuitDialogModeResult),
     DungeonModeResult(DungeonModeResult),
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
@@ -110,6 +120,12 @@ pub enum ModeResult {
     PickUpMenuModeResult(PickUpMenuModeResult),
     TargetModeResult(TargetModeResult),
     YesNoDialogModeResult(YesNoDialogModeResult),
+}
+
+impl From<AppQuitDialogModeResult> for ModeResult {
+    fn from(result: AppQuitDialogModeResult) -> Self {
+        Self::AppQuitDialogModeResult(result)
+    }
 }
 
 impl From<DungeonModeResult> for ModeResult {
@@ -193,6 +209,7 @@ impl Mode {
         window_size: Size,
     ) {
         match self {
+            Mode::AppQuitDialogMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::DungeonMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::InventoryMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, fonts, window_size),
@@ -210,6 +227,7 @@ impl Mode {
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         match self {
+            Mode::AppQuitDialogMode(x) => x.update(world, inputs, pop_result),
             Mode::DungeonMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, pop_result),
@@ -222,6 +240,7 @@ impl Mode {
 
     fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
         match self {
+            Mode::AppQuitDialogMode(x) => x.draw(world, grids, active),
             Mode::DungeonMode(x) => x.draw(world, grids, active),
             Mode::InventoryMode(x) => x.draw(world, grids, active),
             Mode::InventoryActionMode(x) => x.draw(world, grids, active),
@@ -235,6 +254,7 @@ impl Mode {
     /// Should the current mode draw modes behind it in the stack?
     fn draw_behind(&self) -> bool {
         match self {
+            Mode::AppQuitDialogMode(_) => true,
             Mode::DungeonMode(_) => false,
             Mode::InventoryMode(_) => true,
             Mode::InventoryActionMode(_) => true,

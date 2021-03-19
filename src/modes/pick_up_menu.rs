@@ -16,8 +16,9 @@ const CANCEL: &str = "[ Cancel ]";
 const PROMPT: &str = "Pick up which item?";
 
 pub enum PickUpMenuModeResult {
-    PickedItem(EntityId),
+    AppQuit,
     Cancelled,
+    PickedItem(EntityId),
 }
 
 enum SubSection {
@@ -115,7 +116,12 @@ impl PickUpMenuMode {
         } else {
             inputs.prepare_input();
 
-            if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+            if let Some(InputEvent::AppQuit) = inputs.get_input() {
+                return (
+                    ModeControl::Pop(PickUpMenuModeResult::AppQuit.into()),
+                    ModeUpdate::Immediate,
+                );
+            } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
                 match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                     GameKey::Down => match self.subsection {
                         SubSection::Items => {

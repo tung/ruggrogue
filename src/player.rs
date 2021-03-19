@@ -39,6 +39,7 @@ pub struct AutoRun {
 }
 
 pub enum PlayerInputResult {
+    AppQuit,
     NoResult,
     TurnDone,
     TryDescend,
@@ -749,7 +750,9 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
     inputs.prepare_input();
 
     if item::is_asleep(world, player_id.0) {
-        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        if let Some(InputEvent::AppQuit) = inputs.get_input() {
+            PlayerInputResult::AppQuit
+        } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Cancel => PlayerInputResult::ShowOptionsMenu,
                 _ => {
@@ -764,7 +767,10 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             PlayerInputResult::NoResult
         }
     } else if world.run(player_is_auto_running) {
-        if matches!(inputs.get_input(), Some(InputEvent::Press(_)))
+        if matches!(inputs.get_input(), Some(InputEvent::AppQuit)) {
+            world.run(player_stop_auto_run);
+            PlayerInputResult::AppQuit
+        } else if matches!(inputs.get_input(), Some(InputEvent::Press(_)))
             || world.run(player_check_frontier)
             || world.run(player_sees_foes)
         {
@@ -794,6 +800,8 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
                 PlayerInputResult::NoResult
             }
         }
+    } else if let Some(InputEvent::AppQuit) = inputs.get_input() {
+        PlayerInputResult::AppQuit
     } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
         let shift = inputs.get_mods(KeyMods::SHIFT);
 
@@ -825,5 +833,8 @@ pub fn player_is_alive(player_alive: UniqueView<PlayerAlive>) -> bool {
 pub fn player_is_dead_input(inputs: &mut InputBuffer) -> bool {
     inputs.prepare_input();
 
-    matches!(inputs.get_input(), Some(InputEvent::Press(Keycode::Space)))
+    matches!(
+        inputs.get_input(),
+        Some(InputEvent::Press(Keycode::Space)) | Some(InputEvent::AppQuit)
+    )
 }

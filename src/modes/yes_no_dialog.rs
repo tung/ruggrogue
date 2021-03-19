@@ -12,6 +12,7 @@ const YES_STR: &str = "[ Yes ]";
 const NO_STR: &str = "[ No ]";
 
 pub enum YesNoDialogModeResult {
+    AppQuit,
     Yes,
     No,
 }
@@ -72,7 +73,12 @@ impl YesNoDialogMode {
     ) -> (ModeControl, ModeUpdate) {
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        if let Some(InputEvent::AppQuit) = inputs.get_input() {
+            return (
+                ModeControl::Pop(YesNoDialogModeResult::AppQuit.into()),
+                ModeUpdate::Immediate,
+            );
+        } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Left => self.yes_selected = true,
                 GameKey::Right => self.yes_selected = false,

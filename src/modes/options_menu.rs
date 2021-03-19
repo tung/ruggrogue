@@ -20,6 +20,7 @@ const ZOOM_2X_OFF: &str = " 2x ";
 const QUIT: &str = "[ Quit ]";
 
 pub enum OptionsMenuModeResult {
+    AppQuit,
     Closed,
     ReallyQuit,
 }
@@ -77,12 +78,14 @@ impl OptionsMenuMode {
         if let Some(result) = pop_result {
             return match result {
                 ModeResult::YesNoDialogModeResult(result) => match result {
-                    YesNoDialogModeResult::Yes => {
-                        return (
-                            ModeControl::Pop(OptionsMenuModeResult::ReallyQuit.into()),
-                            ModeUpdate::Immediate,
-                        )
-                    }
+                    YesNoDialogModeResult::AppQuit => (
+                        ModeControl::Pop(OptionsMenuModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    YesNoDialogModeResult::Yes => (
+                        ModeControl::Pop(OptionsMenuModeResult::ReallyQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
                     YesNoDialogModeResult::No => (ModeControl::Stay, ModeUpdate::WaitForEvent),
                 },
                 _ => unreachable!(),
@@ -91,7 +94,12 @@ impl OptionsMenuMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        if let Some(InputEvent::AppQuit) = inputs.get_input() {
+            return (
+                ModeControl::Pop(OptionsMenuModeResult::AppQuit.into()),
+                ModeUpdate::Immediate,
+            );
+        } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             let mut options = world.borrow::<UniqueViewMut<Options>>();
             let gkey = gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT));
 

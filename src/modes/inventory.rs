@@ -21,6 +21,7 @@ const EQUIP_GRID: usize = 1;
 const INV_GRID: usize = 2;
 
 pub enum InventoryModeResult {
+    AppQuit,
     DoNothing,
     UseItem(EntityId, Option<(i32, i32)>),
     DropItem(EntityId),
@@ -180,6 +181,10 @@ impl InventoryMode {
         if let Some(result) = pop_result {
             return match result {
                 ModeResult::InventoryActionModeResult(result) => match result {
+                    InventoryActionModeResult::AppQuit => (
+                        ModeControl::Pop(InventoryModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
                     InventoryActionModeResult::Cancelled => {
                         (ModeControl::Stay, ModeUpdate::WaitForEvent)
                     }
@@ -198,7 +203,12 @@ impl InventoryMode {
 
         inputs.prepare_input();
 
-        if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        if let Some(InputEvent::AppQuit) = inputs.get_input() {
+            (
+                ModeControl::Pop(InventoryModeResult::AppQuit.into()),
+                ModeUpdate::Immediate,
+            )
+        } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             world.run(
                 |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
                     let player_inv = inventories.get(player_id.0);
