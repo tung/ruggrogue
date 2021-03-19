@@ -12,6 +12,7 @@ use ruggle::{util::Size, CharGrid, Font, InputBuffer};
 
 use super::{
     inventory::{InventoryMode, InventoryModeResult},
+    options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
@@ -21,16 +22,7 @@ pub enum DungeonModeResult {
     Done,
 }
 
-enum ResultSource {
-    YesNoDialogReallyQuit,
-    YesNoDialogDescend,
-    PickUpMenu,
-    Inventory,
-}
-
-pub struct DungeonMode {
-    result_source: Option<ResultSource>,
-}
+pub struct DungeonMode;
 
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
 /// perform other actions while alive, directly or indirectly.
@@ -46,19 +38,17 @@ impl DungeonMode {
         spawn::fill_rooms_with_spawns(world);
         world.run(vision::recalculate_fields_of_view);
 
-        Self {
-            result_source: None,
-        }
+        Self {}
     }
 
     pub fn prepare_grids(
         &self,
-        _world: &World,
+        world: &World,
         grids: &mut Vec<CharGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
-        ui::prepare_main_grids(grids, fonts, window_size);
+        ui::prepare_main_grids(world, grids, fonts, window_size);
     }
 
     pub fn update(
@@ -70,27 +60,23 @@ impl DungeonMode {
         if world.run(player::player_is_alive) {
             let time_passed = if let Some(result) = pop_result {
                 match result {
-                    ModeResult::YesNoDialogModeResult(result) => {
-                        match self.result_source.as_ref().unwrap() {
-                            ResultSource::YesNoDialogReallyQuit => match result {
-                                YesNoDialogModeResult::Yes => {
-                                    return (
-                                        ModeControl::Pop(DungeonModeResult::Done.into()),
-                                        ModeUpdate::Immediate,
-                                    )
-                                }
-                                YesNoDialogModeResult::No => false,
-                            },
-                            ResultSource::YesNoDialogDescend => match result {
-                                YesNoDialogModeResult::Yes => {
-                                    player::player_do_descend(world);
-                                    false
-                                }
-                                YesNoDialogModeResult::No => false,
-                            },
-                            _ => unreachable!(),
+                    ModeResult::YesNoDialogModeResult(result) => match result {
+                        YesNoDialogModeResult::Yes => {
+                            player::player_do_descend(world);
+                            false
                         }
-                    }
+                        YesNoDialogModeResult::No => false,
+                    },
+
+                    ModeResult::OptionsMenuModeResult(result) => match result {
+                        OptionsMenuModeResult::Closed => false,
+                        OptionsMenuModeResult::ReallyQuit => {
+                            return (
+                                ModeControl::Pop(DungeonModeResult::Done.into()),
+                                ModeUpdate::Immediate,
+                            )
+                        }
+                    },
 
                     ModeResult::PickUpMenuModeResult(result) => match result {
                         PickUpMenuModeResult::PickedItem(item_id) => {
@@ -120,20 +106,15 @@ impl DungeonMode {
                 match player::player_input(world, inputs) {
                     PlayerInputResult::NoResult => false,
                     PlayerInputResult::TurnDone => true,
-                    PlayerInputResult::ShowExitPrompt => {
-                        self.result_source = Some(ResultSource::YesNoDialogReallyQuit);
+                    PlayerInputResult::ShowOptionsMenu => {
                         inputs.clear_input();
                         return (
-                            ModeControl::Push(
-                                YesNoDialogMode::new("Really exit Ruggle?".to_string(), false)
-                                    .into(),
-                            ),
+                            ModeControl::Push(OptionsMenuMode::new().into()),
                             ModeUpdate::Immediate,
                         );
                     }
                     PlayerInputResult::TryDescend => {
                         if world.run(player::player_try_descend) {
-                            self.result_source = Some(ResultSource::YesNoDialogDescend);
                             inputs.clear_input();
                             return (
                                 ModeControl::Push(
@@ -150,7 +131,6 @@ impl DungeonMode {
                         }
                     }
                     PlayerInputResult::ShowPickUpMenu => {
-                        self.result_source = Some(ResultSource::PickUpMenu);
                         inputs.clear_input();
                         return (
                             ModeControl::Push(PickUpMenuMode::new(world).into()),
@@ -158,7 +138,6 @@ impl DungeonMode {
                         );
                     }
                     PlayerInputResult::ShowInventory => {
-                        self.result_source = Some(ResultSource::Inventory);
                         inputs.clear_input();
                         return (
                             ModeControl::Push(InventoryMode::new(world).into()),

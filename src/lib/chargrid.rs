@@ -480,6 +480,8 @@ pub struct CharGridView {
     pub clear_color: Option<Color>,
     /// Color to multiply with the texture as it's displayed on the screen.
     pub color_mod: Color,
+    /// Zoom factor of the CharGrid when displayed on screen.
+    pub zoom: u32,
 }
 
 /// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
@@ -528,6 +530,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
                     g: 255,
                     b: 255,
                 },
+                zoom: 1,
             },
         }
     }
@@ -584,10 +587,16 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     }
 
     /// Prepare the CharGrid to be displayed centered within a given rectangle, possibly clipped.
-    pub fn view_centered(&mut self, fonts: &[Font], rect_pos: Position, rect_size: Size) {
+    pub fn view_centered(
+        &mut self,
+        fonts: &[Font],
+        zoom: u32,
+        rect_pos: Position,
+        rect_size: Size,
+    ) {
         let font = &fonts[self.font_index];
-        let px_width = self.front.size.w * font.glyph_width();
-        let px_height = self.front.size.h * font.glyph_height();
+        let px_width = self.front.size.w * font.glyph_width() * zoom;
+        let px_height = self.front.size.h * font.glyph_height() * zoom;
 
         if px_width <= rect_size.w {
             self.view.size.w = px_width;
@@ -827,7 +836,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
-        if !self.view.visible {
+        if !self.view.visible || self.view.zoom == 0 {
             return;
         }
 
@@ -913,7 +922,12 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             .copy(
                 texture,
                 Rect::new(src_x, src_y, src_w, src_h),
-                Rect::new(dest_x, dest_y, src_w, src_h),
+                Rect::new(
+                    dest_x,
+                    dest_y,
+                    src_w * self.view.zoom,
+                    src_h * self.view.zoom,
+                ),
             )
             .unwrap();
 
@@ -923,13 +937,20 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             let src_y = offset_y_px;
             let src_w = offset_x_px as u32;
             let src_h = buffer.height() - offset_y_px as u32;
-            let dest_x = self.view.pos.x + self.view.dx + buffer.width() as i32 - offset_x_px;
+            let dest_x = self.view.pos.x
+                + self.view.dx
+                + (buffer.width() as i32 - offset_x_px) * self.view.zoom as i32;
             let dest_y = self.view.pos.y + self.view.dy;
             canvas
                 .copy(
                     texture,
                     Rect::new(src_x, src_y, src_w, src_h),
-                    Rect::new(dest_x, dest_y, src_w, src_h),
+                    Rect::new(
+                        dest_x,
+                        dest_y,
+                        src_w * self.view.zoom,
+                        src_h * self.view.zoom,
+                    ),
                 )
                 .unwrap();
 
@@ -939,13 +960,22 @@ impl<'b, 'r> CharGrid<'b, 'r> {
                 let src_y = 0;
                 let src_w = offset_x_px as u32;
                 let src_h = offset_y_px as u32;
-                let dest_x = self.view.pos.x + self.view.dx + buffer.width() as i32 - offset_x_px;
-                let dest_y = self.view.pos.y + self.view.dy + buffer.height() as i32 - offset_y_px;
+                let dest_x = self.view.pos.x
+                    + self.view.dx
+                    + (buffer.width() as i32 - offset_x_px) * self.view.zoom as i32;
+                let dest_y = self.view.pos.y
+                    + self.view.dy
+                    + (buffer.height() as i32 - offset_y_px) * self.view.zoom as i32;
                 canvas
                     .copy(
                         texture,
                         Rect::new(src_x, src_y, src_w, src_h),
-                        Rect::new(dest_x, dest_y, src_w, src_h),
+                        Rect::new(
+                            dest_x,
+                            dest_y,
+                            src_w * self.view.zoom,
+                            src_h * self.view.zoom,
+                        ),
                     )
                     .unwrap();
             }
@@ -958,12 +988,19 @@ impl<'b, 'r> CharGrid<'b, 'r> {
             let src_w = buffer.width() - offset_x_px as u32;
             let src_h = offset_y_px as u32;
             let dest_x = self.view.pos.x + self.view.dx;
-            let dest_y = self.view.pos.y + self.view.dy + buffer.height() as i32 - offset_y_px;
+            let dest_y = self.view.pos.y
+                + self.view.dy
+                + (buffer.height() as i32 - offset_y_px) * self.view.zoom as i32;
             canvas
                 .copy(
                     texture,
                     Rect::new(src_x, src_y, src_w, src_h),
-                    Rect::new(dest_x, dest_y, src_w, src_h),
+                    Rect::new(
+                        dest_x,
+                        dest_y,
+                        src_w * self.view.zoom,
+                        src_h * self.view.zoom,
+                    ),
                 )
                 .unwrap();
         }

@@ -1,9 +1,9 @@
-use shipyard::{EntityId, Get, View, World};
+use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
     components::{AreaOfEffect, Name, Ranged, Renderable},
     gamekey::{self, GameKey},
-    ui,
+    ui::{self, Options},
 };
 use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
@@ -81,11 +81,12 @@ impl InventoryActionMode {
 
     pub fn prepare_grids(
         &self,
-        _world: &World,
+        world: &World,
         grids: &mut Vec<CharGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
+        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
         let new_grid_size = Size {
             w: 4 + self.inner_width as u32,
             h: 8 + self.actions.len() as u32,
@@ -98,7 +99,8 @@ impl InventoryActionMode {
             grids[0].view.clear_color = None;
         }
 
-        grids[0].view_centered(fonts, (0, 0).into(), window_size);
+        grids[0].view_centered(fonts, text_zoom, (0, 0).into(), window_size);
+        grids[0].view.zoom = text_zoom;
     }
 
     pub fn update(

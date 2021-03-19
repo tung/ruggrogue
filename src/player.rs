@@ -42,7 +42,7 @@ pub enum PlayerInputResult {
     NoResult,
     TurnDone,
     TryDescend,
-    ShowExitPrompt,
+    ShowOptionsMenu,
     ShowPickUpMenu,
     ShowInventory,
 }
@@ -751,7 +751,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
     if item::is_asleep(world, player_id.0) {
         if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
-                GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
+                GameKey::Cancel => PlayerInputResult::ShowOptionsMenu,
                 _ => {
                     world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
                         msgs.add(format!("{} is sleeping.", names.get(player_id.0).0));
@@ -807,7 +807,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             GameKey::DownLeft => try_move_player(world, -1, 1, shift),
             GameKey::DownRight => try_move_player(world, 1, 1, shift),
             GameKey::Wait => PlayerInputResult::TurnDone,
-            GameKey::Cancel => PlayerInputResult::ShowExitPrompt,
+            GameKey::Cancel => PlayerInputResult::ShowOptionsMenu,
             GameKey::Descend | GameKey::Confirm => PlayerInputResult::TryDescend,
             GameKey::PickUp => PlayerInputResult::ShowPickUpMenu,
             GameKey::Inventory => PlayerInputResult::ShowInventory,

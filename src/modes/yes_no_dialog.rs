@@ -1,8 +1,8 @@
-use shipyard::World;
+use shipyard::{UniqueView, World};
 
 use crate::{
     gamekey::{self, GameKey},
-    ui,
+    ui::{self, Options},
 };
 use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
@@ -42,11 +42,12 @@ impl YesNoDialogMode {
 
     pub fn prepare_grids(
         &self,
-        _world: &World,
+        world: &World,
         grids: &mut Vec<CharGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
+        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
         let new_grid_size = Size {
             w: 4 + self.prompt.len().max(YES_STR.len() + NO_STR.len() + 2) as u32,
             h: 7,
@@ -59,7 +60,8 @@ impl YesNoDialogMode {
             grids[0].view.clear_color = None;
         }
 
-        grids[0].view_centered(fonts, (0, 0).into(), window_size);
+        grids[0].view_centered(fonts, text_zoom, (0, 0).into(), window_size);
+        grids[0].view.zoom = text_zoom;
     }
 
     pub fn update(

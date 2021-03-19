@@ -80,12 +80,12 @@ impl TargetMode {
 
     pub fn prepare_grids(
         &self,
-        _world: &World,
+        world: &World,
         grids: &mut Vec<CharGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
-        ui::prepare_main_grids(grids, fonts, window_size);
+        ui::prepare_main_grids(world, grids, fonts, window_size);
     }
 
     pub fn update(

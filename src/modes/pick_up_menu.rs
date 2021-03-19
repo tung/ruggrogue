@@ -6,7 +6,7 @@ use crate::{
     map::Map,
     message::Messages,
     player::PlayerId,
-    ui,
+    ui::{self, Options},
 };
 use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
 
@@ -72,16 +72,17 @@ impl PickUpMenuMode {
 
     pub fn prepare_grids(
         &self,
-        _world: &World,
+        world: &World,
         grids: &mut Vec<CharGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
         let font = &fonts[grids.get(0).map_or(0, CharGrid::font)];
+        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
         let new_grid_size = Size {
             w: self.width as u32 + 4,
             h: (8 + self.items.len() as u32)
-                .min(window_size.h / font.glyph_height())
+                .min(window_size.h / (font.glyph_height() * text_zoom))
                 .max(9),
         };
 
@@ -92,7 +93,8 @@ impl PickUpMenuMode {
             grids[0].view.clear_color = None;
         }
 
-        grids[0].view_centered(fonts, (0, 0).into(), window_size);
+        grids[0].view_centered(fonts, text_zoom, (0, 0).into(), window_size);
+        grids[0].view.zoom = text_zoom;
     }
 
     pub fn update(

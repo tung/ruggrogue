@@ -25,6 +25,7 @@ use crate::{
     modes::{dungeon::DungeonMode, ModeStack},
     monster::MonsterTurns,
     player::{PlayerAlive, PlayerId},
+    ui::Options,
 };
 use ruggle::{FontInfo, RunSettings};
 
@@ -33,6 +34,10 @@ pub struct RuggleRng(Pcg64Mcg);
 fn main() {
     let world = World::new();
 
+    world.add_unique(Options {
+        map_zoom: 1,
+        text_zoom: 1,
+    });
     world.add_unique(RuggleRng(Pcg64Mcg::from_rng(rand::thread_rng()).unwrap()));
     world.add_unique(Messages::new(4));
     world.add_unique(Map::new(80, 50));

@@ -26,6 +26,7 @@
 pub mod dungeon;
 pub mod inventory;
 pub mod inventory_action;
+pub mod options_menu;
 pub mod pick_up_menu;
 pub mod target;
 pub mod yes_no_dialog;
@@ -37,6 +38,7 @@ use ruggle::{util::Size, CharGrid, CharGridLayer, Font, InputBuffer, RunControl}
 use dungeon::{DungeonMode, DungeonModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
+use options_menu::{OptionsMenuMode, OptionsMenuModeResult};
 use pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult};
 use target::{TargetMode, TargetModeResult};
 use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
@@ -48,6 +50,7 @@ pub enum Mode {
     DungeonMode(DungeonMode),
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
+    OptionsMenuMode(OptionsMenuMode),
     PickUpMenuMode(PickUpMenuMode),
     TargetMode(TargetMode),
     YesNoDialogMode(YesNoDialogMode),
@@ -68,6 +71,12 @@ impl From<InventoryMode> for Mode {
 impl From<InventoryActionMode> for Mode {
     fn from(mode: InventoryActionMode) -> Self {
         Self::InventoryActionMode(mode)
+    }
+}
+
+impl From<OptionsMenuMode> for Mode {
+    fn from(mode: OptionsMenuMode) -> Self {
+        Self::OptionsMenuMode(mode)
     }
 }
 
@@ -97,6 +106,7 @@ pub enum ModeResult {
     DungeonModeResult(DungeonModeResult),
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
+    OptionsMenuModeResult(OptionsMenuModeResult),
     PickUpMenuModeResult(PickUpMenuModeResult),
     TargetModeResult(TargetModeResult),
     YesNoDialogModeResult(YesNoDialogModeResult),
@@ -117,6 +127,12 @@ impl From<InventoryModeResult> for ModeResult {
 impl From<InventoryActionModeResult> for ModeResult {
     fn from(result: InventoryActionModeResult) -> Self {
         Self::InventoryActionModeResult(result)
+    }
+}
+
+impl From<OptionsMenuModeResult> for ModeResult {
+    fn from(result: OptionsMenuModeResult) -> Self {
+        Self::OptionsMenuModeResult(result)
     }
 }
 
@@ -180,6 +196,7 @@ impl Mode {
             Mode::DungeonMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::InventoryMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::TargetMode(x) => x.prepare_grids(world, grids, fonts, window_size),
             Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, fonts, window_size),
@@ -196,6 +213,7 @@ impl Mode {
             Mode::DungeonMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, pop_result),
+            Mode::OptionsMenuMode(x) => x.update(world, inputs, pop_result),
             Mode::PickUpMenuMode(x) => x.update(world, inputs, pop_result),
             Mode::TargetMode(x) => x.update(world, inputs, pop_result),
             Mode::YesNoDialogMode(x) => x.update(world, inputs, pop_result),
@@ -207,6 +225,7 @@ impl Mode {
             Mode::DungeonMode(x) => x.draw(world, grids, active),
             Mode::InventoryMode(x) => x.draw(world, grids, active),
             Mode::InventoryActionMode(x) => x.draw(world, grids, active),
+            Mode::OptionsMenuMode(x) => x.draw(world, grids, active),
             Mode::PickUpMenuMode(x) => x.draw(world, grids, active),
             Mode::TargetMode(x) => x.draw(world, grids, active),
             Mode::YesNoDialogMode(x) => x.draw(world, grids, active),
@@ -219,6 +238,7 @@ impl Mode {
             Mode::DungeonMode(_) => false,
             Mode::InventoryMode(_) => true,
             Mode::InventoryActionMode(_) => true,
+            Mode::OptionsMenuMode(_) => true,
             Mode::PickUpMenuMode(_) => true,
             Mode::TargetMode(_) => false,
             Mode::YesNoDialogMode(_) => true,

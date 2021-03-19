@@ -60,6 +60,11 @@ pub mod color {
     };
 }
 
+pub struct Options {
+    pub map_zoom: u32,
+    pub text_zoom: u32,
+}
+
 pub const MAP_GRID: usize = 0;
 pub const UI_GRID: usize = 1;
 pub const DEFAULT_MAP_FONT: usize = 1;
@@ -126,19 +131,28 @@ pub fn draw_ui(world: &World, grid: &mut CharGrid, prompt: Option<&str>) {
 }
 
 /// Prepares grid 0 and grid 1 to display the dungeon map and user interface respectively.
-pub fn prepare_main_grids(grids: &mut Vec<CharGrid>, fonts: &[Font], window_size: Size) {
+pub fn prepare_main_grids(
+    world: &World,
+    grids: &mut Vec<CharGrid>,
+    fonts: &[Font],
+    window_size: Size,
+) {
     let map_font = &fonts[grids.get(MAP_GRID).map_or(DEFAULT_MAP_FONT, CharGrid::font)];
     let ui_font = &fonts[grids.get(UI_GRID).map_or(0, CharGrid::font)];
+    let Options {
+        map_zoom,
+        text_zoom,
+    } = *world.borrow::<UniqueView<Options>>();
 
     let new_ui_size = Size {
-        w: (window_size.w / ui_font.glyph_width()).max(40),
+        w: (window_size.w / (ui_font.glyph_width() * text_zoom)).max(40),
         h: 5,
     };
-    let new_ui_px_h = new_ui_size.h * ui_font.glyph_height();
+    let new_ui_px_h = new_ui_size.h * ui_font.glyph_height() * text_zoom;
 
     // 17 == standard field of view range * 2 + 1
-    let mut new_map_w = (window_size.w / map_font.glyph_width()).max(17);
-    if window_size.w % map_font.glyph_width() > 0 {
+    let mut new_map_w = (window_size.w / (map_font.glyph_width() * map_zoom)).max(17);
+    if window_size.w % (map_font.glyph_width() * map_zoom) > 0 {
         // Fill to the edge of the screen.
         new_map_w += 1;
     }
@@ -149,8 +163,8 @@ pub fn prepare_main_grids(grids: &mut Vec<CharGrid>, fonts: &[Font], window_size
 
     // 17 == standard field of view range * 2 + 1
     let mut new_map_h =
-        (window_size.h.saturating_sub(new_ui_px_h) / map_font.glyph_height()).max(17);
-    if window_size.h % map_font.glyph_height() > 0 {
+        (window_size.h.saturating_sub(new_ui_px_h) / (map_font.glyph_height() * map_zoom)).max(17);
+    if window_size.h % (map_font.glyph_height() * map_zoom) > 0 {
         // Fill to the edge of the screen.
         new_map_h += 1;
     }
@@ -176,12 +190,14 @@ pub fn prepare_main_grids(grids: &mut Vec<CharGrid>, fonts: &[Font], window_size
 
     grids[MAP_GRID].view_centered(
         fonts,
+        map_zoom,
         Position { x: 0, y: 0 },
         Size {
             w: window_size.w,
             h: window_size.h.saturating_sub(new_ui_px_h).max(1),
         },
     );
+    grids[MAP_GRID].view.zoom = map_zoom;
 
     grids[UI_GRID].view.pos = Position {
         x: 0,
@@ -191,4 +207,5 @@ pub fn prepare_main_grids(grids: &mut Vec<CharGrid>, fonts: &[Font], window_size
         w: window_size.w,
         h: new_ui_px_h,
     };
+    grids[UI_GRID].view.zoom = text_zoom;
 }
