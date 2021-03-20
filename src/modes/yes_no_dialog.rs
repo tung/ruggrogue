@@ -103,10 +103,8 @@ impl YesNoDialogMode {
 
     pub fn draw(&self, _world: &World, grids: &mut [CharGrid], active: bool) {
         let grid = &mut grids[0];
-        let fg = ui::color::WHITE;
-        let selected_bg = ui::color::SELECTED_BG;
-        let yes_dx = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
-        let no_dx = grid.width() as i32 - NO_STR.len() as i32 - 2;
+        let yes_x = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
+        let no_x = grid.width() as i32 - NO_STR.len() as i32 - 2;
 
         grid.view.color_mod = if active {
             ui::color::WHITE
@@ -114,20 +112,13 @@ impl YesNoDialogMode {
             ui::color::GRAY
         };
 
-        grid.draw_box(
-            (0, 0),
-            (grid.width(), grid.height()),
-            ui::color::WHITE,
-            ui::color::BLACK,
-        );
+        grid.set_draw_fg(ui::color::WHITE);
+        grid.set_draw_bg(ui::color::BLACK);
+        grid.draw_box((0, 0), (grid.width(), grid.height()));
         grid.print((2, 2), &self.prompt);
 
-        if self.yes_selected {
-            grid.print_color((yes_dx, 4), fg, selected_bg, YES_STR);
-            grid.print_color((no_dx, 4), fg, None, NO_STR);
-        } else {
-            grid.print_color((yes_dx, 4), fg, None, YES_STR);
-            grid.print_color((no_dx, 4), fg, selected_bg, NO_STR);
-        }
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        grid.print_color((yes_x, 4), false, self.yes_selected, YES_STR);
+        grid.print_color((no_x, 4), false, !self.yes_selected, NO_STR);
     }
 }

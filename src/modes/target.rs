@@ -235,32 +235,34 @@ impl TargetMode {
         let (px, py) = world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
             coords.get(player_id.0).0.into()
         });
-        let target_bg = ui::color::BLUE;
-        let aoe_bg = ui::color::PURPLE;
         let radius2 = self.radius * (self.radius + 1);
 
         // Highlight targetable spaces.
+        map_grid.set_draw_bg(ui::color::BLUE);
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
-                    map_grid.set_bg((x - px + cx, y - py + cy), target_bg);
+                    map_grid.recolor_pos((x - px + cx, y - py + cy), false, true);
                 }
             }
         }
 
         // Highlight area of effect.
+        map_grid.set_draw_bg(ui::color::PURPLE);
         for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
             for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
                 if dist2((x, y), self.cursor) <= radius2 {
-                    map_grid.set_bg((x - px + cx, y - py + cy), aoe_bg);
+                    map_grid.recolor_pos((x - px + cx, y - py + cy), false, true);
                 }
             }
         }
 
         // Highlight cursor position.
-        map_grid.set_bg(
+        map_grid.set_draw_bg(ui::color::MAGENTA);
+        map_grid.recolor_pos(
             (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
-            ui::color::MAGENTA,
+            false,
+            true,
         );
 
         // Describe the location that the cursor is positioned at.

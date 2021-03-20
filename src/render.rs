@@ -43,10 +43,11 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
                 Color { r: v, g: v, b: v }
             };
 
+            grid.set_draw_fg(color);
             grid.put_color_raw(
                 (tx - player_pos.x + cx, ty - player_pos.y + cy),
-                color,
-                None,
+                true,
+                false,
                 ch,
             );
         }
@@ -73,7 +74,9 @@ pub fn draw_renderables(world: &World, grid: &mut CharGrid) {
         let gx = coord.0.x - x + cx;
         let gy = coord.0.y - y + cy;
         if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(coord.0.into()) {
-            grid.put_color((gx, gy), render.fg, render.bg, render.ch);
+            grid.set_draw_fg(render.fg);
+            grid.set_draw_bg(render.bg);
+            grid.put_color((gx, gy), true, true, render.ch);
         }
     };
 

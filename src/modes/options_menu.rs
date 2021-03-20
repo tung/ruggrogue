@@ -165,12 +165,9 @@ impl OptionsMenuMode {
             ui::color::GRAY
         };
 
-        grid.draw_box(
-            (0, 0),
-            (grid.width(), grid.height()),
-            ui::color::WHITE,
-            ui::color::BLACK,
-        );
+        grid.set_draw_fg(ui::color::WHITE);
+        grid.set_draw_bg(ui::color::BLACK);
+        grid.draw_box((0, 0), (grid.width(), grid.height()));
         grid.print((2, 0), "< Options >");
 
         let map_zoom_1x_x = 3 + MAP_ZOOM_LABEL.len() as i32;
@@ -178,16 +175,21 @@ impl OptionsMenuMode {
         let map_zoom_y = 2;
 
         grid.print((2, map_zoom_y), MAP_ZOOM_LABEL);
-        grid.print(
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        grid.print_color(
             (map_zoom_1x_x, map_zoom_y),
+            false,
+            options.map_zoom == 1 && matches!(self.selection, Selection::MapZoom),
             if options.map_zoom == 1 {
                 ZOOM_1X_ON
             } else {
                 ZOOM_1X_OFF
             },
         );
-        grid.print(
+        grid.print_color(
             (map_zoom_2x_x, map_zoom_y),
+            false,
+            options.map_zoom == 2 && matches!(self.selection, Selection::MapZoom),
             if options.map_zoom == 2 {
                 ZOOM_2X_ON
             } else {
@@ -195,40 +197,26 @@ impl OptionsMenuMode {
             },
         );
 
-        // Highlight map zoom.
-        if matches!(self.selection, Selection::MapZoom) {
-            if options.map_zoom == 1 {
-                for i in 0..ZOOM_1X_ON.len() {
-                    grid.set_bg(
-                        (map_zoom_1x_x + i as i32, map_zoom_y),
-                        ui::color::SELECTED_BG,
-                    );
-                }
-            } else if options.map_zoom == 2 {
-                for i in 0..ZOOM_2X_ON.len() {
-                    grid.set_bg(
-                        (map_zoom_2x_x + i as i32, map_zoom_y),
-                        ui::color::SELECTED_BG,
-                    );
-                }
-            }
-        }
-
         let text_zoom_1x_x = 3 + TEXT_ZOOM_LABEL.len() as i32;
         let text_zoom_2x_x = 4 + (TEXT_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
         let text_zoom_y = 3;
 
         grid.print((2, text_zoom_y), TEXT_ZOOM_LABEL);
-        grid.print(
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        grid.print_color(
             (text_zoom_1x_x, text_zoom_y),
+            false,
+            options.text_zoom == 1 && matches!(self.selection, Selection::TextZoom),
             if options.text_zoom == 1 {
                 ZOOM_1X_ON
             } else {
                 ZOOM_1X_OFF
             },
         );
-        grid.print(
+        grid.print_color(
             (text_zoom_2x_x, text_zoom_y),
+            false,
+            options.text_zoom == 2 && matches!(self.selection, Selection::TextZoom),
             if options.text_zoom == 2 {
                 ZOOM_2X_ON
             } else {
@@ -236,29 +224,12 @@ impl OptionsMenuMode {
             },
         );
 
-        // Highlight text zoom.
-        if matches!(self.selection, Selection::TextZoom) {
-            if options.text_zoom == 1 {
-                for i in 0..ZOOM_1X_ON.len() {
-                    grid.set_bg(
-                        (text_zoom_1x_x + i as i32, text_zoom_y),
-                        ui::color::SELECTED_BG,
-                    );
-                }
-            } else if options.text_zoom == 2 {
-                for i in 0..ZOOM_2X_ON.len() {
-                    grid.set_bg(
-                        (text_zoom_2x_x + i as i32, text_zoom_y),
-                        ui::color::SELECTED_BG,
-                    );
-                }
-            }
-        }
-
-        if matches!(self.selection, Selection::Quit) {
-            grid.print_color((2, 5), ui::color::WHITE, ui::color::SELECTED_BG, QUIT);
-        } else {
-            grid.print((2, 5), QUIT);
-        }
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        grid.print_color(
+            (2, 5),
+            false,
+            matches!(self.selection, Selection::Quit),
+            QUIT,
+        );
     }
 }
