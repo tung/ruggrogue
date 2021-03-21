@@ -7,11 +7,11 @@ use crate::{
 };
 use ruggle::{
     util::{Color, Position},
-    CharGrid,
+    TileGrid,
 };
 
 #[allow(clippy::many_single_char_names)]
-pub fn draw_map(world: &World, grid: &mut CharGrid) {
+pub fn draw_map(world: &World, grid: &mut TileGrid) {
     let (map, player_id, coords, fovs) = world.borrow::<(
         UniqueView<Map>,
         UniqueView<PlayerId>,
@@ -54,7 +54,7 @@ pub fn draw_map(world: &World, grid: &mut CharGrid) {
     }
 }
 
-pub fn draw_renderables(world: &World, grid: &mut CharGrid) {
+pub fn draw_renderables(world: &World, grid: &mut TileGrid) {
     let (player_id, coords, fovs, render_on_floors, render_on_maps, renderables) = world.borrow::<(
         UniqueView<PlayerId>,
         View<Coord>,

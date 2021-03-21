@@ -34,7 +34,7 @@ pub mod yes_no_dialog;
 
 use shipyard::World;
 
-use ruggle::{util::Size, CharGrid, CharGridLayer, Font, InputBuffer, RunControl};
+use ruggle::{util::Size, Font, InputBuffer, RunControl, TileGrid, TileGridLayer};
 
 use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
 use dungeon::{DungeonMode, DungeonModeResult};
@@ -204,7 +204,7 @@ impl Mode {
     fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<CharGrid>,
+        grids: &mut Vec<TileGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
@@ -238,7 +238,7 @@ impl Mode {
         }
     }
 
-    fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+    fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
         match self {
             Mode::AppQuitDialogMode(x) => x.draw(world, grids, active),
             Mode::DungeonMode(x) => x.draw(world, grids, active),
@@ -293,7 +293,7 @@ impl ModeStack {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
-        layers: &mut Vec<CharGridLayer>,
+        layers: &mut Vec<TileGridLayer>,
         fonts: &[Font],
         window_size: Size,
     ) -> RunControl {
@@ -301,7 +301,7 @@ impl ModeStack {
             // Initialize a layer for each mode in the stack.
             // There will always be a layer for each mode, even if it doesn't use it.
             for mode in &self.stack {
-                layers.push(CharGridLayer {
+                layers.push(TileGridLayer {
                     draw_behind: mode.draw_behind(),
                     grids: Vec::new(),
                 });
@@ -335,14 +335,14 @@ impl ModeStack {
                 ModeControl::Switch(mode) => {
                     self.stack.pop();
                     layers.pop();
-                    layers.push(CharGridLayer {
+                    layers.push(TileGridLayer {
                         draw_behind: mode.draw_behind(),
                         grids: Vec::new(),
                     });
                     self.stack.push(mode);
                 }
                 ModeControl::Push(mode) => {
-                    layers.push(CharGridLayer {
+                    layers.push(TileGridLayer {
                         draw_behind: mode.draw_behind(),
                         grids: Vec::new(),
                     });

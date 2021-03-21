@@ -3,7 +3,7 @@ use shipyard::{Get, UniqueView, View, World};
 use crate::{components::CombatStats, map::Map, message::Messages, player::PlayerId};
 use ruggle::{
     util::{Color, Position, Size},
-    CharGrid, Font,
+    Font, TileGrid,
 };
 
 pub mod color {
@@ -69,7 +69,7 @@ pub const MAP_GRID: usize = 0;
 pub const UI_GRID: usize = 1;
 pub const DEFAULT_MAP_FONT: usize = 1;
 
-fn draw_status_line(world: &World, grid: &mut CharGrid, y: i32) {
+fn draw_status_line(world: &World, grid: &mut TileGrid, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
@@ -94,7 +94,7 @@ fn draw_status_line(world: &World, grid: &mut CharGrid, y: i32) {
     grid.draw_bar(false, (x, y), hp_bar_length, 0, hp, max_hp, true, false);
 }
 
-fn draw_messages(world: &World, grid: &mut CharGrid, active: bool, min_y: i32, max_y: i32) {
+fn draw_messages(world: &World, grid: &mut TileGrid, active: bool, min_y: i32, max_y: i32) {
     world.run(|messages: UniqueView<Messages>| {
         grid.set_draw_fg(if active { color::WHITE } else { color::GRAY });
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
@@ -104,7 +104,7 @@ fn draw_messages(world: &World, grid: &mut CharGrid, active: bool, min_y: i32, m
     });
 }
 
-pub fn draw_ui(world: &World, grid: &mut CharGrid, prompt: Option<&str>) {
+pub fn draw_ui(world: &World, grid: &mut TileGrid, prompt: Option<&str>) {
     let w = grid.width() as i32;
     let h = grid.height() as i32;
 
@@ -127,12 +127,12 @@ pub fn draw_ui(world: &World, grid: &mut CharGrid, prompt: Option<&str>) {
 /// Prepares grid 0 and grid 1 to display the dungeon map and user interface respectively.
 pub fn prepare_main_grids(
     world: &World,
-    grids: &mut Vec<CharGrid>,
+    grids: &mut Vec<TileGrid>,
     fonts: &[Font],
     window_size: Size,
 ) {
-    let map_font = &fonts[grids.get(MAP_GRID).map_or(DEFAULT_MAP_FONT, CharGrid::font)];
-    let ui_font = &fonts[grids.get(UI_GRID).map_or(0, CharGrid::font)];
+    let map_font = &fonts[grids.get(MAP_GRID).map_or(DEFAULT_MAP_FONT, TileGrid::font)];
+    let ui_font = &fonts[grids.get(UI_GRID).map_or(0, TileGrid::font)];
     let Options {
         map_zoom,
         text_zoom,
@@ -176,8 +176,8 @@ pub fn prepare_main_grids(
         grids[MAP_GRID].resize(new_map_size);
         grids[UI_GRID].resize(new_ui_size);
     } else {
-        grids.push(CharGrid::new(new_map_size, fonts, DEFAULT_MAP_FONT));
-        grids.push(CharGrid::new(new_ui_size, fonts, 0));
+        grids.push(TileGrid::new(new_map_size, fonts, DEFAULT_MAP_FONT));
+        grids.push(TileGrid::new(new_ui_size, fonts, 0));
         grids[MAP_GRID].view.clear_color = None;
         grids[UI_GRID].view.clear_color = Some(color::BLACK);
     }

@@ -146,7 +146,7 @@ impl<'f> FontImage<'f> {
 
 /// A set of characters mapped to positions in a font image.
 ///
-/// Used by CharGrid to measure out and render its contents to its buffer.
+/// Used by TileGrid to measure out and render its contents to its buffer.
 pub struct Font<'f> {
     image: FontImage<'f>,
     glyph_size: Size,
@@ -236,7 +236,7 @@ const DEFAULT_CELL: Cell = Cell {
     bg: Color { r: 0, g: 0, b: 0 },
 };
 
-struct RawCharGrid {
+struct RawTileGrid {
     size: Size,
     draw_fg: Color,
     draw_bg: Color,
@@ -244,14 +244,14 @@ struct RawCharGrid {
     cells: Vec<Cell>,
 }
 
-impl RawCharGrid {
-    fn new(size: Size) -> RawCharGrid {
+impl RawTileGrid {
+    fn new(size: Size) -> RawTileGrid {
         assert_ne!(0, size.w);
         assert_ne!(0, size.h);
         assert!(size.w <= i32::MAX as u32);
         assert!(size.h <= i32::MAX as u32);
 
-        RawCharGrid {
+        RawTileGrid {
             size,
             draw_fg: DEFAULT_CELL.fg,
             draw_bg: DEFAULT_CELL.bg,
@@ -503,61 +503,61 @@ impl RawCharGrid {
     }
 }
 
-/// Where and how a CharGrid should be displayed on screen.
-pub struct CharGridView {
-    /// Top-left pixel position of the clipping rectangle in which the CharGrid will be displayed.
+/// Where and how a TileGrid should be displayed on screen.
+pub struct TileGridView {
+    /// Top-left pixel position of the clipping rectangle in which the TileGrid will be displayed.
     pub pos: Position,
-    /// Pixel width and height of the clipping rectangle in which the CharGrid will be displayed.
+    /// Pixel width and height of the clipping rectangle in which the TileGrid will be displayed.
     pub size: Size,
-    /// x position of the CharGrid itself relative to pos.x.
+    /// x position of the TileGrid itself relative to pos.x.
     pub dx: i32,
-    /// y position of the CharGrid itself relative to pos.y.
+    /// y position of the TileGrid itself relative to pos.y.
     pub dy: i32,
-    /// If false, dont draw the CharGrid or clear behind it.
+    /// If false, dont draw the TileGrid or clear behind it.
     pub visible: bool,
-    /// Color to clear the clipping rectangle area to before drawing the CharGrid; None to skip.
+    /// Color to clear the clipping rectangle area to before drawing the TileGrid; None to skip.
     pub clear_color: Option<Color>,
     /// Color to multiply with the texture as it's displayed on the screen.
     pub color_mod: Color,
-    /// Zoom factor of the CharGrid when displayed on screen.
+    /// Zoom factor of the TileGrid when displayed on screen.
     pub zoom: u32,
 }
 
-/// A CharGrid is a grid of cells consisting of a character, a foreground color and a background
-/// color.  To use a CharGrid, create a new one, draw characters and colors onto it, and display it
+/// A TileGrid is a grid of cells consisting of a character, a foreground color and a background
+/// color.  To use a TileGrid, create a new one, draw characters and colors onto it, and display it
 /// on the screen.
-pub struct CharGrid<'b, 'r> {
-    front: RawCharGrid,
-    back: RawCharGrid,
+pub struct TileGrid<'b, 'r> {
+    front: RawTileGrid,
+    back: RawTileGrid,
     force_render: bool,
     needs_render: bool,
     needs_upload: bool,
     font_index: usize,
     buffer: Option<Surface<'b>>,
     texture: Option<Texture<'r>>,
-    pub view: CharGridView,
+    pub view: TileGridView,
 }
 
-impl<'b, 'r> CharGrid<'b, 'r> {
-    /// Create a new CharGrid with a given width and height.
+impl<'b, 'r> TileGrid<'b, 'r> {
+    /// Create a new TileGrid with a given width and height.
     ///
     /// White is the default foreground color and black is the default background color.
     ///
-    /// By default, the CharGrid will be displayed at (0, 0) with a size of (640, 480) cleared to
+    /// By default, the TileGrid will be displayed at (0, 0) with a size of (640, 480) cleared to
     /// black.
-    pub fn new(grid_size: Size, fonts: &[Font], font_index: usize) -> CharGrid<'b, 'r> {
+    pub fn new(grid_size: Size, fonts: &[Font], font_index: usize) -> Self {
         assert!(font_index < fonts.len());
 
-        CharGrid {
-            front: RawCharGrid::new(grid_size),
-            back: RawCharGrid::new(grid_size),
+        Self {
+            front: RawTileGrid::new(grid_size),
+            back: RawTileGrid::new(grid_size),
             force_render: true,
             needs_render: true,
             needs_upload: true,
             font_index,
             buffer: None,
             texture: None,
-            view: CharGridView {
+            view: TileGridView {
                 pos: Position { x: 0, y: 0 },
                 size: Size { w: 640, h: 480 },
                 dx: 0,
@@ -574,17 +574,17 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
     }
 
-    /// The width of the CharGrid in cells.
+    /// The width of the TileGrid in cells.
     pub fn width(&self) -> u32 {
         self.front.size.w
     }
 
-    /// The height of the CharGrid in cells.
+    /// The height of the TileGrid in cells.
     pub fn height(&self) -> u32 {
         self.front.size.h
     }
 
-    /// Resize the CharGrid to the given grid dimensions, skipping if the dimensions are identical.
+    /// Resize the TileGrid to the given grid dimensions, skipping if the dimensions are identical.
     ///
     /// If a resize occurs, the grid contents will need to be redrawn, and internal flags will be
     /// set to remake and redraw internal buffers.
@@ -600,22 +600,22 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
     }
 
-    /// Make the CharGrid reupload texture contents in the next call to [CharGrid::display].
+    /// Make the TileGrid reupload texture contents in the next call to [TileGrid::display].
     pub fn flag_texture_reset(&mut self) {
         self.needs_upload = true;
     }
 
-    /// Make the CharGrid recreate its texture in the next call to [CharGrid::display].
+    /// Make the TileGrid recreate its texture in the next call to [TileGrid::display].
     pub fn flag_texture_recreate(&mut self) {
         self.texture = None;
     }
 
-    /// Get the font index for the Font assigned to the CharGrid.
+    /// Get the font index for the Font assigned to the TileGrid.
     pub fn font(&self) -> usize {
         self.font_index
     }
 
-    /// Assign a font for the CharGrid to be rendered with.
+    /// Assign a font for the TileGrid to be rendered with.
     pub fn set_font(&mut self, fonts: &[Font], new_font_index: usize) {
         assert!(new_font_index < fonts.len());
 
@@ -625,7 +625,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         }
     }
 
-    /// Prepare the CharGrid to be displayed centered within a given rectangle, possibly clipped.
+    /// Prepare the TileGrid to be displayed centered within a given rectangle, possibly clipped.
     pub fn view_centered(
         &mut self,
         fonts: &[Font],
@@ -681,12 +681,12 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.front.set_draw_offset(pos);
     }
 
-    /// Clear the entire CharGrid.
+    /// Clear the entire TileGrid.
     pub fn clear(&mut self) {
         self.clear_color(false, false);
     }
 
-    /// Clear the entire CharGrid, optionally changing the foreground and/or background colors.
+    /// Clear the entire TileGrid, optionally changing the foreground and/or background colors.
     pub fn clear_color(&mut self, use_fg: bool, use_bg: bool) {
         self.front.clear_color(use_fg, use_bg);
         self.needs_render = true;
@@ -704,7 +704,7 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.needs_render = true;
     }
 
-    /// Like [CharGrid::put_color], but skips bounds checking.
+    /// Like [TileGrid::put_color], but skips bounds checking.
     pub fn put_color_raw<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, c: char)
     where
         P: Into<Position>,
@@ -719,15 +719,15 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.needs_render = true;
     }
 
-    /// Print a string on the CharGrid starting at the given position.  If the string goes past the
-    /// right edge of the CharGrid it will be truncated.
+    /// Print a string on the TileGrid starting at the given position.  If the string goes past the
+    /// right edge of the TileGrid it will be truncated.
     pub fn print<P: Into<Position>>(&mut self, pos: P, s: &str) {
         self.print_color(pos.into(), false, false, s);
     }
 
-    /// Print a string on the CharGrid starting at the given position, optionally changing the
+    /// Print a string on the TileGrid starting at the given position, optionally changing the
     /// foreground and/or background colors.  If the string goes past the right edge of the
-    /// CharGrid it will be truncated.
+    /// TileGrid it will be truncated.
     pub fn print_color<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, s: &str)
     where
         P: Into<Position>,
@@ -736,8 +736,8 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         self.needs_render = true;
     }
 
-    /// Draw a box on the CharGrid with the given size and position.  Any part of the box that
-    /// falls outside of the CharGrid will be clipped off.
+    /// Draw a box on the TileGrid with the given size and position.  Any part of the box that
+    /// falls outside of the TileGrid will be clipped off.
     pub fn draw_box<P, S>(&mut self, pos: P, size: S)
     where
         P: Into<Position>,
@@ -841,9 +841,9 @@ impl<'b, 'r> CharGrid<'b, 'r> {
         buffer_updated
     }
 
-    /// Display the CharGrid onto the screen.
+    /// Display the TileGrid onto the screen.
     ///
-    /// A CharGrid maintains internal buffers to track changes since the last display, so it needs
+    /// A TileGrid maintains internal buffers to track changes since the last display, so it needs
     /// to be mutable in order to update those buffers when these changes are detected.
     ///
     /// # Panics
@@ -1031,10 +1031,10 @@ impl<'b, 'r> CharGrid<'b, 'r> {
     }
 }
 
-/// A list of CharGrids that should be treated as a single layer.
-pub struct CharGridLayer<'b, 'r> {
+/// A list of TileGrids that should be treated as a single layer.
+pub struct TileGridLayer<'b, 'r> {
     /// If true, draw layers behind this one in a list of layers.
     pub draw_behind: bool,
-    /// CharGrids to be drawn to, rendered and displayed as part of the layer.
-    pub grids: Vec<CharGrid<'b, 'r>>,
+    /// TileGrids to be drawn to, rendered and displayed as part of the layer.
+    pub grids: Vec<TileGrid<'b, 'r>>,
 }

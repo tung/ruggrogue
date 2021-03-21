@@ -4,7 +4,7 @@ use crate::{
     gamekey::{self, GameKey},
     ui::{self, Options},
 };
-use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, Font, InputBuffer, InputEvent, KeyMods, TileGrid};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -44,7 +44,7 @@ impl YesNoDialogMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<CharGrid>,
+        grids: &mut Vec<TileGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
@@ -57,7 +57,7 @@ impl YesNoDialogMode {
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(CharGrid::new(new_grid_size, fonts, 0));
+            grids.push(TileGrid::new(new_grid_size, fonts, 0));
             grids[0].view.clear_color = None;
         }
 
@@ -101,7 +101,7 @@ impl YesNoDialogMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, _world: &World, grids: &mut [CharGrid], active: bool) {
+    pub fn draw(&self, _world: &World, grids: &mut [TileGrid], active: bool) {
         let grid = &mut grids[0];
         let yes_x = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
         let no_x = grid.width() as i32 - NO_STR.len() as i32 - 2;

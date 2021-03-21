@@ -8,7 +8,7 @@ use crate::{
     player::PlayerId,
     ui::{self, Options},
 };
-use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, Font, InputBuffer, InputEvent, KeyMods, TileGrid};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -74,11 +74,11 @@ impl PickUpMenuMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<CharGrid>,
+        grids: &mut Vec<TileGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
-        let font = &fonts[grids.get(0).map_or(0, CharGrid::font)];
+        let font = &fonts[grids.get(0).map_or(0, TileGrid::font)];
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
         let new_grid_size = Size {
             w: self.width as u32 + 4,
@@ -90,7 +90,7 @@ impl PickUpMenuMode {
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(CharGrid::new(new_grid_size, fonts, 0));
+            grids.push(TileGrid::new(new_grid_size, fonts, 0));
             grids[0].view.clear_color = None;
         }
 
@@ -173,7 +173,7 @@ impl PickUpMenuMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
         let grid = &mut grids[0];
         let width = grid.width();
         let height = grid.height();

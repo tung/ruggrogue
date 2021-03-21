@@ -8,7 +8,7 @@ use crate::{
     player::PlayerId,
     render, ui,
 };
-use ruggle::{util::Size, CharGrid, Font, InputBuffer, InputEvent, KeyMods};
+use ruggle::{util::Size, Font, InputBuffer, InputEvent, KeyMods, TileGrid};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -82,7 +82,7 @@ impl TargetMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<CharGrid>,
+        grids: &mut Vec<TileGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
@@ -214,7 +214,7 @@ impl TargetMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 

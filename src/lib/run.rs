@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use crate::{
     input_buffer::InputBuffer,
-    tilegrid::{CharGridLayer, Font, FontInfo},
+    tilegrid::{Font, FontInfo, TileGridLayer},
     util::Size,
 };
 
@@ -31,13 +31,13 @@ pub struct RunSettings {
     pub min_window_size: Size,
     /// Frames per second.
     pub fps: u32,
-    /// Fonts to draw CharGrids with.
+    /// Fonts to draw TileGrids with.
     pub font_infos: Vec<FontInfo>,
 }
 
 fn handle_event(
     event: &Event,
-    layers: &mut [CharGridLayer],
+    layers: &mut [TileGridLayer],
     window_size: &mut (u32, u32),
     new_mouse_shown: &mut Option<bool>,
 ) {
@@ -76,7 +76,7 @@ fn handle_event(
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
 pub fn run<U>(settings: RunSettings, mut update: U)
 where
-    U: FnMut(&mut InputBuffer, &mut Vec<CharGridLayer>, &[Font], Size) -> RunControl,
+    U: FnMut(&mut InputBuffer, &mut Vec<TileGridLayer>, &[Font], Size) -> RunControl,
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -117,7 +117,7 @@ where
 
     let mut window_size = canvas.output_size().unwrap();
     let mut window_rect = Rect::new(0, 0, window_size.0, window_size.1);
-    let mut layers: Vec<CharGridLayer> = Vec::new();
+    let mut layers: Vec<TileGridLayer> = Vec::new();
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;

@@ -8,7 +8,7 @@ use crate::{
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
     render, spawn, ui, vision,
 };
-use ruggle::{util::Size, CharGrid, Font, InputBuffer};
+use ruggle::{util::Size, Font, InputBuffer, TileGrid};
 
 use super::{
     app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult},
@@ -53,7 +53,7 @@ impl DungeonMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<CharGrid>,
+        grids: &mut Vec<TileGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
@@ -204,7 +204,7 @@ impl DungeonMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 

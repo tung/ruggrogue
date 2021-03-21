@@ -8,7 +8,7 @@ use crate::{
 };
 use ruggle::{
     util::{Color, Size},
-    CharGrid, Font, InputBuffer, InputEvent, KeyMods,
+    Font, InputBuffer, InputEvent, KeyMods, TileGrid,
 };
 
 use super::{
@@ -63,11 +63,11 @@ impl InventoryMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<CharGrid>,
+        grids: &mut Vec<TileGrid>,
         fonts: &[Font],
         window_size: Size,
     ) {
-        let font = &fonts[grids.get(0).map_or(0, CharGrid::font)];
+        let font = &fonts[grids.get(0).map_or(0, TileGrid::font)];
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
 
         // Equip grid on top.
@@ -102,9 +102,9 @@ impl InventoryMode {
             grids[EQUIP_GRID].resize(new_equip_size);
             grids[INV_GRID].resize(new_inv_size);
         } else {
-            grids.push(CharGrid::new(new_status_size, fonts, 0));
-            grids.push(CharGrid::new(new_equip_size, fonts, 0));
-            grids.push(CharGrid::new(new_inv_size, fonts, 0));
+            grids.push(TileGrid::new(new_status_size, fonts, 0));
+            grids.push(TileGrid::new(new_equip_size, fonts, 0));
+            grids.push(TileGrid::new(new_inv_size, fonts, 0));
             grids[STATUS_GRID].view.clear_color = None;
             grids[EQUIP_GRID].view.clear_color = None;
             grids[INV_GRID].view.clear_color = None;
@@ -283,7 +283,7 @@ impl InventoryMode {
         }
     }
 
-    fn draw_status(&self, _world: &World, grid: &mut CharGrid, fg: Color, bg: Color) {
+    fn draw_status(&self, _world: &World, grid: &mut TileGrid, fg: Color, bg: Color) {
         // Draw box with right edge off-grid.
         grid.set_draw_fg(fg);
         grid.set_draw_bg(bg);
@@ -293,7 +293,7 @@ impl InventoryMode {
     fn draw_equip(
         &self,
         _world: &World,
-        grid: &mut CharGrid,
+        grid: &mut TileGrid,
         fg: Color,
         bg: Color,
         _selected_bg: Color,
@@ -308,7 +308,7 @@ impl InventoryMode {
     fn draw_inventory(
         &self,
         world: &World,
-        grid: &mut CharGrid,
+        grid: &mut TileGrid,
         fg: Color,
         bg: Color,
         selected_bg: Color,
@@ -401,7 +401,7 @@ impl InventoryMode {
         );
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [CharGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
         let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
