@@ -27,7 +27,7 @@ use crate::{
     player::{PlayerAlive, PlayerId},
     ui::Options,
 };
-use ruggle::{FontInfo, RunSettings};
+use ruggle::{RunSettings, TilesetInfo};
 
 pub struct RuggleRng(Pcg64Mcg);
 
@@ -53,21 +53,21 @@ fn main() {
         window_size: (640, 384).into(),
         min_window_size: (640, 192).into(),
         fps: 60,
-        font_infos: vec![
-            FontInfo {
+        tileset_infos: vec![
+            TilesetInfo {
                 image_path: PathBuf::from("assets/gohufont-8x14.png"),
-                glyph_size: (8, 14).into(),
-                font_map: FontInfo::map_code_page_437(),
+                tile_size: (8, 14).into(),
+                font_map: TilesetInfo::map_code_page_437(),
             },
-            FontInfo {
+            TilesetInfo {
                 image_path: PathBuf::from("assets/terminal-8x8.png"),
-                glyph_size: (8, 8).into(),
-                font_map: FontInfo::map_code_page_437(),
+                tile_size: (8, 8).into(),
+                font_map: TilesetInfo::map_code_page_437(),
             },
         ],
     };
 
-    ruggle::run(settings, |inputs, layers, fonts, window_size| {
-        mode_stack.update(&world, inputs, layers, fonts, window_size)
+    ruggle::run(settings, |inputs, layers, tilesets, window_size| {
+        mode_stack.update(&world, inputs, layers, tilesets, window_size)
     });
 }

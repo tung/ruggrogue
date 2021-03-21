@@ -4,7 +4,7 @@ use crate::{
     gamekey::{self, GameKey},
     ui::{self, Options},
 };
-use ruggle::{util::Size, Font, InputBuffer, InputEvent, KeyMods, TileGrid};
+use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -45,7 +45,7 @@ impl YesNoDialogMode {
         &self,
         world: &World,
         grids: &mut Vec<TileGrid>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) {
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
@@ -57,11 +57,11 @@ impl YesNoDialogMode {
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(TileGrid::new(new_grid_size, fonts, 0));
+            grids.push(TileGrid::new(new_grid_size, tilesets, 0));
             grids[0].view.clear_color = None;
         }
 
-        grids[0].view_centered(fonts, text_zoom, (0, 0).into(), window_size);
+        grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
         grids[0].view.zoom = text_zoom;
     }
 

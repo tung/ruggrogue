@@ -8,7 +8,7 @@ use crate::{
     player::PlayerId,
     render, ui,
 };
-use ruggle::{util::Size, Font, InputBuffer, InputEvent, KeyMods, TileGrid};
+use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -83,10 +83,10 @@ impl TargetMode {
         &self,
         world: &World,
         grids: &mut Vec<TileGrid>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) {
-        ui::prepare_main_grids(world, grids, fonts, window_size);
+        ui::prepare_main_grids(world, grids, tilesets, window_size);
     }
 
     pub fn update(

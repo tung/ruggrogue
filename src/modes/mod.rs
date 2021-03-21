@@ -34,7 +34,7 @@ pub mod yes_no_dialog;
 
 use shipyard::World;
 
-use ruggle::{util::Size, Font, InputBuffer, RunControl, TileGrid, TileGridLayer};
+use ruggle::{util::Size, InputBuffer, RunControl, TileGrid, TileGridLayer, Tileset};
 
 use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
 use dungeon::{DungeonMode, DungeonModeResult};
@@ -205,18 +205,18 @@ impl Mode {
         &self,
         world: &World,
         grids: &mut Vec<TileGrid>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) {
         match self {
-            Mode::AppQuitDialogMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::DungeonMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::InventoryMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::TargetMode(x) => x.prepare_grids(world, grids, fonts, window_size),
-            Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, fonts, window_size),
+            Mode::AppQuitDialogMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::DungeonMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::InventoryMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::TargetMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
         }
     }
 
@@ -294,7 +294,7 @@ impl ModeStack {
         world: &World,
         inputs: &mut InputBuffer,
         layers: &mut Vec<TileGridLayer>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) -> RunControl {
         if !self.stack.is_empty() && layers.is_empty() {
@@ -317,7 +317,7 @@ impl ModeStack {
                 .unwrap_or(0);
 
             for (i, mode) in self.stack.iter_mut().enumerate().skip(prepare_grids_from) {
-                mode.prepare_grids(world, &mut layers[i].grids, &fonts, window_size);
+                mode.prepare_grids(world, &mut layers[i].grids, &tilesets, window_size);
             }
 
             // Update the top mode.

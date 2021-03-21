@@ -8,7 +8,7 @@ use crate::{
     player::PlayerId,
     ui::{self, Options},
 };
-use ruggle::{util::Size, Font, InputBuffer, InputEvent, KeyMods, TileGrid};
+use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -75,26 +75,26 @@ impl PickUpMenuMode {
         &self,
         world: &World,
         grids: &mut Vec<TileGrid>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) {
-        let font = &fonts[grids.get(0).map_or(0, TileGrid::font)];
+        let tileset = &tilesets[grids.get(0).map_or(0, TileGrid::tileset)];
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
         let new_grid_size = Size {
             w: self.width as u32 + 4,
             h: (8 + self.items.len() as u32)
-                .min(window_size.h / (font.glyph_height() * text_zoom))
+                .min(window_size.h / (tileset.tile_height() * text_zoom))
                 .max(9),
         };
 
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(TileGrid::new(new_grid_size, fonts, 0));
+            grids.push(TileGrid::new(new_grid_size, tilesets, 0));
             grids[0].view.clear_color = None;
         }
 
-        grids[0].view_centered(fonts, text_zoom, (0, 0).into(), window_size);
+        grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
         grids[0].view.zoom = text_zoom;
     }
 

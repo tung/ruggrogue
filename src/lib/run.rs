@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use crate::{
     input_buffer::InputBuffer,
-    tilegrid::{Font, FontInfo, TileGridLayer},
+    tilegrid::{TileGridLayer, Tileset, TilesetInfo},
     util::Size,
 };
 
@@ -31,8 +31,8 @@ pub struct RunSettings {
     pub min_window_size: Size,
     /// Frames per second.
     pub fps: u32,
-    /// Fonts to draw TileGrids with.
-    pub font_infos: Vec<FontInfo>,
+    /// Tilesets to draw TileGrids with.
+    pub tileset_infos: Vec<TilesetInfo>,
 }
 
 fn handle_event(
@@ -76,7 +76,7 @@ fn handle_event(
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
 pub fn run<U>(settings: RunSettings, mut update: U)
 where
-    U: FnMut(&mut InputBuffer, &mut Vec<TileGridLayer>, &[Font], Size) -> RunControl,
+    U: FnMut(&mut InputBuffer, &mut Vec<TileGridLayer>, &[Tileset], Size) -> RunControl,
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -108,11 +108,11 @@ where
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
-    assert!(!settings.font_infos.is_empty());
+    assert!(!settings.tileset_infos.is_empty());
 
-    let mut fonts = Vec::with_capacity(settings.font_infos.len());
-    for font_info in settings.font_infos {
-        fonts.push(Font::new(font_info));
+    let mut tilesets = Vec::with_capacity(settings.tileset_infos.len());
+    for tileset_info in settings.tileset_infos {
+        tilesets.push(Tileset::new(tileset_info));
     }
 
     let mut window_size = canvas.output_size().unwrap();
@@ -193,7 +193,7 @@ where
                     update_count += 1;
                 }
 
-                match update(&mut inputs, &mut layers, &fonts[..], window_size.into()) {
+                match update(&mut inputs, &mut layers, &tilesets[..], window_size.into()) {
                     RunControl::Update => lag -= frame_time,
                     RunControl::WaitForEvent => {
                         active_update = false;
@@ -214,7 +214,7 @@ where
             }
 
             // Update once in response to events.
-            match update(&mut inputs, &mut layers, &fonts[..], window_size.into()) {
+            match update(&mut inputs, &mut layers, &tilesets[..], window_size.into()) {
                 RunControl::WaitForEvent => {}
                 RunControl::Update => {
                     active_update = true;
@@ -240,7 +240,7 @@ where
 
         for layer in &mut layers[start_layer_draw_from..] {
             for grid in &mut layer.grids {
-                grid.display(&mut fonts[..], &mut canvas, &texture_creator);
+                grid.display(&mut tilesets[..], &mut canvas, &texture_creator);
             }
         }
 

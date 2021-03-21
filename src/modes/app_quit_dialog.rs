@@ -1,6 +1,6 @@
 use shipyard::World;
 
-use ruggle::{util::Size, Font, InputBuffer, TileGrid};
+use ruggle::{util::Size, InputBuffer, TileGrid, Tileset};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -27,10 +27,10 @@ impl AppQuitDialogMode {
         &self,
         world: &World,
         grids: &mut Vec<TileGrid>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) {
-        self.0.prepare_grids(world, grids, fonts, window_size);
+        self.0.prepare_grids(world, grids, tilesets, window_size);
     }
 
     pub fn update(

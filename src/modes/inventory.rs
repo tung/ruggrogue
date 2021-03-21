@@ -8,7 +8,7 @@ use crate::{
 };
 use ruggle::{
     util::{Color, Size},
-    Font, InputBuffer, InputEvent, KeyMods, TileGrid,
+    InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };
 
 use super::{
@@ -64,10 +64,10 @@ impl InventoryMode {
         &self,
         world: &World,
         grids: &mut Vec<TileGrid>,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         window_size: Size,
     ) {
-        let font = &fonts[grids.get(0).map_or(0, TileGrid::font)];
+        let tileset = &tilesets[grids.get(0).map_or(0, TileGrid::tileset)];
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
 
         // Equip grid on top.
@@ -86,7 +86,7 @@ impl InventoryMode {
             h: (inv_len + 6)
                 .max(13)
                 .min(
-                    (window_size.h / (font.glyph_height() * text_zoom))
+                    (window_size.h / (tileset.tile_height() * text_zoom))
                         .saturating_sub(new_equip_size.h),
                 )
                 .max(7),
@@ -102,9 +102,9 @@ impl InventoryMode {
             grids[EQUIP_GRID].resize(new_equip_size);
             grids[INV_GRID].resize(new_inv_size);
         } else {
-            grids.push(TileGrid::new(new_status_size, fonts, 0));
-            grids.push(TileGrid::new(new_equip_size, fonts, 0));
-            grids.push(TileGrid::new(new_inv_size, fonts, 0));
+            grids.push(TileGrid::new(new_status_size, tilesets, 0));
+            grids.push(TileGrid::new(new_equip_size, tilesets, 0));
+            grids.push(TileGrid::new(new_inv_size, tilesets, 0));
             grids[STATUS_GRID].view.clear_color = None;
             grids[EQUIP_GRID].view.clear_color = None;
             grids[INV_GRID].view.clear_color = None;
@@ -116,15 +116,15 @@ impl InventoryMode {
 
         // Calculate sidebar grid x and width.
         let combined_px_width =
-            (new_inv_size.w + new_status_size.w) * font.glyph_width() * text_zoom;
+            (new_inv_size.w + new_status_size.w) * tileset.tile_width() * text_zoom;
         if combined_px_width <= window_size.w {
             status_grid.view.pos.x = (window_size.w - combined_px_width) as i32 / 2;
-            status_grid.view.size.w = new_status_size.w * font.glyph_width() * text_zoom;
+            status_grid.view.size.w = new_status_size.w * tileset.tile_width() * text_zoom;
             status_grid.view.visible = true;
-        } else if new_inv_size.w * font.glyph_width() * text_zoom < window_size.w {
+        } else if new_inv_size.w * tileset.tile_width() * text_zoom < window_size.w {
             status_grid.view.pos.x = 0;
             status_grid.view.size.w =
-                window_size.w - new_inv_size.w * font.glyph_width() * text_zoom;
+                window_size.w - new_inv_size.w * tileset.tile_width() * text_zoom;
             status_grid.view.visible = true;
         } else {
             status_grid.view.pos.x = 0;
@@ -134,23 +134,23 @@ impl InventoryMode {
 
         // Calculate equip grid x and width.
         equip_grid.view.pos.x = status_grid.view.pos.x + status_grid.view.size.w as i32;
-        equip_grid.view.size.w = new_equip_size.w * font.glyph_width() * text_zoom;
+        equip_grid.view.size.w = new_equip_size.w * tileset.tile_width() * text_zoom;
 
         // Calculate inventory grid x and width.
         inv_grid.view.pos.x = equip_grid.view.pos.x;
-        inv_grid.view.size.w = new_inv_size.w * font.glyph_width() * text_zoom;
+        inv_grid.view.size.w = new_inv_size.w * tileset.tile_width() * text_zoom;
 
         // Calculate equip grid y and height.
         let combined_px_height =
-            (new_inv_size.h + new_equip_size.h) * font.glyph_height() * text_zoom;
+            (new_inv_size.h + new_equip_size.h) * tileset.tile_height() * text_zoom;
         if combined_px_height <= window_size.h {
             equip_grid.view.pos.y = (window_size.h - combined_px_height) as i32 / 2;
-            equip_grid.view.size.h = new_equip_size.h * font.glyph_height() * text_zoom;
+            equip_grid.view.size.h = new_equip_size.h * tileset.tile_height() * text_zoom;
             equip_grid.view.visible = true;
-        } else if new_inv_size.h * font.glyph_height() * text_zoom < window_size.h {
+        } else if new_inv_size.h * tileset.tile_height() * text_zoom < window_size.h {
             equip_grid.view.pos.y = 0;
             equip_grid.view.size.h =
-                window_size.h - new_inv_size.h * font.glyph_height() * text_zoom;
+                window_size.h - new_inv_size.h * tileset.tile_height() * text_zoom;
             equip_grid.view.visible = true;
         } else {
             equip_grid.view.pos.y = 0;
@@ -160,7 +160,7 @@ impl InventoryMode {
 
         // Calculate inventory grid y and height.
         inv_grid.view.pos.y = equip_grid.view.pos.y + equip_grid.view.size.h as i32;
-        inv_grid.view.size.h = new_inv_size.h * font.glyph_height() * text_zoom;
+        inv_grid.view.size.h = new_inv_size.h * tileset.tile_height() * text_zoom;
 
         // Calculate status grid y and height.
         status_grid.view.pos.y = equip_grid.view.pos.y;

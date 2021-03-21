@@ -3,7 +3,7 @@ use shipyard::{Get, UniqueView, View, World};
 use crate::{components::CombatStats, map::Map, message::Messages, player::PlayerId};
 use ruggle::{
     util::{Color, Position, Size},
-    Font, TileGrid,
+    TileGrid, Tileset,
 };
 
 pub mod color {
@@ -67,7 +67,7 @@ pub struct Options {
 
 pub const MAP_GRID: usize = 0;
 pub const UI_GRID: usize = 1;
-pub const DEFAULT_MAP_FONT: usize = 1;
+pub const DEFAULT_MAP_TILESET: usize = 1;
 
 fn draw_status_line(world: &World, grid: &mut TileGrid, y: i32) {
     let mut x = 2;
@@ -128,25 +128,27 @@ pub fn draw_ui(world: &World, grid: &mut TileGrid, prompt: Option<&str>) {
 pub fn prepare_main_grids(
     world: &World,
     grids: &mut Vec<TileGrid>,
-    fonts: &[Font],
+    tilesets: &[Tileset],
     window_size: Size,
 ) {
-    let map_font = &fonts[grids.get(MAP_GRID).map_or(DEFAULT_MAP_FONT, TileGrid::font)];
-    let ui_font = &fonts[grids.get(UI_GRID).map_or(0, TileGrid::font)];
+    let map_tileset = &tilesets[grids
+        .get(MAP_GRID)
+        .map_or(DEFAULT_MAP_TILESET, TileGrid::tileset)];
+    let ui_tileset = &tilesets[grids.get(UI_GRID).map_or(0, TileGrid::tileset)];
     let Options {
         map_zoom,
         text_zoom,
     } = *world.borrow::<UniqueView<Options>>();
 
     let new_ui_size = Size {
-        w: (window_size.w / (ui_font.glyph_width() * text_zoom)).max(40),
+        w: (window_size.w / (ui_tileset.tile_width() * text_zoom)).max(40),
         h: 5,
     };
-    let new_ui_px_h = new_ui_size.h * ui_font.glyph_height() * text_zoom;
+    let new_ui_px_h = new_ui_size.h * ui_tileset.tile_height() * text_zoom;
 
     // 17 == standard field of view range * 2 + 1
-    let mut new_map_w = (window_size.w / (map_font.glyph_width() * map_zoom)).max(17);
-    if window_size.w % (map_font.glyph_width() * map_zoom) > 0 {
+    let mut new_map_w = (window_size.w / (map_tileset.tile_width() * map_zoom)).max(17);
+    if window_size.w % (map_tileset.tile_width() * map_zoom) > 0 {
         // Fill to the edge of the screen.
         new_map_w += 1;
     }
@@ -156,9 +158,10 @@ pub fn prepare_main_grids(
     }
 
     // 17 == standard field of view range * 2 + 1
-    let mut new_map_h =
-        (window_size.h.saturating_sub(new_ui_px_h) / (map_font.glyph_height() * map_zoom)).max(17);
-    if window_size.h % (map_font.glyph_height() * map_zoom) > 0 {
+    let mut new_map_h = (window_size.h.saturating_sub(new_ui_px_h)
+        / (map_tileset.tile_height() * map_zoom))
+        .max(17);
+    if window_size.h % (map_tileset.tile_height() * map_zoom) > 0 {
         // Fill to the edge of the screen.
         new_map_h += 1;
     }
@@ -176,14 +179,14 @@ pub fn prepare_main_grids(
         grids[MAP_GRID].resize(new_map_size);
         grids[UI_GRID].resize(new_ui_size);
     } else {
-        grids.push(TileGrid::new(new_map_size, fonts, DEFAULT_MAP_FONT));
-        grids.push(TileGrid::new(new_ui_size, fonts, 0));
+        grids.push(TileGrid::new(new_map_size, tilesets, DEFAULT_MAP_TILESET));
+        grids.push(TileGrid::new(new_ui_size, tilesets, 0));
         grids[MAP_GRID].view.clear_color = None;
         grids[UI_GRID].view.clear_color = Some(color::BLACK);
     }
 
     grids[MAP_GRID].view_centered(
-        fonts,
+        tilesets,
         map_zoom,
         Position { x: 0, y: 0 },
         Size {

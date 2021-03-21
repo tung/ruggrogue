@@ -12,22 +12,22 @@ use crate::util::{Color, Position, Size};
 
 const U32_SIZE: usize = std::mem::size_of::<u32>();
 
-/// Glyph position of a character in a font image.
-pub type FontIndex = (i32, i32);
+/// Position of a tile in a tile image.
+pub type TileIndex = (i32, i32);
 
-/// Data describing a font that can be loaded from an image on a file system.
-pub struct FontInfo {
-    /// Path to the font image.
+/// Data describing a tileset that can be loaded from an image on a file system.
+pub struct TilesetInfo {
+    /// Path to the tile image.
     pub image_path: PathBuf,
-    /// Pixel width and height of glyphs in the font.
-    pub glyph_size: Size,
-    /// Map of characters to glyph positions in the font image.
-    pub font_map: HashMap<char, FontIndex>,
+    /// Pixel width and height of tiles in the tileset.
+    pub tile_size: Size,
+    /// Map of characters to glyph positions in the tile image.
+    pub font_map: HashMap<char, TileIndex>,
 }
 
-impl FontInfo {
+impl TilesetInfo {
     /// Make a font map that maps characters to a 16-by-16 grid of IBM Code Page 437 glyphs.
-    pub fn map_code_page_437() -> HashMap<char, FontIndex> {
+    pub fn map_code_page_437() -> HashMap<char, TileIndex> {
         let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
                              ►◄↕‼¶§▬↨↑↓→←∟↔▲▼ \
                              !\"#$%&'()*+,-./\
@@ -54,12 +54,12 @@ impl FontInfo {
     }
 }
 
-/// An image held by a Font.
-struct FontImage<'f> {
+/// An image held by a Tileset.
+struct TileImage<'f> {
     surface: Surface<'f>,
 }
 
-impl<'f> FontImage<'f> {
+impl<'f> TileImage<'f> {
     fn new(image_path: PathBuf) -> Self {
         let surface = Surface::from_file(image_path).unwrap();
 
@@ -67,7 +67,7 @@ impl<'f> FontImage<'f> {
         let mut surface = surface.convert_format(PixelFormatEnum::ARGB8888).unwrap();
         surface.set_blend_mode(BlendMode::Blend).unwrap();
 
-        // Convert font image to grayscale and use gray value as alpha.
+        // Convert tile image to grayscale and use gray value as alpha.
         {
             let width = surface.width() as usize;
             let height = surface.height() as usize;
@@ -110,58 +110,58 @@ impl<'f> FontImage<'f> {
         Self { surface }
     }
 
-    fn valid_index(&self, index: FontIndex, glyph_size: Size) -> bool {
-        let glyph_w = glyph_size.w as i32;
-        let glyph_h = glyph_size.h as i32;
-        let glyph_span_x = glyph_w;
-        let glyph_span_y = glyph_h;
+    fn valid_index(&self, index: TileIndex, tile_size: Size) -> bool {
+        let tile_w = tile_size.w as i32;
+        let tile_h = tile_size.h as i32;
+        let tile_span_x = tile_w;
+        let tile_span_y = tile_h;
 
         index.0 >= 0
             && index.1 >= 0
-            && index.0 * glyph_span_x + glyph_w <= self.surface.width() as i32
-            && index.1 * glyph_span_y + glyph_h <= self.surface.height() as i32
+            && index.0 * tile_span_x + tile_w <= self.surface.width() as i32
+            && index.1 * tile_span_y + tile_h <= self.surface.height() as i32
     }
 
-    fn draw_glyph_to(
+    fn draw_tile_to(
         &mut self,
         x: i32,
         y: i32,
-        glyph_size: Size,
+        tile_size: Size,
         color: Color,
         dest: &mut Surface,
         rect: Rect,
     ) {
         let color = Sdl2Color::RGB(color.r, color.g, color.b);
-        let glyph_rect = Rect::new(
-            x * glyph_size.w as i32,
-            y * glyph_size.h as i32,
-            glyph_size.w,
-            glyph_size.h,
+        let tile_rect = Rect::new(
+            x * tile_size.w as i32,
+            y * tile_size.h as i32,
+            tile_size.w,
+            tile_size.h,
         );
 
         self.surface.set_color_mod(color);
-        self.surface.blit(glyph_rect, dest, rect).unwrap();
+        self.surface.blit(tile_rect, dest, rect).unwrap();
     }
 }
 
-/// A set of characters mapped to positions in a font image.
+/// A set of symbols mapped to positions in a tile image.
 ///
 /// Used by TileGrid to measure out and render its contents to its buffer.
-pub struct Font<'f> {
-    image: FontImage<'f>,
-    glyph_size: Size,
-    font_map: HashMap<char, FontIndex>,
+pub struct Tileset<'f> {
+    image: TileImage<'f>,
+    tile_size: Size,
+    font_map: HashMap<char, TileIndex>,
 }
 
-impl<'f> Font<'f> {
-    /// Check that all FontIndex entries in a font map are within the font image bounds.
+impl<'f> Tileset<'f> {
+    /// Check that all TileIndex entries in a font map are within the tile image bounds.
     fn validate_font_map(
-        font_map: &HashMap<char, FontIndex>,
-        image: &FontImage,
-        glyph_size: Size,
+        font_map: &HashMap<char, TileIndex>,
+        image: &TileImage,
+        tile_size: Size,
     ) -> bool {
-        for &font_index in font_map.values() {
-            if !image.valid_index(font_index, glyph_size) {
+        for &tile_index in font_map.values() {
+            if !image.valid_index(tile_index, tile_size) {
                 return false;
             }
         }
@@ -169,45 +169,45 @@ impl<'f> Font<'f> {
         true
     }
 
-    /// Create a new font.  An [sdl2::image::Sdl2ImageContext] must be active at the time that this
-    /// is called in order to load the font image.
+    /// Create a new tileset.  An [sdl2::image::Sdl2ImageContext] must be active at the time that
+    /// this is called in order to load the tile image.
     ///
     /// # Panics
     ///
-    /// Panics if the font image cannot be loaded, or if any entry of the font map lies outside the
-    /// font image bounds.
-    pub fn new(font_info: FontInfo) -> Font<'f> {
-        let image = FontImage::new(font_info.image_path);
-        let glyph_size = font_info.glyph_size;
+    /// Panics if the tile image cannot be loaded, or if any entry of the font map lies outside the
+    /// tile image bounds.
+    pub fn new(tileset_info: TilesetInfo) -> Self {
+        let image = TileImage::new(tileset_info.image_path);
+        let tile_size = tileset_info.tile_size;
 
-        assert!(Font::validate_font_map(
-            &font_info.font_map,
+        assert!(Tileset::validate_font_map(
+            &tileset_info.font_map,
             &image,
-            glyph_size
+            tile_size
         ));
 
-        Font {
+        Self {
             image,
-            glyph_size,
-            font_map: font_info.font_map,
+            tile_size,
+            font_map: tileset_info.font_map,
         }
     }
 
-    /// Pixel width of each font glyph.
-    pub fn glyph_width(&self) -> u32 {
-        self.glyph_size.w
+    /// Pixel width of each tileset tile.
+    pub fn tile_width(&self) -> u32 {
+        self.tile_size.w
     }
 
-    /// Pixel height of each font glyph.
-    pub fn glyph_height(&self) -> u32 {
-        self.glyph_size.h
+    /// Pixel height of each tileset tile.
+    pub fn tile_height(&self) -> u32 {
+        self.tile_size.h
     }
 
-    /// Draw a font glyph onto `dest` at `rect` with a given `color`.
-    fn draw_glyph_to(&mut self, ch: char, color: Color, dest: &mut Surface, rect: Rect) {
+    /// Draw a tileset tile onto `dest` at `rect` with a given `color`.
+    fn draw_tile_to(&mut self, ch: char, color: Color, dest: &mut Surface, rect: Rect) {
         if let Some(&(x, y)) = self.font_map.get(&ch) {
             self.image
-                .draw_glyph_to(x, y, self.glyph_size, color, dest, rect);
+                .draw_tile_to(x, y, self.tile_size, color, dest, rect);
         }
     }
 }
@@ -532,7 +532,7 @@ pub struct TileGrid<'b, 'r> {
     force_render: bool,
     needs_render: bool,
     needs_upload: bool,
-    font_index: usize,
+    tileset_index: usize,
     buffer: Option<Surface<'b>>,
     texture: Option<Texture<'r>>,
     pub view: TileGridView,
@@ -545,8 +545,8 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     ///
     /// By default, the TileGrid will be displayed at (0, 0) with a size of (640, 480) cleared to
     /// black.
-    pub fn new(grid_size: Size, fonts: &[Font], font_index: usize) -> Self {
-        assert!(font_index < fonts.len());
+    pub fn new(grid_size: Size, tilesets: &[Tileset], tileset_index: usize) -> Self {
+        assert!(tileset_index < tilesets.len());
 
         Self {
             front: RawTileGrid::new(grid_size),
@@ -554,7 +554,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
             force_render: true,
             needs_render: true,
             needs_upload: true,
-            font_index,
+            tileset_index,
             buffer: None,
             texture: None,
             view: TileGridView {
@@ -610,17 +610,17 @@ impl<'b, 'r> TileGrid<'b, 'r> {
         self.texture = None;
     }
 
-    /// Get the font index for the Font assigned to the TileGrid.
-    pub fn font(&self) -> usize {
-        self.font_index
+    /// Get the tileset index for the Tileset assigned to the TileGrid.
+    pub fn tileset(&self) -> usize {
+        self.tileset_index
     }
 
-    /// Assign a font for the TileGrid to be rendered with.
-    pub fn set_font(&mut self, fonts: &[Font], new_font_index: usize) {
-        assert!(new_font_index < fonts.len());
+    /// Assign a tileset for the TileGrid to be rendered with.
+    pub fn set_tileset(&mut self, tilesets: &[Tileset], new_tileset_index: usize) {
+        assert!(new_tileset_index < tilesets.len());
 
-        if self.font_index != new_font_index {
-            self.font_index = new_font_index;
+        if self.tileset_index != new_tileset_index {
+            self.tileset_index = new_tileset_index;
             self.force_render = true;
         }
     }
@@ -628,14 +628,14 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     /// Prepare the TileGrid to be displayed centered within a given rectangle, possibly clipped.
     pub fn view_centered(
         &mut self,
-        fonts: &[Font],
+        tilesets: &[Tileset],
         zoom: u32,
         rect_pos: Position,
         rect_size: Size,
     ) {
-        let font = &fonts[self.font_index];
-        let px_width = self.front.size.w * font.glyph_width() * zoom;
-        let px_height = self.front.size.h * font.glyph_height() * zoom;
+        let tileset = &tilesets[self.tileset_index];
+        let px_width = self.front.size.w * tileset.tile_width() * zoom;
+        let px_height = self.front.size.h * tileset.tile_height() * zoom;
 
         if px_width <= rect_size.w {
             self.view.size.w = px_width;
@@ -774,13 +774,13 @@ impl<'b, 'r> TileGrid<'b, 'r> {
         self.needs_render = true;
     }
 
-    fn render(&mut self, font: &mut Font, mut force: bool) -> bool {
+    fn render(&mut self, tileset: &mut Tileset, mut force: bool) -> bool {
         let mut buffer_updated = false;
 
         assert!(self.front.size == self.back.size);
 
-        let buffer_px_w = self.front.size.w * font.glyph_size.w;
-        let buffer_px_h = self.front.size.h * font.glyph_size.h;
+        let buffer_px_w = self.front.size.w * tileset.tile_size.w;
+        let buffer_px_h = self.front.size.h * tileset.tile_size.h;
 
         // Reset the buffer if it isn't the correct size to render to.
         if self.buffer.is_some() {
@@ -815,8 +815,8 @@ impl<'b, 'r> TileGrid<'b, 'r> {
             let grid_width = self.front.size.w as i32;
             let grid_x = i as i32 % grid_width;
             let grid_y = i as i32 / grid_width;
-            let cell_width = font.glyph_size.w as u32;
-            let cell_height = font.glyph_size.h as u32;
+            let cell_width = tileset.tile_size.w as u32;
+            let cell_height = tileset.tile_size.h as u32;
             let px = grid_x * cell_width as i32;
             let py = grid_y * cell_height as i32;
 
@@ -828,7 +828,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
                 buffer.fill_rect(dest_rect, bg_color).unwrap();
 
                 if fcell.ch != ' ' {
-                    font.draw_glyph_to(fcell.ch, fcell.fg, buffer, dest_rect);
+                    tileset.draw_tile_to(fcell.ch, fcell.fg, buffer, dest_rect);
                 }
 
                 buffer_updated = true;
@@ -856,7 +856,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     ///  * the texture fails to be copied onto the canvas
     pub fn display(
         &mut self,
-        fonts: &mut [Font],
+        tilesets: &mut [Tileset],
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
@@ -864,7 +864,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
             return;
         }
 
-        let font = &mut fonts[self.font_index];
+        let tileset = &mut tilesets[self.tileset_index];
 
         // If the buffer doesn't exist yet, it will need to be fully rendered.
         if self.buffer.is_none() {
@@ -873,7 +873,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
 
         // Render the drawn grid contents to the buffer.
         if self.needs_render || self.force_render {
-            if self.render(font, self.force_render) {
+            if self.render(tileset, self.force_render) {
                 self.needs_upload = true;
                 self.force_render = false;
             }
@@ -932,8 +932,8 @@ impl<'b, 'r> TileGrid<'b, 'r> {
         );
         canvas.set_clip_rect(clip_rect);
 
-        let offset_x_px = self.front.draw_offset.x * font.glyph_width() as i32;
-        let offset_y_px = self.front.draw_offset.y * font.glyph_height() as i32;
+        let offset_x_px = self.front.draw_offset.x * tileset.tile_width() as i32;
+        let offset_y_px = self.front.draw_offset.y * tileset.tile_height() as i32;
 
         // Display bottom-right of the texture at the top-left of the destination.
         let src_x = offset_x_px;
