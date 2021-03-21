@@ -6,8 +6,8 @@ use sdl2::{
 use std::time::{Duration, Instant};
 
 use crate::{
-    chargrid::{CharGridLayer, Font, FontInfo},
     input_buffer::InputBuffer,
+    tilegrid::{CharGridLayer, Font, FontInfo},
     util::Size,
 };
 
