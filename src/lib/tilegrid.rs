@@ -54,119 +54,115 @@ impl TilesetInfo {
     }
 }
 
-/// An image held by a Tileset.
-struct TileImage<'f> {
-    surface: Surface<'f>,
+/// A set of symbols mapped to positions in a tile image.
+///
+/// Used by TileGrid to measure out and render its contents to its buffer.
+pub struct Tileset<'s> {
+    surface: Surface<'s>,
+    tile_size: Size,
+    font_map: HashMap<char, i32>,
 }
 
-impl<'f> TileImage<'f> {
-    fn new(image_path: PathBuf) -> Self {
-        let surface = Surface::from_file(image_path).unwrap();
-
-        // Reprocess the surface to make it easier to alpha blit.
-        let mut surface = surface.convert_format(PixelFormatEnum::ARGB8888).unwrap();
-        surface.set_blend_mode(BlendMode::Blend).unwrap();
-
-        // Convert tile image to grayscale and use gray value as alpha.
-        {
-            let width = surface.width() as usize;
-            let height = surface.height() as usize;
-            let pitch = surface.pitch() as usize;
-            let format = surface.pixel_format();
-
-            surface.with_lock_mut(|bytes| {
-                for y in 0..height {
-                    let row_start = y * pitch;
-
-                    for x in 0..width {
-                        let pixel_start = row_start + x * U32_SIZE;
-                        let in_color = Sdl2Color::from_u32(
-                            &format,
-                            u32::from_ne_bytes([
-                                bytes[pixel_start],
-                                bytes[pixel_start + 1],
-                                bytes[pixel_start + 2],
-                                bytes[pixel_start + 3],
-                            ]),
-                        );
-                        let red = in_color.r as u16;
-                        let green = in_color.r as u16;
-                        let blue = in_color.r as u16;
-                        let gray = ((red * 30 + green * 59 + blue * 11) / 100) as u8;
-                        let out_color = if gray == 0 {
-                            Sdl2Color::RGBA(0, 0, 0, 0)
-                        } else {
-                            Sdl2Color::RGBA(255, 255, 255, gray)
-                        };
-                        let out_bytes = out_color.to_u32(&format).to_ne_bytes();
-
-                        bytes[pixel_start..pixel_start + U32_SIZE]
-                            .copy_from_slice(&out_bytes[..U32_SIZE]);
-                    }
-                }
-            });
-        }
-
-        Self { surface }
-    }
-
-    fn valid_index(&self, index: TileIndex, tile_size: Size) -> bool {
+impl<'s> Tileset<'s> {
+    /// Check that tile indexes in the font map lie within image bounds.
+    fn validate_font_map(font_map: &HashMap<char, TileIndex>, tile_size: Size, image_size: Size) {
         let tile_w = tile_size.w as i32;
         let tile_h = tile_size.h as i32;
         let tile_span_x = tile_w;
         let tile_span_y = tile_h;
 
-        index.0 >= 0
-            && index.1 >= 0
-            && index.0 * tile_span_x + tile_w <= self.surface.width() as i32
-            && index.1 * tile_span_y + tile_h <= self.surface.height() as i32
+        for &(tile_x, tile_y) in font_map.values() {
+            assert!(
+                tile_x >= 0
+                    && tile_y >= 0
+                    && tile_x * tile_span_x + tile_w <= image_size.w as i32
+                    && tile_y * tile_span_y + tile_h <= image_size.h as i32,
+                "({}, {}) outside of tile image bounds",
+                tile_x,
+                tile_y,
+            );
+        }
     }
 
-    fn draw_tile_to(
-        &mut self,
-        x: i32,
-        y: i32,
-        tile_size: Size,
-        color: Color,
-        dest: &mut Surface,
-        rect: Rect,
+    /// Give y positions to TileIndex values that aren't already mapped.
+    fn add_tile_index_to_pos_mappings<T: Iterator<Item = TileIndex>>(
+        mapping: &mut HashMap<TileIndex, i32>,
+        tile_indexes: T,
+        tile_height: u32,
     ) {
-        let color = Sdl2Color::RGB(color.r, color.g, color.b);
-        let tile_rect = Rect::new(
-            x * tile_size.w as i32,
-            y * tile_size.h as i32,
-            tile_size.w,
-            tile_size.h,
-        );
+        let tile_height = tile_height as i32;
+        let mut tile_indexes_vec: Vec<TileIndex> = tile_indexes.collect();
 
-        self.surface.set_color_mod(color);
-        self.surface.blit(tile_rect, dest, rect).unwrap();
-    }
-}
+        if !tile_indexes_vec.is_empty() {
+            let mut y_pos = tile_height * mapping.len() as i32;
 
-/// A set of symbols mapped to positions in a tile image.
-///
-/// Used by TileGrid to measure out and render its contents to its buffer.
-pub struct Tileset<'f> {
-    image: TileImage<'f>,
-    tile_size: Size,
-    font_map: HashMap<char, TileIndex>,
-}
+            // Keep tiles next to each other by index close by final position.
+            tile_indexes_vec.sort_unstable_by_key(|&(x, y)| (y, x));
 
-impl<'f> Tileset<'f> {
-    /// Check that all TileIndex entries in a font map are within the tile image bounds.
-    fn validate_font_map(
-        font_map: &HashMap<char, TileIndex>,
-        image: &TileImage,
-        tile_size: Size,
-    ) -> bool {
-        for &tile_index in font_map.values() {
-            if !image.valid_index(tile_index, tile_size) {
-                return false;
+            for tile_index in tile_indexes_vec.iter() {
+                if !mapping.contains_key(tile_index) {
+                    mapping.insert(*tile_index, y_pos);
+                    y_pos = y_pos.checked_add(tile_height).unwrap();
+                }
             }
         }
+    }
 
-        true
+    /// Transfer tiles from source image to destination surface according to the mapping.
+    fn transfer_tiles(
+        surface: &mut Surface,
+        image: &Surface,
+        mapping: &HashMap<TileIndex, i32>,
+        tile_size: Size,
+    ) {
+        let surface_pitch = surface.pitch() as usize;
+        let surface_format = surface.pixel_format();
+        let surface_bytes = surface.without_lock_mut().unwrap();
+        let image_bytes = image.without_lock().unwrap();
+
+        for (&(tile_x, tile_y), &surface_y) in mapping {
+            for y in 0..tile_size.h as usize {
+                let surface_row_start = (surface_y as usize + y) * surface_pitch;
+                let image_row_start =
+                    (tile_y as usize * tile_size.h as usize + y) * image.pitch() as usize;
+
+                for x in 0..tile_size.w as usize {
+                    // Read the pixel color from the image.
+                    let image_pixel_start =
+                        image_row_start + (tile_x as usize * tile_size.w as usize + x) * U32_SIZE;
+                    let in_color = Sdl2Color::from_u32(
+                        &image.pixel_format(),
+                        u32::from_ne_bytes([
+                            image_bytes[image_pixel_start],
+                            image_bytes[image_pixel_start + 1],
+                            image_bytes[image_pixel_start + 2],
+                            image_bytes[image_pixel_start + 3],
+                        ]),
+                    );
+
+                    // Use gray level to determine color and alpha:
+                    //
+                    //  * 0 gray => transparent black
+                    //  * any other gray => white with alpha = gray
+                    let red = in_color.r as u16;
+                    let green = in_color.g as u16;
+                    let blue = in_color.b as u16;
+                    let gray = ((red * 30 + green * 59 + blue * 11) / 100) as u8;
+                    let out_color = if gray == 0 {
+                        Sdl2Color::RGBA(0, 0, 0, 0)
+                    } else {
+                        Sdl2Color::RGBA(255, 255, 255, gray)
+                    };
+
+                    // Write the output color to the surface.
+                    let out_bytes = out_color.to_u32(&surface_format).to_ne_bytes();
+                    let surface_pixel_start = surface_row_start + x * U32_SIZE;
+
+                    surface_bytes[surface_pixel_start..surface_pixel_start + U32_SIZE]
+                        .copy_from_slice(&out_bytes[..U32_SIZE]);
+                }
+            }
+        }
     }
 
     /// Create a new tileset.  An [sdl2::image::Sdl2ImageContext] must be active at the time that
@@ -174,22 +170,67 @@ impl<'f> Tileset<'f> {
     ///
     /// # Panics
     ///
-    /// Panics if the tile image cannot be loaded, or if any entry of the font map lies outside the
-    /// tile image bounds.
+    /// Panics if no tiles are mapped, the tile image cannot be loaded, or if any entry of the font
+    /// map lies outside the tile image bounds.
     pub fn new(tileset_info: TilesetInfo) -> Self {
-        let image = TileImage::new(tileset_info.image_path);
-        let tile_size = tileset_info.tile_size;
+        assert!(
+            !tileset_info.font_map.is_empty(),
+            "at least one tile must be mapped"
+        );
 
-        assert!(Tileset::validate_font_map(
+        let tile_w = tileset_info.tile_size.w;
+        let tile_h = tileset_info.tile_size.h;
+        let image = Surface::from_file(tileset_info.image_path)
+            .unwrap()
+            .convert_format(PixelFormatEnum::ARGB8888)
+            .unwrap();
+
+        Self::validate_font_map(
             &tileset_info.font_map,
+            tileset_info.tile_size,
+            Size {
+                w: image.width(),
+                h: image.height(),
+            },
+        );
+
+        // Create a mapping from TileIndex to y positions.
+        let mut tile_index_to_pos: HashMap<TileIndex, i32> = HashMap::new();
+
+        Self::add_tile_index_to_pos_mappings(
+            &mut tile_index_to_pos,
+            tileset_info.font_map.values().copied(),
+            tile_h,
+        );
+
+        // Remap font map by y position instead of TileIndex.
+        let font_map: HashMap<char, i32> = tileset_info
+            .font_map
+            .iter()
+            .map(|(&ch, tile_index)| (ch, tile_index_to_pos.get(tile_index).copied().unwrap()))
+            .collect();
+
+        // Create a one-tile-wide surface to transfer tiles from the image onto.
+        let mut surface = Surface::new(
+            tile_w,
+            tile_h * tile_index_to_pos.len() as u32,
+            PixelFormatEnum::ARGB8888,
+        )
+        .unwrap();
+
+        surface.set_blend_mode(BlendMode::Blend).unwrap();
+
+        Self::transfer_tiles(
+            &mut surface,
             &image,
-            tile_size
-        ));
+            &tile_index_to_pos,
+            tileset_info.tile_size,
+        );
 
         Self {
-            image,
-            tile_size,
-            font_map: tileset_info.font_map,
+            surface,
+            tile_size: tileset_info.tile_size,
+            font_map,
         }
     }
 
@@ -205,9 +246,12 @@ impl<'f> Tileset<'f> {
 
     /// Draw a tileset tile onto `dest` at `rect` with a given `color`.
     fn draw_tile_to(&mut self, ch: char, color: Color, dest: &mut Surface, rect: Rect) {
-        if let Some(&(x, y)) = self.font_map.get(&ch) {
-            self.image
-                .draw_tile_to(x, y, self.tile_size, color, dest, rect);
+        if let Some(&y) = self.font_map.get(&ch) {
+            let color = Sdl2Color::RGB(color.r, color.g, color.b);
+            let tile_rect = Rect::new(0, y, self.tile_size.w, self.tile_size.h);
+
+            self.surface.set_color_mod(color);
+            self.surface.blit(tile_rect, dest, rect).unwrap();
         }
     }
 }
