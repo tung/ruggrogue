@@ -848,25 +848,26 @@ impl<'b, 'r> TileGrid<'b, 'r> {
             }
         };
 
+        let grid_width = self.front.size.w as i32;
+        let cell_width = tileset.tile_size.w as u32;
+        let cell_height = tileset.tile_size.h as u32;
+
         // Check the grid for positions to (re)render and (re)render them.
         for (i, (fcell, bcell)) in self
             .front
             .cells
             .iter_mut()
-            .zip(self.back.cells.iter_mut())
+            .zip(self.back.cells.iter())
             .enumerate()
         {
-            let grid_width = self.front.size.w as i32;
-            let grid_x = i as i32 % grid_width;
-            let grid_y = i as i32 / grid_width;
-            let cell_width = tileset.tile_size.w as u32;
-            let cell_height = tileset.tile_size.h as u32;
-            let px = grid_x * cell_width as i32;
-            let py = grid_y * cell_height as i32;
-
             // Render cell if requested or a visible change has occurred.
             if force || fcell.visible_diff(bcell) {
-                let dest_rect = Rect::new(px, py, cell_width, cell_height);
+                let dest_rect = Rect::new(
+                    i as i32 % grid_width * cell_width as i32,
+                    i as i32 / grid_width * cell_height as i32,
+                    cell_width,
+                    cell_height,
+                );
                 let bg_color = Sdl2Color::RGB(fcell.bg.r, fcell.bg.g, fcell.bg.b);
 
                 buffer.fill_rect(dest_rect, bg_color).unwrap();
@@ -877,10 +878,10 @@ impl<'b, 'r> TileGrid<'b, 'r> {
 
                 buffer_updated = true;
             }
-
-            // Update the back data with the front data.
-            *bcell = *fcell;
         }
+
+        // Page flip front and back grid contents.
+        std::mem::swap(&mut self.front.cells, &mut self.back.cells);
 
         buffer_updated
     }
