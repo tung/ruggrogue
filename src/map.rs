@@ -2,7 +2,7 @@ use rand::Rng;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
 use std::collections::HashMap;
 
-use crate::{bitgrid::BitGrid, components::Coord, player::PlayerId, RuggleRng};
+use crate::{bitgrid::BitGrid, components::Coord, gamesym::GameSym, player::PlayerId, RuggleRng};
 use ruggle::util::Color;
 
 #[derive(Clone, Copy)]
@@ -165,7 +165,7 @@ impl Map {
     }
 
     #[allow(clippy::many_single_char_names)]
-    fn wall_char(&self, x: i32, y: i32) -> char {
+    fn wall_sym(&self, x: i32, y: i32) -> GameSym {
         let n = self.wall_or_oob(x, y - 1);
         let s = self.wall_or_oob(x, y + 1);
         let e = self.wall_or_oob(x + 1, y);
@@ -193,23 +193,23 @@ impl Map {
         }
 
         match mask {
-            0 => '■',  // ----
-            1 => '║',  // n---
-            2 => '║',  // -s--
-            3 => '║',  // ns--
-            4 => '═',  // --w-
-            5 => '╝',  // n-w-
-            6 => '╗',  // -sw-
-            7 => '╣',  // nsw-
-            8 => '═',  // ---e
-            9 => '╚',  // n--e
-            10 => '╔', // -s-e
-            11 => '╠', // ns-e
-            12 => '═', // --we
-            13 => '╩', // n-we
-            14 => '╦', // -swe
-            15 => '╬', // nswe
-            _ => '#',
+            0 => GameSym::WallPillar,
+            1 => GameSym::WallN,
+            2 => GameSym::WallS,
+            3 => GameSym::WallNS,
+            4 => GameSym::WallW,
+            5 => GameSym::WallNW,
+            6 => GameSym::WallSW,
+            7 => GameSym::WallNSW,
+            8 => GameSym::WallE,
+            9 => GameSym::WallNE,
+            10 => GameSym::WallES,
+            11 => GameSym::WallNES,
+            12 => GameSym::WallEW,
+            13 => GameSym::WallNEW,
+            14 => GameSym::WallESW,
+            15 => GameSym::WallNESW,
+            _ => GameSym::WallOther,
         }
     }
 
@@ -219,7 +219,7 @@ impl Map {
         y1: i32,
         x2: i32,
         y2: i32,
-    ) -> impl Iterator<Item = (i32, i32, Option<(char, Color)>)> + '_ {
+    ) -> impl Iterator<Item = (i32, i32, Option<(GameSym, Color)>)> + '_ {
         let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
 
         ys.flat_map(move |y| {
@@ -231,13 +231,13 @@ impl Map {
             if !self.seen.get_bit(x, y) {
                 (x, y, None)
             } else {
-                let (ch, color) = match self.get_tile(x, y) {
-                    Tile::Floor => ('·', (102, 102, 102).into()),
-                    Tile::Wall => (self.wall_char(x, y), (179, 102, 26).into()),
-                    Tile::DownStairs => ('>', (255, 255, 0).into()),
+                let (sym, color) = match self.get_tile(x, y) {
+                    Tile::Floor => (GameSym::Floor, (102, 102, 102).into()),
+                    Tile::Wall => (self.wall_sym(x, y), (179, 102, 26).into()),
+                    Tile::DownStairs => (GameSym::DownStairs, (255, 255, 0).into()),
                 };
 
-                (x, y, Some((ch, color)))
+                (x, y, Some((sym, color)))
             }
         })
     }

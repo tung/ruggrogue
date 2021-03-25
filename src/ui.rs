@@ -3,7 +3,7 @@ use shipyard::{Get, UniqueView, View, World};
 use crate::{components::CombatStats, map::Map, message::Messages, player::PlayerId};
 use ruggle::{
     util::{Color, Position, Size},
-    TileGrid, Tileset,
+    Symbol, TileGrid, Tileset,
 };
 
 pub mod color {
@@ -67,9 +67,9 @@ pub struct Options {
 
 pub const MAP_GRID: usize = 0;
 pub const UI_GRID: usize = 1;
-pub const DEFAULT_MAP_TILESET: usize = 1;
+pub const DEFAULT_MAP_TILESET: usize = 2;
 
-fn draw_status_line(world: &World, grid: &mut TileGrid, y: i32) {
+fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
@@ -94,23 +94,26 @@ fn draw_status_line(world: &World, grid: &mut TileGrid, y: i32) {
     grid.draw_bar(false, (x, y), hp_bar_length, 0, hp, max_hp, true, false);
 }
 
-fn draw_messages(world: &World, grid: &mut TileGrid, active: bool, min_y: i32, max_y: i32) {
+fn draw_messages<Y>(world: &World, grid: &mut TileGrid<Y>, active: bool, min_y: i32, max_y: i32)
+where
+    Y: Symbol,
+{
     world.run(|messages: UniqueView<Messages>| {
         grid.set_draw_fg(if active { color::WHITE } else { color::GRAY });
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
-            grid.put_color((0, y), true, false, '>');
+            grid.put_char_color((0, y), true, false, '>');
             grid.print_color((2, y), true, false, message);
         }
     });
 }
 
-pub fn draw_ui(world: &World, grid: &mut TileGrid, prompt: Option<&str>) {
+pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<&str>) {
     let w = grid.width() as i32;
     let h = grid.height() as i32;
 
     grid.set_draw_fg(color::WHITE);
     for x in 0..w {
-        grid.put_color((x, 0), true, false, '─');
+        grid.put_char_color((x, 0), true, false, '─');
     }
 
     draw_status_line(world, grid, 0);
@@ -125,10 +128,10 @@ pub fn draw_ui(world: &World, grid: &mut TileGrid, prompt: Option<&str>) {
 }
 
 /// Prepares grid 0 and grid 1 to display the dungeon map and user interface respectively.
-pub fn prepare_main_grids(
+pub fn prepare_main_grids<Y: Symbol>(
     world: &World,
-    grids: &mut Vec<TileGrid>,
-    tilesets: &[Tileset],
+    grids: &mut Vec<TileGrid<Y>>,
+    tilesets: &[Tileset<Y>],
     window_size: Size,
 ) {
     let map_tileset = &tilesets[grids

@@ -12,7 +12,7 @@ pub use field_of_view::{field_of_view, FovIter, FovShape, ViewableField};
 pub use input_buffer::{InputBuffer, InputEvent, KeyMods};
 pub use path_find::{find_path, AStarIter, PathableMap};
 pub use run::{run, RunControl, RunSettings};
-pub use tilegrid::{TileGrid, TileGridLayer, Tileset, TilesetInfo};
+pub use tilegrid::{Symbol, TileGrid, TileGridLayer, Tileset, TilesetInfo};
 
 /// A trait for a map that has minimum and maximum coordinate bounds.
 pub trait BoundedMap {

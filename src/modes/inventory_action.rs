@@ -3,6 +3,7 @@ use shipyard::{EntityId, Get, UniqueView, View, World};
 use crate::{
     components::{AreaOfEffect, Name, Ranged, Renderable},
     gamekey::{self, GameKey},
+    gamesym::GameSym,
     ui::{self, Options},
 };
 use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
@@ -83,8 +84,8 @@ impl InventoryActionMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
@@ -214,7 +215,7 @@ impl InventoryActionMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
 
         grid.view.color_mod = if active {
@@ -232,7 +233,7 @@ impl InventoryActionMode {
 
             grid.set_draw_fg(render.fg);
             grid.set_draw_bg(render.bg);
-            grid.put_color((2, 2), true, true, render.ch);
+            grid.put_sym_color((2, 2), true, true, render.sym);
 
             grid.set_draw_fg(ui::color::WHITE);
             grid.print_color((4, 2), true, false, &names.get(self.item_id).0);

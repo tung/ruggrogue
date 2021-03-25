@@ -2,6 +2,7 @@ mod bitgrid;
 mod components;
 mod damage;
 mod gamekey;
+mod gamesym;
 mod item;
 mod map;
 mod message;
@@ -16,10 +17,11 @@ mod vision;
 use rand::SeedableRng;
 use rand_pcg::Pcg64Mcg;
 use shipyard::World;
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
     damage::DeadEntities,
+    gamesym::GameSym,
     map::Map,
     message::Messages,
     modes::{dungeon::DungeonMode, ModeStack},
@@ -54,16 +56,23 @@ fn main() {
         min_window_size: (640, 192).into(),
         fps: 60,
         tileset_infos: vec![
-            TilesetInfo {
+            TilesetInfo::<GameSym> {
                 image_path: PathBuf::from("assets/gohufont-8x14.png"),
                 tile_size: (8, 14).into(),
-                font_map: TilesetInfo::map_code_page_437(),
+                tile_start: (0, 0).into(),
+                tile_gap: (0, 0).into(),
+                font_map: TilesetInfo::<GameSym>::map_code_page_437(),
+                symbol_map: HashMap::new(),
             },
-            TilesetInfo {
+            TilesetInfo::<GameSym> {
                 image_path: PathBuf::from("assets/terminal-8x8.png"),
                 tile_size: (8, 8).into(),
-                font_map: TilesetInfo::map_code_page_437(),
+                tile_start: (0, 0).into(),
+                tile_gap: (0, 0).into(),
+                font_map: TilesetInfo::<GameSym>::map_code_page_437(),
+                symbol_map: HashMap::new(),
             },
+            gamesym::urizen_tileset_info(),
         ],
     };
 

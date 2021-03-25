@@ -34,6 +34,7 @@ pub mod yes_no_dialog;
 
 use shipyard::World;
 
+use crate::gamesym::GameSym;
 use ruggle::{util::Size, InputBuffer, RunControl, TileGrid, TileGridLayer, Tileset};
 
 use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
@@ -204,8 +205,8 @@ impl Mode {
     fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         match self {
@@ -238,7 +239,7 @@ impl Mode {
         }
     }
 
-    fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         match self {
             Mode::AppQuitDialogMode(x) => x.draw(world, grids, active),
             Mode::DungeonMode(x) => x.draw(world, grids, active),
@@ -293,8 +294,8 @@ impl ModeStack {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
-        layers: &mut Vec<TileGridLayer>,
-        tilesets: &[Tileset],
+        layers: &mut Vec<TileGridLayer<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) -> RunControl {
         if !self.stack.is_empty() && layers.is_empty() {

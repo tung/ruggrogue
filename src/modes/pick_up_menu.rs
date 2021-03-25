@@ -3,6 +3,7 @@ use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, World};
 use crate::{
     components::{Coord, Item, Name, Renderable},
     gamekey::{self, GameKey},
+    gamesym::GameSym,
     map::Map,
     message::Messages,
     player::PlayerId,
@@ -74,8 +75,8 @@ impl PickUpMenuMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         let tileset = &tilesets[grids.get(0).map_or(0, TileGrid::tileset)];
@@ -173,7 +174,7 @@ impl PickUpMenuMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
         let width = grid.width();
         let height = grid.height();
@@ -223,7 +224,7 @@ impl PickUpMenuMode {
 
                 grid.set_draw_fg(render.fg);
                 grid.set_draw_bg(render.bg);
-                grid.put_color((2, 4 + i as i32 - list_offset), true, true, render.ch);
+                grid.put_sym_color((2, 4 + i as i32 - list_offset), true, true, render.sym);
 
                 grid.set_draw_bg(ui::color::SELECTED_BG);
                 grid.print_color(

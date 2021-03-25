@@ -6,7 +6,7 @@ use sdl2::{
     surface::Surface,
     video::WindowContext,
 };
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::HashMap, hash::Hash, path::PathBuf};
 
 use crate::util::{Color, Position, Size};
 
@@ -15,17 +15,28 @@ const U32_SIZE: usize = std::mem::size_of::<u32>();
 /// Position of a tile in a tile image.
 pub type TileIndex = (i32, i32);
 
+/// Bundle of traits needed for a type to be stored as part of a cell of a [TileGrid].
+pub trait Symbol: Copy + Clone + Eq + PartialEq + Hash {
+    fn text_fallback(self) -> char;
+}
+
 /// Data describing a tileset that can be loaded from an image on a file system.
-pub struct TilesetInfo {
+pub struct TilesetInfo<Y: Symbol> {
     /// Path to the tile image.
     pub image_path: PathBuf,
     /// Pixel width and height of tiles in the tileset.
     pub tile_size: Size,
+    /// Pixel offset of the top-left tile in the tileset.
+    pub tile_start: Position,
+    /// Number of pixels between tiles across.
+    pub tile_gap: Size,
     /// Map of characters to glyph positions in the tile image.
     pub font_map: HashMap<char, TileIndex>,
+    /// Map of symbols to tile positions in the tile image.
+    pub symbol_map: HashMap<Y, TileIndex>,
 }
 
-impl TilesetInfo {
+impl<Y: Symbol> TilesetInfo<Y> {
     /// Make a font map that maps characters to a 16-by-16 grid of IBM Code Page 437 glyphs.
     pub fn map_code_page_437() -> HashMap<char, TileIndex> {
         let code_page_437 = " ☺☻♥♦♣♠•◘○◙♂♀♪♫☼\
@@ -54,29 +65,41 @@ impl TilesetInfo {
     }
 }
 
+#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+enum CellSym<Y: Symbol> {
+    Char(char),
+    Sym(Y),
+}
+
 /// A set of symbols mapped to positions in a tile image.
 ///
 /// Used by TileGrid to measure out and render its contents to its buffer.
-pub struct Tileset<'s> {
+pub struct Tileset<'s, Y: Symbol> {
     surface: Surface<'s>,
     tile_size: Size,
-    font_map: HashMap<char, i32>,
+    cellsym_map: HashMap<CellSym<Y>, Option<i32>>,
 }
 
-impl<'s> Tileset<'s> {
+impl<'s, Y: Symbol> Tileset<'s, Y> {
     /// Check that tile indexes in the font map lie within image bounds.
-    fn validate_font_map(font_map: &HashMap<char, TileIndex>, tile_size: Size, image_size: Size) {
-        let tile_w = tile_size.w as i32;
-        let tile_h = tile_size.h as i32;
-        let tile_span_x = tile_w;
-        let tile_span_y = tile_h;
+    fn validate_tile_indexes<T: Iterator<Item = TileIndex>>(
+        tile_indexes: T,
+        tile_size: Size,
+        tile_start: Position,
+        tile_gap: Size,
+        image_size: Size,
+    ) {
+        let tile_span_x = tile_size.w + tile_gap.w;
+        let tile_span_y = tile_size.h + tile_gap.h;
 
-        for &(tile_x, tile_y) in font_map.values() {
+        for (tile_x, tile_y) in tile_indexes {
             assert!(
                 tile_x >= 0
                     && tile_y >= 0
-                    && tile_x * tile_span_x + tile_w <= image_size.w as i32
-                    && tile_y * tile_span_y + tile_h <= image_size.h as i32,
+                    && tile_start.x as u32 + tile_x as u32 * tile_span_x + tile_size.w
+                        <= image_size.w
+                    && tile_start.y as u32 + tile_y as u32 * tile_span_y + tile_size.h
+                        <= image_size.h,
                 "({}, {}) outside of tile image bounds",
                 tile_x,
                 tile_y,
@@ -114,6 +137,8 @@ impl<'s> Tileset<'s> {
         image: &Surface,
         mapping: &HashMap<TileIndex, i32>,
         tile_size: Size,
+        tile_start: Position,
+        tile_gap: Size,
     ) {
         let surface_pitch = surface.pitch() as usize;
         let surface_format = surface.pixel_format();
@@ -123,13 +148,18 @@ impl<'s> Tileset<'s> {
         for (&(tile_x, tile_y), &surface_y) in mapping {
             for y in 0..tile_size.h as usize {
                 let surface_row_start = (surface_y as usize + y) * surface_pitch;
-                let image_row_start =
-                    (tile_y as usize * tile_size.h as usize + y) * image.pitch() as usize;
+                let image_row_start = (tile_start.y as usize
+                    + tile_y as usize * (tile_size.h + tile_gap.h) as usize
+                    + y)
+                    * image.pitch() as usize;
 
                 for x in 0..tile_size.w as usize {
                     // Read the pixel color from the image.
-                    let image_pixel_start =
-                        image_row_start + (tile_x as usize * tile_size.w as usize + x) * U32_SIZE;
+                    let image_pixel_start = image_row_start
+                        + (tile_start.x as usize
+                            + tile_x as usize * (tile_size.w + tile_gap.w) as usize
+                            + x)
+                            * U32_SIZE;
                     let in_color = Sdl2Color::from_u32(
                         &image.pixel_format(),
                         u32::from_ne_bytes([
@@ -172,11 +202,12 @@ impl<'s> Tileset<'s> {
     ///
     /// Panics if no tiles are mapped, the tile image cannot be loaded, or if any entry of the font
     /// map lies outside the tile image bounds.
-    pub fn new(tileset_info: TilesetInfo) -> Self {
+    pub fn new(tileset_info: TilesetInfo<Y>) -> Self {
         assert!(
-            !tileset_info.font_map.is_empty(),
+            !tileset_info.font_map.is_empty() || !tileset_info.symbol_map.is_empty(),
             "at least one tile must be mapped"
         );
+        assert!(tileset_info.tile_start.x >= 0 && tileset_info.tile_start.y >= 0);
 
         let tile_w = tileset_info.tile_size.w;
         let tile_h = tileset_info.tile_size.h;
@@ -185,9 +216,22 @@ impl<'s> Tileset<'s> {
             .convert_format(PixelFormatEnum::ARGB8888)
             .unwrap();
 
-        Self::validate_font_map(
-            &tileset_info.font_map,
+        Self::validate_tile_indexes(
+            tileset_info.font_map.values().copied(),
             tileset_info.tile_size,
+            tileset_info.tile_start,
+            tileset_info.tile_gap,
+            Size {
+                w: image.width(),
+                h: image.height(),
+            },
+        );
+
+        Self::validate_tile_indexes(
+            tileset_info.symbol_map.values().copied(),
+            tileset_info.tile_size,
+            tileset_info.tile_start,
+            tileset_info.tile_gap,
             Size {
                 w: image.width(),
                 h: image.height(),
@@ -203,12 +247,29 @@ impl<'s> Tileset<'s> {
             tile_h,
         );
 
+        Self::add_tile_index_to_pos_mappings(
+            &mut tile_index_to_pos,
+            tileset_info.symbol_map.values().copied(),
+            tile_h,
+        );
+
+        let mut cellsym_map: HashMap<CellSym<Y>, Option<i32>> = HashMap::new();
+
         // Remap font map by y position instead of TileIndex.
-        let font_map: HashMap<char, i32> = tileset_info
-            .font_map
-            .iter()
-            .map(|(&ch, tile_index)| (ch, tile_index_to_pos.get(tile_index).copied().unwrap()))
-            .collect();
+        for (ch, tile_index) in tileset_info.font_map {
+            cellsym_map.insert(
+                CellSym::<Y>::Char(ch),
+                tile_index_to_pos.get(&tile_index).copied(),
+            );
+        }
+
+        // Remap symbol map by y position instead of TileIndex.
+        for (sym, tile_index) in tileset_info.symbol_map {
+            cellsym_map.insert(
+                CellSym::<Y>::Sym(sym),
+                tile_index_to_pos.get(&tile_index).copied(),
+            );
+        }
 
         // Create a one-tile-wide surface to transfer tiles from the image onto.
         let mut surface = Surface::new(
@@ -225,12 +286,14 @@ impl<'s> Tileset<'s> {
             &image,
             &tile_index_to_pos,
             tileset_info.tile_size,
+            tileset_info.tile_start,
+            tileset_info.tile_gap,
         );
 
         Self {
             surface,
             tile_size: tileset_info.tile_size,
-            font_map,
+            cellsym_map,
         }
     }
 
@@ -245,8 +308,22 @@ impl<'s> Tileset<'s> {
     }
 
     /// Draw a tileset tile onto `dest` at `rect` with a given `color`.
-    fn draw_tile_to(&mut self, ch: char, color: Color, dest: &mut Surface, rect: Rect) {
-        if let Some(&y) = self.font_map.get(&ch) {
+    fn draw_tile_to(&mut self, csym: CellSym<Y>, color: Color, dest: &mut Surface, rect: Rect) {
+        let maybe_y: Option<i32> = match self.cellsym_map.get(&csym) {
+            Some(&maybe_y) => maybe_y,
+            None => match csym {
+                CellSym::<Y>::Sym(sym) => {
+                    // Cache fallback mappping result.
+                    let fallback_ch = CellSym::<Y>::Char(sym.text_fallback());
+                    let fallback_y = self.cellsym_map.get(&fallback_ch).copied().unwrap_or(None);
+                    self.cellsym_map.insert(csym, fallback_y);
+                    fallback_y
+                }
+                CellSym::<Y>::Char(_) => None,
+            },
+        };
+
+        if let Some(y) = maybe_y {
             let color = Sdl2Color::RGB(color.r, color.g, color.b);
             let tile_rect = Rect::new(0, y, self.tile_size.w, self.tile_size.h);
 
@@ -256,51 +333,57 @@ impl<'s> Tileset<'s> {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
-struct Cell {
-    ch: char,
+#[derive(Copy, Clone, Eq, PartialEq)]
+struct Cell<Y: Symbol> {
+    csym: CellSym<Y>,
     fg: Color,
     bg: Color,
 }
 
-impl Cell {
+impl<Y: Symbol> Cell<Y> {
     #[inline]
-    fn visible_diff(&self, other: &Cell) -> bool {
-        self.ch != other.ch || (self.ch != ' ' && self.fg != other.bg) || self.bg != other.bg
+    fn visible_diff(&self, other: &Cell<Y>) -> bool {
+        self.csym != other.csym
+            || (!matches!(self.csym, CellSym::<Y>::Char(' ')) && self.fg != other.bg)
+            || self.bg != other.bg
     }
 }
 
-const DEFAULT_CELL: Cell = Cell {
-    ch: ' ',
-    fg: Color {
-        r: 255,
-        g: 255,
-        b: 255,
-    },
-    bg: Color { r: 0, g: 0, b: 0 },
+const DEFAULT_FG: Color = Color {
+    r: 255,
+    g: 255,
+    b: 255,
 };
+const DEFAULT_BG: Color = Color { r: 0, g: 0, b: 0 };
 
-struct RawTileGrid {
+struct RawTileGrid<Y: Symbol> {
     size: Size,
     draw_fg: Color,
     draw_bg: Color,
     draw_offset: Position,
-    cells: Vec<Cell>,
+    cells: Vec<Cell<Y>>,
 }
 
-impl RawTileGrid {
-    fn new(size: Size) -> RawTileGrid {
+impl<Y: Symbol> RawTileGrid<Y> {
+    fn new(size: Size) -> Self {
         assert_ne!(0, size.w);
         assert_ne!(0, size.h);
         assert!(size.w <= i32::MAX as u32);
         assert!(size.h <= i32::MAX as u32);
 
-        RawTileGrid {
+        Self {
             size,
-            draw_fg: DEFAULT_CELL.fg,
-            draw_bg: DEFAULT_CELL.bg,
+            draw_fg: DEFAULT_FG,
+            draw_bg: DEFAULT_BG,
             draw_offset: Position { x: 0, y: 0 },
-            cells: vec![DEFAULT_CELL; (size.w * size.h) as usize],
+            cells: vec![
+                Cell {
+                    csym: CellSym::<Y>::Char(' '),
+                    fg: DEFAULT_FG,
+                    bg: DEFAULT_BG,
+                };
+                (size.w * size.h) as usize
+            ],
         }
     }
 
@@ -313,8 +396,14 @@ impl RawTileGrid {
 
             self.size = new_size;
             self.draw_offset = Position { x: 0, y: 0 };
-            self.cells
-                .resize((new_size.w * new_size.h) as usize, DEFAULT_CELL);
+            self.cells.resize(
+                (new_size.w * new_size.h) as usize,
+                Cell {
+                    csym: CellSym::<Y>::Char(' '),
+                    fg: DEFAULT_FG,
+                    bg: DEFAULT_BG,
+                },
+            );
         }
     }
 
@@ -341,14 +430,11 @@ impl RawTileGrid {
     }
 
     fn clear_color(&mut self, use_fg: bool, use_bg: bool) {
-        let mut clear_cell = DEFAULT_CELL;
-        if use_fg {
-            clear_cell.fg = self.draw_fg;
-        }
-        if use_bg {
-            clear_cell.bg = self.draw_bg;
-        }
-        self.cells.fill(clear_cell);
+        self.cells.fill(Cell {
+            csym: CellSym::<Y>::Char(' '),
+            fg: if use_fg { self.draw_fg } else { DEFAULT_FG },
+            bg: if use_bg { self.draw_bg } else { DEFAULT_BG },
+        });
     }
 
     #[inline]
@@ -359,11 +445,11 @@ impl RawTileGrid {
         (real_y * self.size.w as i32 + real_x) as usize
     }
 
-    fn put_color_raw(&mut self, pos: Position, use_fg: bool, use_bg: bool, c: char) {
+    fn put_color_raw(&mut self, pos: Position, use_fg: bool, use_bg: bool, csym: CellSym<Y>) {
         let index = self.index(pos);
         let cell = &mut self.cells[index];
 
-        cell.ch = c;
+        cell.csym = csym;
         if use_fg {
             cell.fg = self.draw_fg;
         }
@@ -372,9 +458,9 @@ impl RawTileGrid {
         }
     }
 
-    fn put_color(&mut self, pos: Position, use_fg: bool, use_bg: bool, c: char) {
+    fn put_color(&mut self, pos: Position, use_fg: bool, use_bg: bool, sym: CellSym<Y>) {
         if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
-            self.put_color_raw(pos, use_fg, use_bg, c);
+            self.put_color_raw(pos, use_fg, use_bg, sym);
         }
     }
 
@@ -407,7 +493,7 @@ impl RawTileGrid {
                     },
                     use_fg,
                     use_bg,
-                    c,
+                    CellSym::<Y>::Char(c),
                 );
             }
         }
@@ -423,21 +509,31 @@ impl RawTileGrid {
         if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < grid_w && y < grid_h {
             if y >= 0 {
                 if x >= 0 {
-                    self.put_color_raw(Position { x, y }, true, true, '┌');
+                    self.put_color_raw(Position { x, y }, true, true, CellSym::<Y>::Char('┌'));
                 }
                 for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
-                    self.put_color_raw(Position { x: xx, y }, true, true, '─');
+                    self.put_color_raw(Position { x: xx, y }, true, true, CellSym::<Y>::Char('─'));
                 }
                 if x + w - 1 < grid_w {
-                    self.put_color_raw(Position { x: x + w - 1, y }, true, true, '┐');
+                    self.put_color_raw(
+                        Position { x: x + w - 1, y },
+                        true,
+                        true,
+                        CellSym::<Y>::Char('┐'),
+                    );
                 }
             }
             for yy in std::cmp::max(0, y + 1)..std::cmp::min(grid_h, y + h - 1) {
                 if x >= 0 {
-                    self.put_color_raw(Position { x, y: yy }, true, true, '│');
+                    self.put_color_raw(Position { x, y: yy }, true, true, CellSym::<Y>::Char('│'));
                 }
                 for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
-                    self.put_color_raw(Position { x: xx, y: yy }, true, true, ' ');
+                    self.put_color_raw(
+                        Position { x: xx, y: yy },
+                        true,
+                        true,
+                        CellSym::<Y>::Char(' '),
+                    );
                 }
                 if x + w - 1 < grid_w {
                     self.put_color_raw(
@@ -447,13 +543,18 @@ impl RawTileGrid {
                         },
                         true,
                         true,
-                        '│',
+                        CellSym::<Y>::Char('│'),
                     );
                 }
             }
             if y + h - 1 < grid_h {
                 if x >= 0 {
-                    self.put_color_raw(Position { x, y: y + h - 1 }, true, true, '└');
+                    self.put_color_raw(
+                        Position { x, y: y + h - 1 },
+                        true,
+                        true,
+                        CellSym::<Y>::Char('└'),
+                    );
                 }
                 for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
                     self.put_color_raw(
@@ -463,7 +564,7 @@ impl RawTileGrid {
                         },
                         true,
                         true,
-                        '─',
+                        CellSym::<Y>::Char('─'),
                     );
                 }
                 if x + w - 1 < grid_w {
@@ -474,7 +575,7 @@ impl RawTileGrid {
                         },
                         true,
                         true,
-                        '┘',
+                        CellSym::<Y>::Char('┘'),
                     );
                 }
             }
@@ -514,33 +615,63 @@ impl RawTileGrid {
         if vertical {
             if x >= 0 && x < grid_w && y < grid_h && y + length >= 0 {
                 for i in std::cmp::max(0, y)..std::cmp::min(grid_h, y + fill_start) {
-                    self.put_color_raw(Position { x, y: i }, use_fg, use_bg, '░');
+                    self.put_color_raw(
+                        Position { x, y: i },
+                        use_fg,
+                        use_bg,
+                        CellSym::<Y>::Char('░'),
+                    );
                 }
                 for i in std::cmp::max(0, y + fill_start)
                     ..std::cmp::min(grid_h, y + fill_start + fill_length)
                 {
-                    self.put_color_raw(Position { x, y: i }, use_fg, use_bg, '█');
+                    self.put_color_raw(
+                        Position { x, y: i },
+                        use_fg,
+                        use_bg,
+                        CellSym::<Y>::Char('█'),
+                    );
                 }
                 for i in std::cmp::max(0, y + fill_start + fill_length)
                     ..std::cmp::min(grid_h, y + length)
                 {
-                    self.put_color_raw(Position { x, y: i }, use_fg, use_bg, '░');
+                    self.put_color_raw(
+                        Position { x, y: i },
+                        use_fg,
+                        use_bg,
+                        CellSym::<Y>::Char('░'),
+                    );
                 }
             }
         } else {
             if y >= 0 && y < grid_h && x < grid_w && x + length >= 0 {
                 for i in std::cmp::max(0, x)..std::cmp::min(grid_w, x + fill_start) {
-                    self.put_color_raw(Position { x: i, y }, use_fg, use_bg, '░');
+                    self.put_color_raw(
+                        Position { x: i, y },
+                        use_fg,
+                        use_bg,
+                        CellSym::<Y>::Char('░'),
+                    );
                 }
                 for i in std::cmp::max(0, x + fill_start)
                     ..std::cmp::min(grid_w, x + fill_start + fill_length)
                 {
-                    self.put_color_raw(Position { x: i, y }, use_fg, use_bg, '█');
+                    self.put_color_raw(
+                        Position { x: i, y },
+                        use_fg,
+                        use_bg,
+                        CellSym::<Y>::Char('█'),
+                    );
                 }
                 for i in std::cmp::max(0, x + fill_start + fill_length)
                     ..std::cmp::min(grid_w, x + length)
                 {
-                    self.put_color_raw(Position { x: i, y }, use_fg, use_bg, '░');
+                    self.put_color_raw(
+                        Position { x: i, y },
+                        use_fg,
+                        use_bg,
+                        CellSym::<Y>::Char('░'),
+                    );
                 }
             }
         }
@@ -570,9 +701,9 @@ pub struct TileGridView {
 /// A TileGrid is a grid of cells consisting of a character, a foreground color and a background
 /// color.  To use a TileGrid, create a new one, draw characters and colors onto it, and display it
 /// on the screen.
-pub struct TileGrid<'b, 'r> {
-    front: RawTileGrid,
-    back: RawTileGrid,
+pub struct TileGrid<'b, 'r, Y: Symbol> {
+    front: RawTileGrid<Y>,
+    back: RawTileGrid<Y>,
     force_render: bool,
     needs_render: bool,
     needs_upload: bool,
@@ -582,19 +713,19 @@ pub struct TileGrid<'b, 'r> {
     pub view: TileGridView,
 }
 
-impl<'b, 'r> TileGrid<'b, 'r> {
+impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
     /// Create a new TileGrid with a given width and height.
     ///
     /// White is the default foreground color and black is the default background color.
     ///
     /// By default, the TileGrid will be displayed at (0, 0) with a size of (640, 480) cleared to
     /// black.
-    pub fn new(grid_size: Size, tilesets: &[Tileset], tileset_index: usize) -> Self {
+    pub fn new(grid_size: Size, tilesets: &[Tileset<Y>], tileset_index: usize) -> Self {
         assert!(tileset_index < tilesets.len());
 
         Self {
-            front: RawTileGrid::new(grid_size),
-            back: RawTileGrid::new(grid_size),
+            front: RawTileGrid::<Y>::new(grid_size),
+            back: RawTileGrid::<Y>::new(grid_size),
             force_render: true,
             needs_render: true,
             needs_upload: true,
@@ -660,7 +791,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     }
 
     /// Assign a tileset for the TileGrid to be rendered with.
-    pub fn set_tileset(&mut self, tilesets: &[Tileset], new_tileset_index: usize) {
+    pub fn set_tileset(&mut self, tilesets: &[Tileset<Y>], new_tileset_index: usize) {
         assert!(new_tileset_index < tilesets.len());
 
         if self.tileset_index != new_tileset_index {
@@ -672,7 +803,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     /// Prepare the TileGrid to be displayed centered within a given rectangle, possibly clipped.
     pub fn view_centered(
         &mut self,
-        tilesets: &[Tileset],
+        tilesets: &[Tileset<Y>],
         zoom: u32,
         rect_pos: Position,
         rect_size: Size,
@@ -737,23 +868,54 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     }
 
     /// Put a single character in a given position.
-    pub fn put<P: Into<Position>>(&mut self, pos: P, c: char) {
-        self.put_color(pos, false, false, c);
+    pub fn put_char<P: Into<Position>>(&mut self, pos: P, ch: char) {
+        self.put_char_color(pos, false, false, ch);
+    }
+
+    /// Put a symbol in a given position.
+    pub fn put_sym<P: Into<Position>>(&mut self, pos: P, sym: Y) {
+        self.put_sym_color(pos, false, false, sym);
     }
 
     /// Put a single character in a given position, optionally changing the foreground and/or
     /// background colors.
-    pub fn put_color<P: Into<Position>>(&mut self, pos: P, use_fg: bool, use_bg: bool, c: char) {
-        self.front.put_color(pos.into(), use_fg, use_bg, c);
-        self.needs_render = true;
-    }
-
-    /// Like [TileGrid::put_color], but skips bounds checking.
-    pub fn put_color_raw<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, c: char)
+    pub fn put_char_color<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, ch: char)
     where
         P: Into<Position>,
     {
-        self.front.put_color_raw(pos.into(), use_fg, use_bg, c);
+        self.front
+            .put_color(pos.into(), use_fg, use_bg, CellSym::<Y>::Char(ch));
+        self.needs_render = true;
+    }
+
+    /// Put a symbol in a given position, optionally changing the foreground and/or background
+    /// colors.
+    pub fn put_sym_color<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, sym: Y)
+    where
+        P: Into<Position>,
+    {
+        self.front
+            .put_color(pos.into(), use_fg, use_bg, CellSym::<Y>::Sym(sym));
+        self.needs_render = true;
+    }
+
+    /// Like [TileGrid::put_char_color], but skips bounds checking.
+    pub fn put_char_color_raw<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, ch: char)
+    where
+        P: Into<Position>,
+    {
+        self.front
+            .put_color_raw(pos.into(), use_fg, use_bg, CellSym::<Y>::Char(ch));
+        self.needs_render = true;
+    }
+
+    /// Like [TileGrid::put_sym_color], but skips bounds checking.
+    pub fn put_sym_color_raw<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, sym: Y)
+    where
+        P: Into<Position>,
+    {
+        self.front
+            .put_color_raw(pos.into(), use_fg, use_bg, CellSym::<Y>::Sym(sym));
         self.needs_render = true;
     }
 
@@ -818,7 +980,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
         self.needs_render = true;
     }
 
-    fn render(&mut self, tileset: &mut Tileset, mut force: bool) -> bool {
+    fn render(&mut self, tileset: &mut Tileset<Y>, mut force: bool) -> bool {
         let mut buffer_updated = false;
 
         assert!(self.front.size == self.back.size);
@@ -872,8 +1034,8 @@ impl<'b, 'r> TileGrid<'b, 'r> {
 
                 buffer.fill_rect(dest_rect, bg_color).unwrap();
 
-                if fcell.ch != ' ' {
-                    tileset.draw_tile_to(fcell.ch, fcell.fg, buffer, dest_rect);
+                if !matches!(fcell.csym, CellSym::<Y>::Char(' ')) {
+                    tileset.draw_tile_to(fcell.csym, fcell.fg, buffer, dest_rect);
                 }
 
                 buffer_updated = true;
@@ -901,7 +1063,7 @@ impl<'b, 'r> TileGrid<'b, 'r> {
     ///  * the texture fails to be copied onto the canvas
     pub fn display(
         &mut self,
-        tilesets: &mut [Tileset],
+        tilesets: &mut [Tileset<Y>],
         canvas: &mut WindowCanvas,
         texture_creator: &'r TextureCreator<WindowContext>,
     ) {
@@ -1077,9 +1239,9 @@ impl<'b, 'r> TileGrid<'b, 'r> {
 }
 
 /// A list of TileGrids that should be treated as a single layer.
-pub struct TileGridLayer<'b, 'r> {
+pub struct TileGridLayer<'b, 'r, Y: Symbol> {
     /// If true, draw layers behind this one in a list of layers.
     pub draw_behind: bool,
     /// TileGrids to be drawn to, rendered and displayed as part of the layer.
-    pub grids: Vec<TileGrid<'b, 'r>>,
+    pub grids: Vec<TileGrid<'b, 'r, Y>>,
 }

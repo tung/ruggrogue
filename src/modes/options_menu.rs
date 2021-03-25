@@ -2,6 +2,7 @@ use shipyard::{UniqueView, UniqueViewMut, World};
 
 use crate::{
     gamekey::{self, GameKey},
+    gamesym::GameSym,
     ui::{self, Options},
 };
 use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
@@ -46,8 +47,8 @@ impl OptionsMenuMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
@@ -155,7 +156,7 @@ impl OptionsMenuMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
         let options = world.borrow::<UniqueView<Options>>();
 

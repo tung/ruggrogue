@@ -3,6 +3,7 @@ use shipyard::{EntityId, Get, UniqueView, View, World};
 use crate::{
     components::{Inventory, Name, Renderable},
     gamekey::{self, GameKey},
+    gamesym::GameSym,
     player::PlayerId,
     ui::{self, Options},
 };
@@ -63,8 +64,8 @@ impl InventoryMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         let tileset = &tilesets[grids.get(0).map_or(0, TileGrid::tileset)];
@@ -283,7 +284,7 @@ impl InventoryMode {
         }
     }
 
-    fn draw_status(&self, _world: &World, grid: &mut TileGrid, fg: Color, bg: Color) {
+    fn draw_status(&self, _world: &World, grid: &mut TileGrid<GameSym>, fg: Color, bg: Color) {
         // Draw box with right edge off-grid.
         grid.set_draw_fg(fg);
         grid.set_draw_bg(bg);
@@ -293,7 +294,7 @@ impl InventoryMode {
     fn draw_equip(
         &self,
         _world: &World,
-        grid: &mut TileGrid,
+        grid: &mut TileGrid<GameSym>,
         fg: Color,
         bg: Color,
         _selected_bg: Color,
@@ -302,13 +303,13 @@ impl InventoryMode {
         grid.set_draw_fg(fg);
         grid.set_draw_bg(bg);
         grid.draw_box((0, 0), (grid.width(), grid.height() + 1));
-        grid.put((0, 0), '┬');
+        grid.put_char((0, 0), '┬');
     }
 
     fn draw_inventory(
         &self,
         world: &World,
-        grid: &mut TileGrid,
+        grid: &mut TileGrid<GameSym>,
         fg: Color,
         bg: Color,
         selected_bg: Color,
@@ -316,9 +317,9 @@ impl InventoryMode {
         grid.set_draw_fg(fg);
         grid.set_draw_bg(bg);
         grid.draw_box((0, 0), (grid.width(), grid.height()));
-        grid.put((0, 0), '├');
-        grid.put((grid.width() as i32 - 1, 0), '┤');
-        grid.put((0, grid.height() as i32 - 1), '┴');
+        grid.put_char((0, 0), '├');
+        grid.put_char((grid.width() as i32 - 1, 0), '┤');
+        grid.put_char((0, grid.height() as i32 - 1), '┴');
         grid.print((2, 0), "< Inventory >");
 
         grid.set_draw_bg(selected_bg);
@@ -380,11 +381,11 @@ impl InventoryMode {
 
                         grid.set_draw_fg(render.fg);
                         grid.set_draw_bg(render.bg);
-                        grid.put_color(
+                        grid.put_sym_color(
                             (item_x, item_y + i as i32 - item_offset),
                             true,
                             true,
-                            render.ch,
+                            render.sym,
                         );
 
                         grid.set_draw_bg(selected_bg);
@@ -401,7 +402,7 @@ impl InventoryMode {
         );
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID

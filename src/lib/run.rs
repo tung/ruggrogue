@@ -7,7 +7,7 @@ use std::time::{Duration, Instant};
 
 use crate::{
     input_buffer::InputBuffer,
-    tilegrid::{TileGridLayer, Tileset, TilesetInfo},
+    tilegrid::{Symbol, TileGridLayer, Tileset, TilesetInfo},
     util::Size,
 };
 
@@ -22,7 +22,7 @@ pub enum RunControl {
 }
 
 /// Window and event loop settings for [run].
-pub struct RunSettings {
+pub struct RunSettings<Y: Symbol> {
     /// Window title.
     pub title: String,
     /// Initial pixel width and height of the window.
@@ -32,12 +32,12 @@ pub struct RunSettings {
     /// Frames per second.
     pub fps: u32,
     /// Tilesets to draw TileGrids with.
-    pub tileset_infos: Vec<TilesetInfo>,
+    pub tileset_infos: Vec<TilesetInfo<Y>>,
 }
 
-fn handle_event(
+fn handle_event<Y: Symbol>(
     event: &Event,
-    layers: &mut [TileGridLayer],
+    layers: &mut [TileGridLayer<Y>],
     window_size: &mut (u32, u32),
     new_mouse_shown: &mut Option<bool>,
 ) {
@@ -74,9 +74,10 @@ fn handle_event(
 /// Create a window and run a main event loop that calls `update` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
-pub fn run<U>(settings: RunSettings, mut update: U)
+pub fn run<U, Y>(settings: RunSettings<Y>, mut update: U)
 where
-    U: FnMut(&mut InputBuffer, &mut Vec<TileGridLayer>, &[Tileset], Size) -> RunControl,
+    U: FnMut(&mut InputBuffer, &mut Vec<TileGridLayer<Y>>, &[Tileset<Y>], Size) -> RunControl,
+    Y: Symbol,
 {
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -117,7 +118,7 @@ where
 
     let mut window_size = canvas.output_size().unwrap();
     let mut window_rect = Rect::new(0, 0, window_size.0, window_size.1);
-    let mut layers: Vec<TileGridLayer> = Vec::new();
+    let mut layers: Vec<TileGridLayer<Y>> = Vec::new();
     let mut inputs = InputBuffer::new();
 
     let mut mouse_shown = true;

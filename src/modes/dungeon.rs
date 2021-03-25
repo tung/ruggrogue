@@ -1,7 +1,9 @@
 use shipyard::{UniqueView, UniqueViewMut, World};
 
 use crate::{
-    damage, item,
+    damage,
+    gamesym::GameSym,
+    item,
     map::{self, Map},
     message::Messages,
     monster,
@@ -53,8 +55,8 @@ impl DungeonMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         ui::prepare_main_grids(world, grids, tilesets, window_size);
@@ -204,7 +206,7 @@ impl DungeonMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 

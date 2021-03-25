@@ -1,5 +1,6 @@
 use shipyard::World;
 
+use crate::gamesym::GameSym;
 use ruggle::{util::Size, InputBuffer, TileGrid, Tileset};
 
 use super::{
@@ -26,8 +27,8 @@ impl AppQuitDialogMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         self.0.prepare_grids(world, grids, tilesets, window_size);
@@ -57,7 +58,7 @@ impl AppQuitDialogMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         self.0.draw(world, grids, active);
     }
 }

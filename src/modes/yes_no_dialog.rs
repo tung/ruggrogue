@@ -2,6 +2,7 @@ use shipyard::{UniqueView, World};
 
 use crate::{
     gamekey::{self, GameKey},
+    gamesym::GameSym,
     ui::{self, Options},
 };
 use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
@@ -44,8 +45,8 @@ impl YesNoDialogMode {
     pub fn prepare_grids(
         &self,
         world: &World,
-        grids: &mut Vec<TileGrid>,
-        tilesets: &[Tileset],
+        grids: &mut Vec<TileGrid<GameSym>>,
+        tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
@@ -101,7 +102,7 @@ impl YesNoDialogMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, _world: &World, grids: &mut [TileGrid], active: bool) {
+    pub fn draw(&self, _world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
         let yes_x = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
         let no_x = grid.width() as i32 - NO_STR.len() as i32 - 2;

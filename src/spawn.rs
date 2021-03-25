@@ -14,6 +14,7 @@ use crate::{
         InflictsSleep, Inventory, Item, Monster, Name, Player, ProvidesHealing, Ranged,
         RenderOnFloor, RenderOnMap, Renderable,
     },
+    gamesym::GameSym,
     map::{Map, Rect},
     player, ui, RuggleRng,
 };
@@ -58,7 +59,7 @@ pub fn spawn_player(
             Name("Player".into()),
             RenderOnMap {},
             Renderable {
-                ch: '@',
+                sym: GameSym::Player,
                 fg: ui::color::YELLOW,
                 bg: ui::color::BLACK,
             },
@@ -95,7 +96,7 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                     ProvidesHealing { heal_amount: 8 },
                     RenderOnFloor {},
                     Renderable {
-                        ch: '!',
+                        sym: GameSym::HealthPotion,
                         fg: ui::color::MAGENTA,
                         bg: ui::color::BLACK,
                     },
@@ -139,7 +140,7 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
                     Ranged { range: 6 },
                     RenderOnFloor {},
                     Renderable {
-                        ch: '?',
+                        sym: GameSym::MagicMissileScroll,
                         fg: ui::color::CYAN,
                         bg: ui::color::BLACK,
                     },
@@ -185,7 +186,7 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
                     Ranged { range: 6 },
                     RenderOnFloor {},
                     Renderable {
-                        ch: '?',
+                        sym: GameSym::FireballScroll,
                         fg: ui::color::ORANGE,
                         bg: ui::color::BLACK,
                     },
@@ -231,7 +232,7 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
                     Ranged { range: 6 },
                     RenderOnFloor {},
                     Renderable {
-                        ch: '?',
+                        sym: GameSym::SleepScroll,
                         fg: ui::color::PINK,
                         bg: ui::color::BLACK,
                     },
@@ -243,7 +244,7 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: Color) {
+fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg: Color) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
@@ -280,7 +281,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), ch: char, name: String, fg: Col
                     Name(name),
                     RenderOnMap {},
                     Renderable {
-                        ch,
+                        sym,
                         fg,
                         bg: ui::color::BLACK,
                     },
@@ -296,7 +297,7 @@ fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
     let choice = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
         [
             (
-                'g',
+                GameSym::Goblin,
                 "Goblin",
                 Color {
                     r: 128,
@@ -305,7 +306,7 @@ fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
                 },
             ),
             (
-                'o',
+                GameSym::Orc,
                 "Orc",
                 Color {
                     r: 230,
@@ -317,8 +318,8 @@ fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
         .choose(&mut rng.0)
     });
 
-    if let Some((ch, name, fg)) = choice {
-        spawn_monster(world, pos, *ch, name.to_string(), *fg);
+    if let Some((sym, name, fg)) = choice {
+        spawn_monster(world, pos, *sym, name.to_string(), *fg);
     }
 }
 

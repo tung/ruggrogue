@@ -2,6 +2,7 @@ use shipyard::{Get, IntoIter, UniqueView, View, World};
 
 use crate::{
     components::{Coord, FieldOfView, RenderOnFloor, RenderOnMap, Renderable},
+    gamesym::GameSym,
     map::Map,
     player::PlayerId,
 };
@@ -11,7 +12,7 @@ use ruggle::{
 };
 
 #[allow(clippy::many_single_char_names)]
-pub fn draw_map(world: &World, grid: &mut TileGrid) {
+pub fn draw_map(world: &World, grid: &mut TileGrid<GameSym>) {
     let (map, player_id, coords, fovs) = world.borrow::<(
         UniqueView<Map>,
         UniqueView<PlayerId>,
@@ -34,7 +35,7 @@ pub fn draw_map(world: &World, grid: &mut TileGrid) {
         player_pos.x - cx + w - 1,
         player_pos.y - cy + h - 1,
     ) {
-        if let Some((ch, color)) = tile {
+        if let Some((sym, color)) = tile {
             let color = if fov.get((tx, ty)) {
                 color
             } else {
@@ -44,17 +45,17 @@ pub fn draw_map(world: &World, grid: &mut TileGrid) {
             };
 
             grid.set_draw_fg(color);
-            grid.put_color_raw(
+            grid.put_sym_color_raw(
                 (tx - player_pos.x + cx, ty - player_pos.y + cy),
                 true,
                 false,
-                ch,
+                sym,
             );
         }
     }
 }
 
-pub fn draw_renderables(world: &World, grid: &mut TileGrid) {
+pub fn draw_renderables(world: &World, grid: &mut TileGrid<GameSym>) {
     let (player_id, coords, fovs, render_on_floors, render_on_maps, renderables) = world.borrow::<(
         UniqueView<PlayerId>,
         View<Coord>,
@@ -76,7 +77,7 @@ pub fn draw_renderables(world: &World, grid: &mut TileGrid) {
         if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(coord.0.into()) {
             grid.set_draw_fg(render.fg);
             grid.set_draw_bg(render.bg);
-            grid.put_color((gx, gy), true, true, render.ch);
+            grid.put_sym_color((gx, gy), true, true, render.sym);
         }
     };
 
