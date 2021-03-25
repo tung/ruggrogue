@@ -16,9 +16,8 @@ use crate::{
     },
     gamesym::GameSym,
     map::{Map, Rect},
-    player, ui, RuggleRng,
+    player, RuggleRng,
 };
-use ruggle::util::Color;
 
 /// Spawn a player.
 ///
@@ -60,8 +59,6 @@ pub fn spawn_player(
             RenderOnMap {},
             Renderable {
                 sym: GameSym::Player,
-                fg: ui::color::YELLOW,
-                bg: ui::color::BLACK,
             },
         ),
     )
@@ -97,8 +94,6 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::HealthPotion,
-                        fg: ui::color::MAGENTA,
-                        bg: ui::color::BLACK,
                     },
                 ),
             );
@@ -141,8 +136,6 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::MagicMissileScroll,
-                        fg: ui::color::CYAN,
-                        bg: ui::color::BLACK,
                     },
                 ),
             );
@@ -187,8 +180,6 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::FireballScroll,
-                        fg: ui::color::ORANGE,
-                        bg: ui::color::BLACK,
                     },
                 ),
             );
@@ -233,8 +224,6 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::SleepScroll,
-                        fg: ui::color::PINK,
-                        bg: ui::color::BLACK,
                     },
                 ),
             );
@@ -244,7 +233,7 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg: Color) {
+fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
@@ -280,11 +269,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg:
                     FieldOfView::new(8),
                     Name(name),
                     RenderOnMap {},
-                    Renderable {
-                        sym,
-                        fg,
-                        bg: ui::color::BLACK,
-                    },
+                    Renderable { sym },
                 ),
             );
 
@@ -295,31 +280,11 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg:
 
 fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
     let choice = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
-        [
-            (
-                GameSym::Goblin,
-                "Goblin",
-                Color {
-                    r: 128,
-                    g: 230,
-                    b: 51,
-                },
-            ),
-            (
-                GameSym::Orc,
-                "Orc",
-                Color {
-                    r: 230,
-                    g: 77,
-                    b: 51,
-                },
-            ),
-        ]
-        .choose(&mut rng.0)
+        [(GameSym::Goblin, "Goblin"), (GameSym::Orc, "Orc")].choose(&mut rng.0)
     });
 
-    if let Some((sym, name, fg)) = choice {
-        spawn_monster(world, pos, *sym, name.to_string(), *fg);
+    if let Some((sym, name)) = choice {
+        spawn_monster(world, pos, *sym, name.to_string());
     }
 }
 

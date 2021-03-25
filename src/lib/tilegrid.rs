@@ -15,9 +15,12 @@ const U32_SIZE: usize = std::mem::size_of::<u32>();
 /// Position of a tile in a tile image.
 pub type TileIndex = (i32, i32);
 
+/// Color of a tile.
+pub type TileColor = (u8, u8, u8);
+
 /// Bundle of traits needed for a type to be stored as part of a cell of a [TileGrid].
 pub trait Symbol: Copy + Clone + Eq + PartialEq + Hash {
-    fn text_fallback(self) -> char;
+    fn text_fallback(self) -> (char, (u8, u8, u8));
 }
 
 /// Data describing a tileset that can be loaded from an image on a file system.
@@ -32,8 +35,8 @@ pub struct TilesetInfo<Y: Symbol> {
     pub tile_gap: Size,
     /// Map of characters to glyph positions in the tile image.
     pub font_map: HashMap<char, TileIndex>,
-    /// Map of symbols to tile positions in the tile image.
-    pub symbol_map: HashMap<Y, TileIndex>,
+    /// Map of symbols to tile positions in the tile image and override color.
+    pub symbol_map: HashMap<Y, (TileIndex, Option<TileColor>)>,
 }
 
 impl<Y: Symbol> TilesetInfo<Y> {
@@ -71,13 +74,20 @@ enum CellSym<Y: Symbol> {
     Sym(Y),
 }
 
+/// View of a particular tile in a Tileset surface.
+#[derive(Copy, Clone)]
+struct TileView {
+    y: i32,
+    color: Color,
+}
+
 /// A set of symbols mapped to positions in a tile image.
 ///
 /// Used by TileGrid to measure out and render its contents to its buffer.
 pub struct Tileset<'s, Y: Symbol> {
     surface: Surface<'s>,
     tile_size: Size,
-    cellsym_map: HashMap<CellSym<Y>, Option<i32>>,
+    cellsym_map: HashMap<CellSym<Y>, Option<TileView>>,
 }
 
 impl<'s, Y: Symbol> Tileset<'s, Y> {
@@ -107,11 +117,12 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
         }
     }
 
-    /// Give y positions to TileIndex values that aren't already mapped.
-    fn add_tile_index_to_pos_mappings<T: Iterator<Item = TileIndex>>(
-        mapping: &mut HashMap<TileIndex, i32>,
+    /// Set y positions and auto color detection to TileIndex values that aren't already mapped.
+    fn add_tile_transfers<T: Iterator<Item = TileIndex>>(
+        mapping: &mut HashMap<TileIndex, (i32, bool)>,
         tile_indexes: T,
         tile_height: u32,
+        detect_color: bool,
     ) {
         let tile_height = tile_height as i32;
         let mut tile_indexes_vec: Vec<TileIndex> = tile_indexes.collect();
@@ -124,18 +135,70 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
 
             for tile_index in tile_indexes_vec.iter() {
                 if !mapping.contains_key(tile_index) {
-                    mapping.insert(*tile_index, y_pos);
+                    mapping.insert(*tile_index, (y_pos, detect_color));
                     y_pos = y_pos.checked_add(tile_height).unwrap();
                 }
             }
         }
     }
 
+    fn detect_tile_color(
+        image: &Surface,
+        tile_index: TileIndex,
+        tile_size: Size,
+        tile_start: Position,
+        tile_gap: Size,
+    ) -> Option<Color> {
+        let mut color_tally: HashMap<Sdl2Color, u32> = HashMap::new();
+        let image_bytes = image.without_lock().unwrap();
+        let tile_x = tile_index.0 as usize;
+        let tile_y = tile_index.1 as usize;
+
+        for y in 0..tile_size.h as usize {
+            let image_row_start =
+                (tile_start.y as usize + tile_y * (tile_size.h + tile_gap.h) as usize + y)
+                    * image.pitch() as usize;
+
+            for x in 0..tile_size.w as usize {
+                let image_pixel_start = image_row_start
+                    + (tile_start.x as usize + tile_x * (tile_size.w + tile_gap.w) as usize + x)
+                        * U32_SIZE;
+                let in_color = Sdl2Color::from_u32(
+                    &image.pixel_format(),
+                    u32::from_ne_bytes([
+                        image_bytes[image_pixel_start],
+                        image_bytes[image_pixel_start + 1],
+                        image_bytes[image_pixel_start + 2],
+                        image_bytes[image_pixel_start + 3],
+                    ]),
+                );
+
+                if !(in_color.r == 0 && in_color.g == 0 && in_color.b == 0) {
+                    let color = color_tally.entry(in_color).or_insert(0);
+                    *color += 1;
+                }
+            }
+        }
+
+        color_tally
+            .iter()
+            .max_by_key(|(_, count)| *count)
+            .map(|(color, _)| Color {
+                r: color.r,
+                g: color.g,
+                b: color.b,
+            })
+    }
+
+    fn gray(r: u8, g: u8, b: u8) -> u8 {
+        ((r as u16 * 30 + g as u16 * 59 + b as u16 * 11) / 100) as u8
+    }
+
     /// Transfer tiles from source image to destination surface according to the mapping.
     fn transfer_tiles(
         surface: &mut Surface,
         image: &Surface,
-        mapping: &HashMap<TileIndex, i32>,
+        mapping: &HashMap<TileIndex, (i32, bool)>,
         tile_size: Size,
         tile_start: Position,
         tile_gap: Size,
@@ -145,7 +208,30 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
         let surface_bytes = surface.without_lock_mut().unwrap();
         let image_bytes = image.without_lock().unwrap();
 
-        for (&(tile_x, tile_y), &surface_y) in mapping {
+        for (&tile_index, &(surface_y, detect_color)) in mapping {
+            let (tile_x, tile_y) = tile_index;
+            let max_gray: u8 = if detect_color {
+                // The tile pixels aren't pure white, so we need a gray value to scale them by so
+                // that they don't come out as semi-transparent.
+                let tile_color =
+                    Self::detect_tile_color(image, tile_index, tile_size, tile_start, tile_gap)
+                        .unwrap_or(Color {
+                            r: 255,
+                            g: 255,
+                            b: 255,
+                        });
+                let tile_gray = Self::gray(tile_color.r, tile_color.g, tile_color.b);
+
+                if tile_gray > 0 {
+                    tile_gray
+                } else {
+                    255
+                }
+            } else {
+                255
+            };
+
+            // Transfer the tile image from the tileset image to the surface.
             for y in 0..tile_size.h as usize {
                 let surface_row_start = (surface_y as usize + y) * surface_pitch;
                 let image_row_start = (tile_start.y as usize
@@ -174,14 +260,15 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
                     //
                     //  * 0 gray => transparent black
                     //  * any other gray => white with alpha = gray
-                    let red = in_color.r as u16;
-                    let green = in_color.g as u16;
-                    let blue = in_color.b as u16;
-                    let gray = ((red * 30 + green * 59 + blue * 11) / 100) as u8;
+                    //
+                    // Scale by max_gray such that gray == max_gray means 255 alpha.
+                    let gray = Self::gray(in_color.r, in_color.g, in_color.b).min(max_gray) as u16
+                        * 255
+                        / max_gray as u16;
                     let out_color = if gray == 0 {
                         Sdl2Color::RGBA(0, 0, 0, 0)
                     } else {
-                        Sdl2Color::RGBA(255, 255, 255, gray)
+                        Sdl2Color::RGBA(255, 255, 255, gray as u8)
                     };
 
                     // Write the output color to the surface.
@@ -211,7 +298,7 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
 
         let tile_w = tileset_info.tile_size.w;
         let tile_h = tileset_info.tile_size.h;
-        let image = Surface::from_file(tileset_info.image_path)
+        let image = Surface::from_file(&tileset_info.image_path)
             .unwrap()
             .convert_format(PixelFormatEnum::ARGB8888)
             .unwrap();
@@ -228,7 +315,7 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
         );
 
         Self::validate_tile_indexes(
-            tileset_info.symbol_map.values().copied(),
+            tileset_info.symbol_map.values().map(|ti| ti.0),
             tileset_info.tile_size,
             tileset_info.tile_start,
             tileset_info.tile_gap,
@@ -238,43 +325,71 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
             },
         );
 
-        // Create a mapping from TileIndex to y positions.
-        let mut tile_index_to_pos: HashMap<TileIndex, i32> = HashMap::new();
+        // Decide final y position and auto color detection for tile image data being transferred
+        // from the tileset image to the internal tileset surface.
+        let mut tile_transfers: HashMap<TileIndex, (i32, bool)> = HashMap::new();
 
-        Self::add_tile_index_to_pos_mappings(
-            &mut tile_index_to_pos,
+        Self::add_tile_transfers(
+            &mut tile_transfers,
             tileset_info.font_map.values().copied(),
             tile_h,
+            false,
         );
 
-        Self::add_tile_index_to_pos_mappings(
-            &mut tile_index_to_pos,
-            tileset_info.symbol_map.values().copied(),
+        Self::add_tile_transfers(
+            &mut tile_transfers,
+            tileset_info.symbol_map.values().map(|ti| ti.0),
             tile_h,
+            true,
         );
 
-        let mut cellsym_map: HashMap<CellSym<Y>, Option<i32>> = HashMap::new();
+        let mut cellsym_map: HashMap<CellSym<Y>, Option<TileView>> = HashMap::new();
 
         // Remap font map by y position instead of TileIndex.
-        for (ch, tile_index) in tileset_info.font_map {
+        for (&ch, &tile_index) in &tileset_info.font_map {
             cellsym_map.insert(
                 CellSym::<Y>::Char(ch),
-                tile_index_to_pos.get(&tile_index).copied(),
+                Some(TileView {
+                    y: tile_transfers.get(&tile_index).map(|tr| tr.0).unwrap(),
+                    color: Color {
+                        r: 255,
+                        g: 255,
+                        b: 255,
+                    },
+                }),
             );
         }
 
         // Remap symbol map by y position instead of TileIndex.
-        for (sym, tile_index) in tileset_info.symbol_map {
+        for (&sym, &(tile_index, tile_color)) in &tileset_info.symbol_map {
             cellsym_map.insert(
                 CellSym::<Y>::Sym(sym),
-                tile_index_to_pos.get(&tile_index).copied(),
+                Some(TileView {
+                    y: tile_transfers.get(&tile_index).map(|tr| tr.0).unwrap(),
+                    color: tile_color
+                        .map(Color::from)
+                        .or_else(|| {
+                            Self::detect_tile_color(
+                                &image,
+                                tile_index,
+                                tileset_info.tile_size,
+                                tileset_info.tile_start,
+                                tileset_info.tile_gap,
+                            )
+                        })
+                        .unwrap_or(Color {
+                            r: 255,
+                            g: 255,
+                            b: 255,
+                        }),
+                }),
             );
         }
 
         // Create a one-tile-wide surface to transfer tiles from the image onto.
         let mut surface = Surface::new(
             tile_w,
-            tile_h * tile_index_to_pos.len() as u32,
+            tile_h * tile_transfers.len() as u32,
             PixelFormatEnum::ARGB8888,
         )
         .unwrap();
@@ -284,7 +399,7 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
         Self::transfer_tiles(
             &mut surface,
             &image,
-            &tile_index_to_pos,
+            &tile_transfers,
             tileset_info.tile_size,
             tileset_info.tile_start,
             tileset_info.tile_gap,
@@ -307,27 +422,44 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
         self.tile_size.h
     }
 
-    /// Draw a tileset tile onto `dest` at `rect` with a given `color`.
-    fn draw_tile_to(&mut self, csym: CellSym<Y>, color: Color, dest: &mut Surface, rect: Rect) {
-        let maybe_y: Option<i32> = match self.cellsym_map.get(&csym) {
-            Some(&maybe_y) => maybe_y,
+    /// Draw a tileset tile onto `dest` at `rect` with an optional given `color`.
+    fn draw_tile_to(
+        &mut self,
+        csym: CellSym<Y>,
+        color: Option<Color>,
+        dest: &mut Surface,
+        rect: Rect,
+    ) {
+        let maybe_view: Option<TileView> = match self.cellsym_map.get(&csym) {
+            Some(&maybe_view) => maybe_view,
             None => match csym {
                 CellSym::<Y>::Sym(sym) => {
                     // Cache fallback mappping result.
-                    let fallback_ch = CellSym::<Y>::Char(sym.text_fallback());
-                    let fallback_y = self.cellsym_map.get(&fallback_ch).copied().unwrap_or(None);
-                    self.cellsym_map.insert(csym, fallback_y);
-                    fallback_y
+                    let fallback = sym.text_fallback();
+                    let fb_csym = CellSym::<Y>::Char(fallback.0);
+                    let fb_view: Option<TileView> = self.cellsym_map.get(&fb_csym).and_then(|&v| {
+                        v.map(|v| TileView {
+                            color: fallback.1.into(),
+                            ..v
+                        })
+                    });
+                    self.cellsym_map.insert(csym, fb_view);
+                    fb_view
                 }
                 CellSym::<Y>::Char(_) => None,
             },
         };
 
-        if let Some(y) = maybe_y {
-            let color = Sdl2Color::RGB(color.r, color.g, color.b);
+        if let Some(TileView {
+            y,
+            color: tile_color,
+        }) = maybe_view
+        {
+            let color = color.unwrap_or(tile_color);
             let tile_rect = Rect::new(0, y, self.tile_size.w, self.tile_size.h);
 
-            self.surface.set_color_mod(color);
+            self.surface
+                .set_color_mod(Sdl2Color::RGB(color.r, color.g, color.b));
             self.surface.blit(tile_rect, dest, rect).unwrap();
         }
     }
@@ -336,7 +468,7 @@ impl<'s, Y: Symbol> Tileset<'s, Y> {
 #[derive(Copy, Clone, Eq, PartialEq)]
 struct Cell<Y: Symbol> {
     csym: CellSym<Y>,
-    fg: Color,
+    fg: Option<Color>,
     bg: Color,
 }
 
@@ -349,16 +481,16 @@ impl<Y: Symbol> Cell<Y> {
     }
 }
 
-const DEFAULT_FG: Color = Color {
+const DEFAULT_FG: Option<Color> = Some(Color {
     r: 255,
     g: 255,
     b: 255,
-};
+});
 const DEFAULT_BG: Color = Color { r: 0, g: 0, b: 0 };
 
 struct RawTileGrid<Y: Symbol> {
     size: Size,
-    draw_fg: Color,
+    draw_fg: Option<Color>,
     draw_bg: Color,
     draw_offset: Position,
     cells: Vec<Cell<Y>>,
@@ -407,7 +539,7 @@ impl<Y: Symbol> RawTileGrid<Y> {
         }
     }
 
-    fn set_draw_fg(&mut self, fg: Color) {
+    fn set_draw_fg(&mut self, fg: Option<Color>) {
         self.draw_fg = fg;
     }
 
@@ -834,7 +966,7 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
     }
 
     /// Set the foreground color to be used for subsequent drawing operations.
-    pub fn set_draw_fg(&mut self, fg: Color) {
+    pub fn set_draw_fg(&mut self, fg: Option<Color>) {
         self.front.set_draw_fg(fg);
     }
 

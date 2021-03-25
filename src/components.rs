@@ -1,7 +1,7 @@
 use shipyard::EntityId;
 
 use crate::{bitgrid::BitGrid, gamesym::GameSym, player::AutoRun};
-use ruggle::util::{Color, Position};
+use ruggle::util::Position;
 
 pub struct AreaOfEffect {
     pub radius: i32,
@@ -130,6 +130,4 @@ pub struct RenderOnMap;
 
 pub struct Renderable {
     pub sym: GameSym,
-    pub fg: Color,
-    pub bg: Color,
 }

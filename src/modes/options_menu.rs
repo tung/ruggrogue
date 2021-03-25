@@ -166,7 +166,7 @@ impl OptionsMenuMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(ui::color::WHITE);
+        grid.set_draw_fg(Some(ui::color::WHITE));
         grid.set_draw_bg(ui::color::BLACK);
         grid.draw_box((0, 0), (grid.width(), grid.height()));
         grid.print((2, 0), "< Options >");

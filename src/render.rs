@@ -5,6 +5,7 @@ use crate::{
     gamesym::GameSym,
     map::Map,
     player::PlayerId,
+    ui,
 };
 use ruggle::{
     util::{Color, Position},
@@ -28,6 +29,7 @@ pub fn draw_map(world: &World, grid: &mut TileGrid<GameSym>) {
     let cy = h / 2;
 
     grid.set_draw_offset(player_pos);
+    grid.set_draw_bg(ui::color::BLACK);
 
     for (tx, ty, tile) in map.iter_bounds(
         player_pos.x - cx,
@@ -35,20 +37,22 @@ pub fn draw_map(world: &World, grid: &mut TileGrid<GameSym>) {
         player_pos.x - cx + w - 1,
         player_pos.y - cy + h - 1,
     ) {
-        if let Some((sym, color)) = tile {
+        if let Some(sym) = tile {
             let color = if fov.get((tx, ty)) {
-                color
+                None
             } else {
-                let v =
-                    ((color.r as i32 * 30 + color.g as i32 * 59 + color.b as i32 * 11) / 200) as u8;
-                Color { r: v, g: v, b: v }
+                Some(Color {
+                    r: 48,
+                    g: 48,
+                    b: 48,
+                })
             };
 
             grid.set_draw_fg(color);
             grid.put_sym_color_raw(
                 (tx - player_pos.x + cx, ty - player_pos.y + cy),
                 true,
-                false,
+                true,
                 sym,
             );
         }
@@ -75,9 +79,8 @@ pub fn draw_renderables(world: &World, grid: &mut TileGrid<GameSym>) {
         let gx = coord.0.x - x + cx;
         let gy = coord.0.y - y + cy;
         if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(coord.0.into()) {
-            grid.set_draw_fg(render.fg);
-            grid.set_draw_bg(render.bg);
-            grid.put_sym_color((gx, gy), true, true, render.sym);
+            grid.set_draw_fg(None);
+            grid.put_sym_color((gx, gy), true, false, render.sym);
         }
     };
 
