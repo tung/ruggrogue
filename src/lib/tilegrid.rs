@@ -344,7 +344,7 @@ impl<Y: Symbol> Cell<Y> {
     #[inline]
     fn visible_diff(&self, other: &Cell<Y>) -> bool {
         self.csym != other.csym
-            || (!matches!(self.csym, CellSym::<Y>::Char(' ')) && self.fg != other.bg)
+            || (!matches!(self.csym, CellSym::<Y>::Char(' ')) && self.fg != other.fg)
             || self.bg != other.bg
     }
 }
