@@ -88,7 +88,9 @@ impl InventoryActionMode {
         tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
-        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
+        let Options {
+            font, text_zoom, ..
+        } = *world.borrow::<UniqueView<Options>>();
         let new_grid_size = Size {
             w: 4 + self.inner_width as u32,
             h: 8 + self.actions.len() as u32,
@@ -97,10 +99,11 @@ impl InventoryActionMode {
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(TileGrid::new(new_grid_size, tilesets, 0));
+            grids.push(TileGrid::new(new_grid_size, tilesets, font as usize));
             grids[0].view.clear_color = None;
         }
 
+        grids[0].set_tileset(tilesets, font as usize);
         grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
         grids[0].view.zoom = text_zoom;
     }

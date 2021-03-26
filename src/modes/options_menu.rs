@@ -12,6 +12,11 @@ use super::{
     ModeControl, ModeResult, ModeUpdate,
 };
 
+const TILESET_LABEL: &str = "  Tileset:";
+const FONT_LABEL: &str = "     Font:";
+const NUM_FONTS: u32 = 2;
+const TILESET_NAMES: [&str; 3] = ["GohuFont", "Terminal", "Urizen"];
+const UNKNOWN_TILESET_NAME: &str = "???";
 const MAP_ZOOM_LABEL: &str = " Map zoom:";
 const TEXT_ZOOM_LABEL: &str = "Text zoom:";
 const ZOOM_1X_ON: &str = "[1x]";
@@ -27,6 +32,8 @@ pub enum OptionsMenuModeResult {
 }
 
 enum Selection {
+    Tileset,
+    Font,
     MapZoom,
     TextZoom,
     Quit,
@@ -40,7 +47,7 @@ pub struct OptionsMenuMode {
 impl OptionsMenuMode {
     pub fn new() -> Self {
         Self {
-            selection: Selection::MapZoom,
+            selection: Selection::Tileset,
         }
     }
 
@@ -51,21 +58,43 @@ impl OptionsMenuMode {
         tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
-        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
+        let tileset_width = 7
+            + TILESET_LABEL.len()
+            + TILESET_NAMES
+                .iter()
+                .map(|n| n.len())
+                .max()
+                .unwrap_or_else(|| UNKNOWN_TILESET_NAME.len());
+        let font_width = 7
+            + FONT_LABEL.len()
+            + TILESET_NAMES
+                .iter()
+                .take(NUM_FONTS as usize)
+                .map(|n| n.len())
+                .max()
+                .unwrap_or_else(|| UNKNOWN_TILESET_NAME.len());
+        let map_zoom_width = 2 + MAP_ZOOM_LABEL.len() + ZOOM_1X_ON.len() + ZOOM_2X_ON.len();
+        let text_zoom_width = 2 + TEXT_ZOOM_LABEL.len() + ZOOM_1X_ON.len() + ZOOM_2X_ON.len();
         let new_grid_size = Size {
-            w: 4 + (2 + MAP_ZOOM_LABEL.len() + ZOOM_1X_ON.len() + ZOOM_2X_ON.len())
-                .max(2 + TEXT_ZOOM_LABEL.len() + ZOOM_1X_ON.len() + ZOOM_2X_ON.len())
+            w: 4 + tileset_width
+                .max(font_width)
+                .max(map_zoom_width)
+                .max(text_zoom_width)
                 .max(QUIT.len()) as u32,
-            h: 8,
+            h: 10,
         };
+        let Options {
+            font, text_zoom, ..
+        } = *world.borrow::<UniqueView<Options>>();
 
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
         } else {
-            grids.push(TileGrid::new(new_grid_size, tilesets, 0));
+            grids.push(TileGrid::new(new_grid_size, tilesets, font as usize));
             grids[0].view.clear_color = None;
         }
 
+        grids[0].set_tileset(tilesets, font as usize);
         grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
         grids[0].view.zoom = text_zoom;
     }
@@ -105,7 +134,41 @@ impl OptionsMenuMode {
             let gkey = gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT));
 
             match (&self.selection, gkey) {
-                (Selection::MapZoom, GameKey::Up) => self.selection = Selection::Quit,
+                (Selection::Tileset, GameKey::Up) => self.selection = Selection::Quit,
+                (Selection::Tileset, GameKey::Down) => self.selection = Selection::Font,
+                (Selection::Tileset, GameKey::Left) => {
+                    if options.tileset > 0 {
+                        options.tileset -= 1;
+                        inputs.clear_input();
+                        return (ModeControl::Stay, ModeUpdate::Immediate);
+                    }
+                }
+                (Selection::Tileset, GameKey::Right) => {
+                    if options.tileset as usize + 1 < TILESET_NAMES.len() {
+                        options.tileset += 1;
+                        inputs.clear_input();
+                        return (ModeControl::Stay, ModeUpdate::Immediate);
+                    }
+                }
+
+                (Selection::Font, GameKey::Up) => self.selection = Selection::Tileset,
+                (Selection::Font, GameKey::Down) => self.selection = Selection::MapZoom,
+                (Selection::Font, GameKey::Left) => {
+                    if options.font > 0 {
+                        options.font -= 1;
+                        inputs.clear_input();
+                        return (ModeControl::Stay, ModeUpdate::Immediate);
+                    }
+                }
+                (Selection::Font, GameKey::Right) => {
+                    if options.font + 1 < NUM_FONTS {
+                        options.font += 1;
+                        inputs.clear_input();
+                        return (ModeControl::Stay, ModeUpdate::Immediate);
+                    }
+                }
+
+                (Selection::MapZoom, GameKey::Up) => self.selection = Selection::Font,
                 (Selection::MapZoom, GameKey::Down) => self.selection = Selection::TextZoom,
                 (Selection::MapZoom, GameKey::Left) => {
                     options.map_zoom = 1;
@@ -132,7 +195,7 @@ impl OptionsMenuMode {
                 }
 
                 (Selection::Quit, GameKey::Up) => self.selection = Selection::TextZoom,
-                (Selection::Quit, GameKey::Down) => self.selection = Selection::MapZoom,
+                (Selection::Quit, GameKey::Down) => self.selection = Selection::Tileset,
                 (Selection::Quit, GameKey::Confirm) => {
                     inputs.clear_input();
                     return (
@@ -156,9 +219,130 @@ impl OptionsMenuMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
+    fn draw_tileset(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+        let tileset_left_x = 3 + TILESET_LABEL.len() as i32;
+        let tileset_name_x = 3 + tileset_left_x;
+        let tileset_right_x = 1
+            + tileset_name_x
+            + TILESET_NAMES
+                .iter()
+                .map(|n| n.len())
+                .max()
+                .unwrap_or_else(|| UNKNOWN_TILESET_NAME.len()) as i32;
+        let tileset_y = 2;
+        let tileset = world.borrow::<UniqueView<Options>>().tileset;
+
+        grid.print((2, tileset_y), TILESET_LABEL);
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        if tileset > 0 {
+            grid.print((tileset_left_x, tileset_y), "<<");
+        }
+        grid.print_color(
+            (tileset_name_x, tileset_y),
+            false,
+            matches!(self.selection, Selection::Tileset),
+            TILESET_NAMES
+                .get(tileset as usize)
+                .unwrap_or(&UNKNOWN_TILESET_NAME),
+        );
+        if tileset as usize + 1 < TILESET_NAMES.len() {
+            grid.print((tileset_right_x, tileset_y), ">>");
+        }
+    }
+
+    fn draw_font(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+        let font_left_x = 3 + FONT_LABEL.len() as i32;
+        let font_name_x = 3 + font_left_x;
+        let font_right_x = 1
+            + font_name_x
+            + TILESET_NAMES
+                .iter()
+                .map(|n| n.len())
+                .max()
+                .unwrap_or_else(|| UNKNOWN_TILESET_NAME.len()) as i32;
+        let font_y = 3;
+        let font = world.borrow::<UniqueView<Options>>().font;
+
+        grid.print((2, font_y), FONT_LABEL);
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        if font > 0 {
+            grid.print((font_left_x, font_y), "<<");
+        }
+        grid.print_color(
+            (font_name_x, font_y),
+            false,
+            matches!(self.selection, Selection::Font),
+            TILESET_NAMES
+                .get(font as usize)
+                .unwrap_or(&UNKNOWN_TILESET_NAME),
+        );
+        if font + 1 < NUM_FONTS {
+            grid.print((font_right_x, font_y), ">>");
+        }
+    }
+
+    fn draw_map_zoom(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+        let map_zoom_1x_x = 3 + MAP_ZOOM_LABEL.len() as i32;
+        let map_zoom_2x_x = 4 + (MAP_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
+        let map_zoom_y = 4;
+        let map_zoom = world.borrow::<UniqueView<Options>>().map_zoom;
+
+        grid.print((2, map_zoom_y), MAP_ZOOM_LABEL);
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        grid.print_color(
+            (map_zoom_1x_x, map_zoom_y),
+            false,
+            map_zoom == 1 && matches!(self.selection, Selection::MapZoom),
+            if map_zoom == 1 {
+                ZOOM_1X_ON
+            } else {
+                ZOOM_1X_OFF
+            },
+        );
+        grid.print_color(
+            (map_zoom_2x_x, map_zoom_y),
+            false,
+            map_zoom == 2 && matches!(self.selection, Selection::MapZoom),
+            if map_zoom == 2 {
+                ZOOM_2X_ON
+            } else {
+                ZOOM_2X_OFF
+            },
+        );
+    }
+
+    fn draw_text_zoom(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+        let text_zoom_1x_x = 3 + TEXT_ZOOM_LABEL.len() as i32;
+        let text_zoom_2x_x = 4 + (TEXT_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
+        let text_zoom_y = 5;
+        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
+
+        grid.print((2, text_zoom_y), TEXT_ZOOM_LABEL);
+        grid.set_draw_bg(ui::color::SELECTED_BG);
+        grid.print_color(
+            (text_zoom_1x_x, text_zoom_y),
+            false,
+            text_zoom == 1 && matches!(self.selection, Selection::TextZoom),
+            if text_zoom == 1 {
+                ZOOM_1X_ON
+            } else {
+                ZOOM_1X_OFF
+            },
+        );
+        grid.print_color(
+            (text_zoom_2x_x, text_zoom_y),
+            false,
+            text_zoom == 2 && matches!(self.selection, Selection::TextZoom),
+            if text_zoom == 2 {
+                ZOOM_2X_ON
+            } else {
+                ZOOM_2X_OFF
+            },
+        );
+    }
+
     pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
-        let options = world.borrow::<UniqueView<Options>>();
 
         grid.view.color_mod = if active {
             ui::color::WHITE
@@ -171,63 +355,14 @@ impl OptionsMenuMode {
         grid.draw_box((0, 0), (grid.width(), grid.height()));
         grid.print((2, 0), "< Options >");
 
-        let map_zoom_1x_x = 3 + MAP_ZOOM_LABEL.len() as i32;
-        let map_zoom_2x_x = 4 + (MAP_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
-        let map_zoom_y = 2;
-
-        grid.print((2, map_zoom_y), MAP_ZOOM_LABEL);
-        grid.set_draw_bg(ui::color::SELECTED_BG);
-        grid.print_color(
-            (map_zoom_1x_x, map_zoom_y),
-            false,
-            options.map_zoom == 1 && matches!(self.selection, Selection::MapZoom),
-            if options.map_zoom == 1 {
-                ZOOM_1X_ON
-            } else {
-                ZOOM_1X_OFF
-            },
-        );
-        grid.print_color(
-            (map_zoom_2x_x, map_zoom_y),
-            false,
-            options.map_zoom == 2 && matches!(self.selection, Selection::MapZoom),
-            if options.map_zoom == 2 {
-                ZOOM_2X_ON
-            } else {
-                ZOOM_2X_OFF
-            },
-        );
-
-        let text_zoom_1x_x = 3 + TEXT_ZOOM_LABEL.len() as i32;
-        let text_zoom_2x_x = 4 + (TEXT_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
-        let text_zoom_y = 3;
-
-        grid.print((2, text_zoom_y), TEXT_ZOOM_LABEL);
-        grid.set_draw_bg(ui::color::SELECTED_BG);
-        grid.print_color(
-            (text_zoom_1x_x, text_zoom_y),
-            false,
-            options.text_zoom == 1 && matches!(self.selection, Selection::TextZoom),
-            if options.text_zoom == 1 {
-                ZOOM_1X_ON
-            } else {
-                ZOOM_1X_OFF
-            },
-        );
-        grid.print_color(
-            (text_zoom_2x_x, text_zoom_y),
-            false,
-            options.text_zoom == 2 && matches!(self.selection, Selection::TextZoom),
-            if options.text_zoom == 2 {
-                ZOOM_2X_ON
-            } else {
-                ZOOM_2X_OFF
-            },
-        );
+        self.draw_tileset(world, grid);
+        self.draw_font(world, grid);
+        self.draw_map_zoom(world, grid);
+        self.draw_text_zoom(world, grid);
 
         grid.set_draw_bg(ui::color::SELECTED_BG);
         grid.print_color(
-            (2, 5),
+            (2, 7),
             false,
             matches!(self.selection, Selection::Quit),
             QUIT,

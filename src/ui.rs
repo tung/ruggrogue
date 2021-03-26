@@ -61,13 +61,14 @@ pub mod color {
 }
 
 pub struct Options {
+    pub tileset: u32,
+    pub font: u32,
     pub map_zoom: u32,
     pub text_zoom: u32,
 }
 
 pub const MAP_GRID: usize = 0;
 pub const UI_GRID: usize = 1;
-pub const DEFAULT_MAP_TILESET: usize = 2;
 
 fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
@@ -134,14 +135,18 @@ pub fn prepare_main_grids<Y: Symbol>(
     tilesets: &[Tileset<Y>],
     window_size: Size,
 ) {
-    let map_tileset = &tilesets[grids
-        .get(MAP_GRID)
-        .map_or(DEFAULT_MAP_TILESET, TileGrid::tileset)];
-    let ui_tileset = &tilesets[grids.get(UI_GRID).map_or(0, TileGrid::tileset)];
     let Options {
+        tileset: map_tileset_index,
+        font: ui_tileset_index,
         map_zoom,
         text_zoom,
     } = *world.borrow::<UniqueView<Options>>();
+    let map_tileset = &tilesets
+        .get(map_tileset_index as usize)
+        .unwrap_or(&tilesets[0]);
+    let ui_tileset = &tilesets
+        .get(ui_tileset_index as usize)
+        .unwrap_or(&tilesets[0]);
 
     let new_ui_size = Size {
         w: (window_size.w / (ui_tileset.tile_width() * text_zoom)).max(40),
@@ -182,12 +187,21 @@ pub fn prepare_main_grids<Y: Symbol>(
         grids[MAP_GRID].resize(new_map_size);
         grids[UI_GRID].resize(new_ui_size);
     } else {
-        grids.push(TileGrid::new(new_map_size, tilesets, DEFAULT_MAP_TILESET));
-        grids.push(TileGrid::new(new_ui_size, tilesets, 0));
+        grids.push(TileGrid::new(
+            new_map_size,
+            tilesets,
+            map_tileset_index as usize,
+        ));
+        grids.push(TileGrid::new(
+            new_ui_size,
+            tilesets,
+            ui_tileset_index as usize,
+        ));
         grids[MAP_GRID].view.clear_color = None;
         grids[UI_GRID].view.clear_color = Some(color::BLACK);
     }
 
+    grids[MAP_GRID].set_tileset(tilesets, map_tileset_index as usize);
     grids[MAP_GRID].view_centered(
         tilesets,
         map_zoom,
@@ -199,6 +213,7 @@ pub fn prepare_main_grids<Y: Symbol>(
     );
     grids[MAP_GRID].view.zoom = map_zoom;
 
+    grids[UI_GRID].set_tileset(tilesets, ui_tileset_index as usize);
     grids[UI_GRID].view.pos = Position {
         x: 0,
         y: window_size.h.saturating_sub(new_ui_px_h) as i32,

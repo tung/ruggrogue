@@ -37,6 +37,8 @@ fn main() {
     let world = World::new();
 
     world.add_unique(Options {
+        tileset: 2,
+        font: 0,
         map_zoom: 1,
         text_zoom: 1,
     });
