@@ -130,7 +130,7 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
     {
         use GameSym::*;
 
-        symbol_map.insert(Floor, (4, 2));
+        symbol_map.insert(Floor, (0, 2));
         symbol_map.insert(WallPillar, (0, 0));
         symbol_map.insert(WallN, (1, 0));
         symbol_map.insert(WallE, (1, 0));
@@ -159,7 +159,7 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
     }
 
     TilesetInfo::<GameSym> {
-        image_path: PathBuf::from("assets/urizen/urizen-onebit-tileset.png"),
+        image_path: PathBuf::from("assets/urizen/urizen-onebit-tileset-mono.png"),
         tile_size: (12, 12).into(),
         tile_start: (1, 1).into(),
         tile_gap: (1, 1).into(),

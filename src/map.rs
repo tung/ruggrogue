@@ -233,7 +233,7 @@ impl Map {
             } else {
                 let (sym, color) = match self.get_tile(x, y) {
                     Tile::Floor => (GameSym::Floor, (102, 102, 102).into()),
-                    Tile::Wall => (self.wall_sym(x, y), (179, 102, 26).into()),
+                    Tile::Wall => (self.wall_sym(x, y), (134, 77, 20).into()),
                     Tile::DownStairs => (GameSym::DownStairs, (255, 255, 0).into()),
                 };
 
