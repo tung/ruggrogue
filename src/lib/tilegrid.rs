@@ -995,6 +995,7 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
 
             if self_buffer_px_w != buffer_px_w || self_buffer_px_h != buffer_px_h {
                 self.buffer = None;
+                self.texture = None;
             }
         }
 
