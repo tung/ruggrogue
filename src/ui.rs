@@ -6,7 +6,6 @@ use ruggle::{
     Symbol, TileGrid, Tileset,
 };
 
-#[allow(dead_code)]
 pub mod color {
     use super::Color;
 
@@ -74,7 +73,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
-    grid.set_draw_fg(Some(color::YELLOW));
+    grid.set_draw_fg(color::YELLOW);
     grid.print_color((x, y), true, false, &depth);
     x += depth.len() as i32 + 1;
 
@@ -86,12 +85,12 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
         },
     );
     let hp_string = format!(" HP: {} / {} ", hp, max_hp);
-    grid.set_draw_fg(Some(color::YELLOW));
+    grid.set_draw_fg(color::YELLOW);
     grid.print_color((x, y), true, false, &hp_string);
     x += hp_string.len() as i32 + 1;
 
     let hp_bar_length = grid.width() as i32 - x - 2;
-    grid.set_draw_fg(Some(color::RED));
+    grid.set_draw_fg(color::RED);
     grid.draw_bar(false, (x, y), hp_bar_length, 0, hp, max_hp, true, false);
 }
 
@@ -100,7 +99,7 @@ where
     Y: Symbol,
 {
     world.run(|messages: UniqueView<Messages>| {
-        grid.set_draw_fg(Some(if active { color::WHITE } else { color::GRAY }));
+        grid.set_draw_fg(if active { color::WHITE } else { color::GRAY });
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
             grid.put_char_color((0, y), true, false, '>');
             grid.print_color((2, y), true, false, message);
@@ -112,7 +111,7 @@ pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<
     let w = grid.width() as i32;
     let h = grid.height() as i32;
 
-    grid.set_draw_fg(Some(color::WHITE));
+    grid.set_draw_fg(color::WHITE);
     for x in 0..w {
         grid.put_char_color((x, 0), true, false, '─');
     }
@@ -120,7 +119,7 @@ pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<
     draw_status_line(world, grid, 0);
 
     if let Some(prompt) = prompt {
-        grid.set_draw_fg(Some(color::WHITE));
+        grid.set_draw_fg(color::WHITE);
         grid.print_color((2, 1), true, false, prompt);
         draw_messages(world, grid, false, 2, h - 1);
     } else {

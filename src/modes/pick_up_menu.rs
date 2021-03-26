@@ -185,7 +185,7 @@ impl PickUpMenuMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(Some(ui::color::WHITE));
+        grid.set_draw_fg(ui::color::WHITE);
         grid.set_draw_bg(ui::color::BLACK);
         grid.draw_box((0, 0), (width, height));
         grid.print((2, 2), PROMPT);
@@ -222,8 +222,8 @@ impl PickUpMenuMode {
             {
                 let render = renderables.get(*item_id);
 
-                grid.set_draw_fg(None);
-                grid.set_draw_bg(ui::color::BLACK);
+                grid.set_draw_fg(render.fg);
+                grid.set_draw_bg(render.bg);
                 grid.put_sym_color((2, 4 + i as i32 - list_offset), true, true, render.sym);
 
                 grid.set_draw_bg(ui::color::SELECTED_BG);

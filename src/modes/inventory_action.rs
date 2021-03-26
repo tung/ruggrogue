@@ -224,17 +224,18 @@ impl InventoryActionMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(Some(ui::color::WHITE));
+        grid.set_draw_fg(ui::color::WHITE);
         grid.set_draw_bg(ui::color::BLACK);
         grid.draw_box((0, 0), (grid.width(), grid.height()));
 
         world.run(|names: View<Name>, renderables: View<Renderable>| {
             let render = renderables.get(self.item_id);
 
-            grid.set_draw_fg(None);
-            grid.put_sym_color((2, 2), true, false, render.sym);
+            grid.set_draw_fg(render.fg);
+            grid.set_draw_bg(render.bg);
+            grid.put_sym_color((2, 2), true, true, render.sym);
 
-            grid.set_draw_fg(Some(ui::color::WHITE));
+            grid.set_draw_fg(ui::color::WHITE);
             grid.print_color((4, 2), true, false, &names.get(self.item_id).0);
         });
 

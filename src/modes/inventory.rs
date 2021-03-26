@@ -284,13 +284,7 @@ impl InventoryMode {
         }
     }
 
-    fn draw_status(
-        &self,
-        _world: &World,
-        grid: &mut TileGrid<GameSym>,
-        fg: Option<Color>,
-        bg: Color,
-    ) {
+    fn draw_status(&self, _world: &World, grid: &mut TileGrid<GameSym>, fg: Color, bg: Color) {
         // Draw box with right edge off-grid.
         grid.set_draw_fg(fg);
         grid.set_draw_bg(bg);
@@ -301,7 +295,7 @@ impl InventoryMode {
         &self,
         _world: &World,
         grid: &mut TileGrid<GameSym>,
-        fg: Option<Color>,
+        fg: Color,
         bg: Color,
         _selected_bg: Color,
     ) {
@@ -316,7 +310,7 @@ impl InventoryMode {
         &self,
         world: &World,
         grid: &mut TileGrid<GameSym>,
-        fg: Option<Color>,
+        fg: Color,
         bg: Color,
         selected_bg: Color,
     ) {
@@ -385,8 +379,8 @@ impl InventoryMode {
                     {
                         let render = renderables.get(*item_id);
 
-                        grid.set_draw_fg(None);
-                        grid.set_draw_bg(ui::color::BLACK);
+                        grid.set_draw_fg(render.fg);
+                        grid.set_draw_bg(render.bg);
                         grid.put_sym_color(
                             (item_x, item_y + i as i32 - item_offset),
                             true,
@@ -412,7 +406,7 @@ impl InventoryMode {
         let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
-        let fg = Some(ui::color::WHITE);
+        let fg = ui::color::WHITE;
         let bg = ui::color::BLACK;
         let selected_bg = ui::color::SELECTED_BG;
 
