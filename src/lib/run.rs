@@ -183,6 +183,7 @@ where
         // Perform update(s).
         let start = previous;
         if active_update {
+            let mut update_limit = 10;
             let current = Instant::now();
             lag += current.duration_since(previous);
             previous = current;
@@ -204,6 +205,12 @@ where
                         done = true;
                         lag = Duration::new(0, 0);
                     }
+                }
+
+                // Avoid doing too much catch-up at once.
+                update_limit -= 1;
+                if update_limit == 0 {
+                    lag = Duration::new(0, 0);
                 }
             }
         } else {
