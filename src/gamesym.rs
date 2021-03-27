@@ -10,17 +10,17 @@ pub enum GameSym {
     WallE,
     WallS,
     WallW,
-    WallNE,
-    WallNS,
-    WallNW,
-    WallES,
-    WallEW,
-    WallSW,
-    WallNES,
-    WallNEW,
-    WallNSW,
-    WallESW,
-    WallNESW,
+    WallNe,
+    WallNs,
+    WallNw,
+    WallEs,
+    WallEw,
+    WallSw,
+    WallNes,
+    WallNew,
+    WallNsw,
+    WallEsw,
+    WallNesw,
     WallOther,
     DownStairs,
     Player,
@@ -43,17 +43,17 @@ impl Symbol for GameSym {
             WallE => '═',
             WallS => '║',
             WallW => '═',
-            WallNE => '╚',
-            WallNS => '║',
-            WallNW => '╝',
-            WallES => '╔',
-            WallEW => '═',
-            WallSW => '╗',
-            WallNES => '╠',
-            WallNEW => '╩',
-            WallNSW => '╣',
-            WallESW => '╦',
-            WallNESW => '╦',
+            WallNe => '╚',
+            WallNs => '║',
+            WallNw => '╝',
+            WallEs => '╔',
+            WallEw => '═',
+            WallSw => '╗',
+            WallNes => '╠',
+            WallNew => '╩',
+            WallNsw => '╣',
+            WallEsw => '╦',
+            WallNesw => '╦',
             WallOther => '#',
             DownStairs => '>',
             Player => '@',
@@ -136,17 +136,17 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(WallE, (1, 0));
         symbol_map.insert(WallS, (1, 0));
         symbol_map.insert(WallW, (1, 0));
-        symbol_map.insert(WallNE, (1, 0));
-        symbol_map.insert(WallNS, (0, 0));
-        symbol_map.insert(WallNW, (1, 0));
-        symbol_map.insert(WallES, (1, 0));
-        symbol_map.insert(WallEW, (0, 0));
-        symbol_map.insert(WallSW, (1, 0));
-        symbol_map.insert(WallNES, (1, 0));
-        symbol_map.insert(WallNEW, (1, 0));
-        symbol_map.insert(WallNSW, (1, 0));
-        symbol_map.insert(WallESW, (1, 0));
-        symbol_map.insert(WallNESW, (1, 0));
+        symbol_map.insert(WallNe, (1, 0));
+        symbol_map.insert(WallNs, (0, 0));
+        symbol_map.insert(WallNw, (1, 0));
+        symbol_map.insert(WallEs, (1, 0));
+        symbol_map.insert(WallEw, (0, 0));
+        symbol_map.insert(WallSw, (1, 0));
+        symbol_map.insert(WallNes, (1, 0));
+        symbol_map.insert(WallNew, (1, 0));
+        symbol_map.insert(WallNsw, (1, 0));
+        symbol_map.insert(WallEsw, (1, 0));
+        symbol_map.insert(WallNesw, (1, 0));
         symbol_map.insert(WallOther, (1, 0));
         symbol_map.insert(DownStairs, (10, 0));
         symbol_map.insert(Player, (29, 0));

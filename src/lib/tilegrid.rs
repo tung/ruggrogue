@@ -611,7 +611,7 @@ impl<Y: Symbol> RawTileGrid<Y> {
             0
         };
 
-        #[allow(clippy::collapsible_if)]
+        #[allow(clippy::collapsible_else_if)]
         if vertical {
             if x >= 0 && x < grid_w && y < grid_h && y + length >= 0 {
                 for i in std::cmp::max(0, y)..std::cmp::min(grid_h, y + fill_start) {
