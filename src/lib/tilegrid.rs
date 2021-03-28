@@ -2,11 +2,15 @@ use sdl2::{
     image::LoadSurface,
     pixels::{Color as Sdl2Color, PixelFormatEnum},
     rect::Rect,
-    render::{BlendMode, Texture, TextureCreator, WindowCanvas},
+    render::{BlendMode, Texture, WindowCanvas},
     surface::Surface,
-    video::WindowContext,
 };
-use std::{collections::HashMap, hash::Hash, path::PathBuf};
+use std::{
+    collections::HashMap,
+    hash::Hash,
+    ops::{Deref, DerefMut},
+    path::PathBuf,
+};
 
 use crate::util::{Color, Position, Size};
 
@@ -698,10 +702,40 @@ pub struct TileGridView {
     pub zoom: u32,
 }
 
+/// A Texture wrapper that calls SDL_DestroyTexture when dropped.
+///
+/// Anything that uses this must ensure that this is dropped before the creator of the texture,
+/// e.g. putting it above the source canvas if stored in the same struct, otherwise undefined
+/// behavior will occur.
+struct GridTexture(Texture);
+
+impl Deref for GridTexture {
+    type Target = Texture;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl DerefMut for GridTexture {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl Drop for GridTexture {
+    fn drop(&mut self) {
+        // This must never be called after the creator of the texture has been dropped!
+        unsafe {
+            sdl2_sys::SDL_DestroyTexture(self.0.raw());
+        }
+    }
+}
+
 /// A TileGrid is a grid of cells consisting of a character, a foreground color and a background
 /// color.  To use a TileGrid, create a new one, draw characters and colors onto it, and display it
 /// on the screen.
-pub struct TileGrid<'b, 'r, Y: Symbol> {
+pub struct TileGrid<'b, Y: Symbol> {
     front: RawTileGrid<Y>,
     back: RawTileGrid<Y>,
     force_render: bool,
@@ -709,11 +743,11 @@ pub struct TileGrid<'b, 'r, Y: Symbol> {
     needs_upload: bool,
     tileset_index: usize,
     buffer: Option<Surface<'b>>,
-    texture: Option<Texture<'r>>,
+    texture: Option<GridTexture>,
     pub view: TileGridView,
 }
 
-impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
+impl<'b, Y: Symbol> TileGrid<'b, Y> {
     /// Create a new TileGrid with a given width and height.
     ///
     /// White is the default foreground color and black is the default background color.
@@ -1062,12 +1096,7 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
     ///  * texture creation fails
     ///  * the texture fails to be updated
     ///  * the texture fails to be copied onto the canvas
-    pub fn display(
-        &mut self,
-        tilesets: &mut [Tileset<Y>],
-        canvas: &mut WindowCanvas,
-        texture_creator: &'r TextureCreator<WindowContext>,
-    ) {
+    pub fn display(&mut self, tilesets: &mut [Tileset<Y>], canvas: &mut WindowCanvas) {
         if !self.view.visible || self.view.zoom == 0 {
             return;
         }
@@ -1093,15 +1122,15 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
         let texture = match &mut self.texture {
             Some(texture) => texture,
             None => {
-                self.texture = Some(
-                    texture_creator
+                self.texture = Some(GridTexture(
+                    canvas
                         .create_texture_streaming(
                             PixelFormatEnum::RGB888,
                             buffer.width(),
                             buffer.height(),
                         )
                         .unwrap(),
-                );
+                ));
                 self.needs_upload = true;
                 self.texture.as_mut().unwrap()
             }
@@ -1240,9 +1269,9 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
 }
 
 /// A list of TileGrids that should be treated as a single layer.
-pub struct TileGridLayer<'b, 'r, Y: Symbol> {
+pub struct TileGridLayer<'b, Y: Symbol> {
     /// If true, draw layers behind this one in a list of layers.
     pub draw_behind: bool,
     /// TileGrids to be drawn to, rendered and displayed as part of the layer.
-    pub grids: Vec<TileGrid<'b, 'r, Y>>,
+    pub grids: Vec<TileGrid<'b, Y>>,
 }
