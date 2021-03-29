@@ -200,7 +200,6 @@ dependencies = [
  "rand",
  "rand_pcg",
  "sdl2",
- "sdl2-sys",
  "shipyard",
 ]
 
