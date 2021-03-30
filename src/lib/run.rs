@@ -1,5 +1,5 @@
 use sdl2::{
-    event::{Event, WindowEvent},
+    event::{Event, EventType, WindowEvent},
     pixels::Color as Sdl2Color,
     rect::Rect,
 };
@@ -39,7 +39,6 @@ fn handle_event<Y: Symbol>(
     event: &Event,
     layers: &mut [TileGridLayer<Y>],
     window_size: &mut (u32, u32),
-    new_mouse_shown: &mut Option<bool>,
 ) {
     match event {
         Event::Window {
@@ -48,11 +47,6 @@ fn handle_event<Y: Symbol>(
         } => {
             *window_size = (*w as u32, *h as u32);
         }
-        Event::KeyDown { .. } | Event::KeyUp { .. } => *new_mouse_shown = Some(false),
-        Event::MouseMotion { .. }
-        | Event::MouseButtonDown { .. }
-        | Event::MouseButtonUp { .. }
-        | Event::MouseWheel { .. } => *new_mouse_shown = Some(true),
         Event::RenderTargetsReset { .. } => {
             for layer in layers.iter_mut() {
                 for grid in &mut layer.grids {
@@ -109,6 +103,8 @@ where
     let texture_creator = canvas.texture_creator();
     let mut event_pump = sdl_context.event_pump().unwrap();
 
+    event_pump.disable_event(EventType::MouseMotion);
+
     assert!(!settings.tileset_infos.is_empty());
 
     let mut tilesets = Vec::with_capacity(settings.tileset_infos.len());
@@ -121,7 +117,6 @@ where
     let mut layers: Vec<TileGridLayer<Y>> = Vec::new();
     let mut inputs = InputBuffer::new();
 
-    let mut mouse_shown = true;
     let mut active_update = true;
     let mut done = false;
 
@@ -139,37 +134,17 @@ where
     let mut last_fps_print = Instant::now();
 
     while !done {
-        let mut new_mouse_shown = None;
-
         // Wait for an event if waiting is requested.
         if !active_update && !inputs.more_inputs() {
             let event = event_pump.wait_event();
-            handle_event(
-                &event,
-                &mut layers[..],
-                &mut window_size,
-                &mut new_mouse_shown,
-            );
+            handle_event(&event, &mut layers[..], &mut window_size);
             inputs.handle_event(&event);
         }
 
         // Poll for additional events.
         for event in event_pump.poll_iter() {
-            handle_event(
-                &event,
-                &mut layers[..],
-                &mut window_size,
-                &mut new_mouse_shown,
-            );
+            handle_event(&event, &mut layers[..], &mut window_size);
             inputs.handle_event(&event);
-        }
-
-        // Show or hide mouse cursor based on keyboard and mouse input.
-        if let Some(new_mouse_shown) = new_mouse_shown {
-            if mouse_shown != new_mouse_shown {
-                sdl_context.mouse().show_cursor(new_mouse_shown);
-                mouse_shown = new_mouse_shown;
-            }
         }
 
         // Guarantee minimum window dimensions, even if we have to fake it.
