@@ -1,6 +1,5 @@
 [target.wasm32-unknown-emscripten]
 rustflags = [
-    "-O",
     "-C", "link-args=-O3 --closure 1",
     "-C", "link-args=-sASYNCIFY -sALLOW_MEMORY_GROWTH=1",
     "-C", "link-args=-sUSE_SDL=2 -sUSE_SDL_IMAGE=2 -sSDL2_IMAGE_FORMATS=['png'] --preload-file assets",
