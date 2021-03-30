@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <!--
+        How to run this in a web browser with WebAssembly and Emscripten:
+
+        1. rustup target add wasm32-unknown-emscripten
+        2. Install and activate Emscripten 1.39.20 (latest doesn't work with Rust).
+        3. cargo build --target=wasm32-unknown-emscripten --release (debug is VERY slow)
+        4. cd target/wasm32-unknown-emscripten/release/
+        5. ln -s ../../../index.html .
+        6. python3 -m http.server 9000
+        7. Visit http://127.0.0.1:9000 in a web browser.
+    -->
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+        }
+
+        #canvas {
+            background-color: #000;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <script>
+        var Module = {
+            'locateFile': function (path, prefix) {
+                // For easy local testing.  Just put .data files next to
+                // everything else and remove this branch when hosting.
+                if (path.endsWith(".data")) {
+                    return prefix + "deps/" + path;
+                }
+                return prefix + path;
+            },
+            'canvas': document.getElementById('canvas')
+        };
+    </script>
+    <script src="ruggle.js"></script>
+</body>
+
+</html>

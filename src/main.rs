@@ -15,7 +15,7 @@ mod ui;
 mod vision;
 
 use rand::SeedableRng;
-use rand_pcg::Pcg64Mcg;
+use rand_pcg::Pcg32;
 use shipyard::World;
 use std::{collections::HashMap, path::PathBuf};
 
@@ -31,7 +31,7 @@ use crate::{
 };
 use ruggle::{RunSettings, TilesetInfo};
 
-pub struct RuggleRng(Pcg64Mcg);
+pub struct RuggleRng(Pcg32);
 
 fn main() {
     let world = World::new();
@@ -42,7 +42,7 @@ fn main() {
         map_zoom: 1,
         text_zoom: 1,
     });
-    world.add_unique(RuggleRng(Pcg64Mcg::from_rng(rand::thread_rng()).unwrap()));
+    world.add_unique(RuggleRng(Pcg32::from_rng(rand::thread_rng()).unwrap()));
     world.add_unique(Messages::new(4));
     world.add_unique(Map::new(80, 50));
     world.add_unique(PlayerId(world.run(spawn::spawn_player)));
