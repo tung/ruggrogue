@@ -39,7 +39,7 @@ fn main() {
     world.add_unique(Options {
         tileset: 2,
         font: 0,
-        map_zoom: 1,
+        map_zoom: 2,
         text_zoom: 1,
     });
     world.add_unique(RuggleRng(Pcg32::from_rng(rand::thread_rng()).unwrap()));
@@ -54,9 +54,9 @@ fn main() {
 
     let settings = RunSettings {
         title: "Ruggle".into(),
-        window_size: (800, 600).into(),
+        window_size: (1000, 600).into(),
         min_window_size: (640, 192).into(),
-        fps: 60,
+        fps: 30,
         tileset_infos: vec![
             TilesetInfo::<GameSym> {
                 image_path: PathBuf::from("assets/gohufont-8x14.png"),
