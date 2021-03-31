@@ -17,9 +17,8 @@ use super::{
     ModeControl, ModeResult, ModeUpdate,
 };
 
-const STATUS_GRID: usize = 0;
-const EQUIP_GRID: usize = 1;
-const INV_GRID: usize = 2;
+const EQUIP_GRID: usize = 0;
+const INV_GRID: usize = 1;
 
 pub enum InventoryModeResult {
     AppQuit,
@@ -94,59 +93,31 @@ impl InventoryMode {
                 )
                 .max(7),
         };
-        // Status to the side of both the equip and inventory grids.
-        let new_status_size = Size {
-            w: 15,
-            h: new_equip_size.h + new_inv_size.h,
-        };
 
         if !grids.is_empty() {
-            grids[STATUS_GRID].resize(new_status_size);
             grids[EQUIP_GRID].resize(new_equip_size);
             grids[INV_GRID].resize(new_inv_size);
         } else {
-            grids.push(TileGrid::new(new_status_size, tilesets, font as usize));
             grids.push(TileGrid::new(new_equip_size, tilesets, font as usize));
             grids.push(TileGrid::new(new_inv_size, tilesets, font as usize));
-            grids[STATUS_GRID].view.clear_color = None;
             grids[EQUIP_GRID].view.clear_color = None;
             grids[INV_GRID].view.clear_color = None;
         }
 
-        let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
 
         // Set fonts.
-        status_grid.set_tileset(tilesets, font as usize);
         equip_grid.set_tileset(tilesets, font as usize);
         inv_grid.set_tileset(tilesets, font as usize);
 
-        // Calculate sidebar grid x and width.
-        let combined_px_width =
-            (new_inv_size.w + new_status_size.w) * tileset.tile_width() * text_zoom;
-        if combined_px_width <= window_size.w {
-            status_grid.view.pos.x = (window_size.w - combined_px_width) as i32 / 2;
-            status_grid.view.size.w = new_status_size.w * tileset.tile_width() * text_zoom;
-            status_grid.view.visible = true;
-        } else if new_inv_size.w * tileset.tile_width() * text_zoom < window_size.w {
-            status_grid.view.pos.x = 0;
-            status_grid.view.size.w =
-                window_size.w - new_inv_size.w * tileset.tile_width() * text_zoom;
-            status_grid.view.visible = true;
-        } else {
-            status_grid.view.pos.x = 0;
-            status_grid.view.size.w = 0;
-            status_grid.view.visible = false;
-        }
-
         // Calculate equip grid x and width.
-        equip_grid.view.pos.x = status_grid.view.pos.x + status_grid.view.size.w as i32;
         equip_grid.view.size.w = new_equip_size.w * tileset.tile_width() * text_zoom;
+        equip_grid.view.pos.x = (window_size.w - equip_grid.view.size.w) as i32 / 2;
 
         // Calculate inventory grid x and width.
-        inv_grid.view.pos.x = equip_grid.view.pos.x;
         inv_grid.view.size.w = new_inv_size.w * tileset.tile_width() * text_zoom;
+        inv_grid.view.pos.x = equip_grid.view.pos.x;
 
         // Calculate equip grid y and height.
         let combined_px_height =
@@ -170,12 +141,7 @@ impl InventoryMode {
         inv_grid.view.pos.y = equip_grid.view.pos.y + equip_grid.view.size.h as i32;
         inv_grid.view.size.h = new_inv_size.h * tileset.tile_height() * text_zoom;
 
-        // Calculate status grid y and height.
-        status_grid.view.pos.y = equip_grid.view.pos.y;
-        status_grid.view.size.h = equip_grid.view.size.h + inv_grid.view.size.h;
-
         // Set all grids to current text zoom.
-        status_grid.view.zoom = text_zoom;
         equip_grid.view.zoom = text_zoom;
         inv_grid.view.zoom = text_zoom;
     }
@@ -291,11 +257,6 @@ impl InventoryMode {
         }
     }
 
-    fn draw_status(&self, _world: &World, grid: &mut TileGrid<GameSym>, fg: Color, bg: Color) {
-        // Draw box with right edge off-grid.
-        grid.draw_box((0, 0), (grid.width() + 1, grid.height()), fg, bg);
-    }
-
     fn draw_equip(
         &self,
         _world: &World,
@@ -306,7 +267,7 @@ impl InventoryMode {
     ) {
         // Draw box with bottom edge off-grid.
         grid.draw_box((0, 0), (grid.width(), grid.height() + 1), fg, bg);
-        grid.put_char_color((0, 0), '┬', fg, bg);
+        grid.print((2, 0), "< Equipment >");
     }
 
     fn draw_inventory(
@@ -320,7 +281,6 @@ impl InventoryMode {
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
         grid.put_char_color((0, 0), '├', fg, bg);
         grid.put_char_color((grid.width() as i32 - 1, 0), '┤', fg, bg);
-        grid.put_char_color((0, grid.height() as i32 - 1), '┴', fg, bg);
         grid.print((2, 0), "< Inventory >");
 
         grid.print_color(
@@ -412,7 +372,6 @@ impl InventoryMode {
     }
 
     pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
-        let (status_grid, grids) = grids.split_first_mut().unwrap(); // STATUS_GRID
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
         let fg = ui::color::WHITE;
@@ -420,18 +379,13 @@ impl InventoryMode {
         let selected_bg = ui::color::SELECTED_BG;
 
         if active {
-            status_grid.view.color_mod = ui::color::WHITE;
             equip_grid.view.color_mod = ui::color::WHITE;
             inv_grid.view.color_mod = ui::color::WHITE;
         } else {
-            status_grid.view.color_mod = ui::color::GRAY;
             equip_grid.view.color_mod = ui::color::GRAY;
             inv_grid.view.color_mod = ui::color::GRAY;
         }
 
-        if status_grid.view.visible {
-            self.draw_status(world, status_grid, fg, bg);
-        }
         if equip_grid.view.visible {
             self.draw_equip(world, equip_grid, fg, bg, selected_bg);
         }
