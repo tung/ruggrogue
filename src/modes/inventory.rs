@@ -267,7 +267,7 @@ impl InventoryMode {
     ) {
         // Draw box with bottom edge off-grid.
         grid.draw_box((0, 0), (grid.width(), grid.height() + 1), fg, bg);
-        grid.print((2, 0), "< Equipment >");
+        grid.print_color((2, 0), "< Equipment >", Color::YELLOW, bg);
     }
 
     fn draw_inventory(
@@ -281,7 +281,7 @@ impl InventoryMode {
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
         grid.put_char_color((0, 0), '├', fg, bg);
         grid.put_char_color((grid.width() as i32 - 1, 0), '┤', fg, bg);
-        grid.print((2, 0), "< Inventory >");
+        grid.print_color((2, 0), "< Inventory >", Color::YELLOW, bg);
 
         grid.print_color(
             (2, 2),

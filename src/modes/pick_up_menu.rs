@@ -16,8 +16,9 @@ use ruggle::{
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
-const CANCEL: &str = "[ Cancel ]";
+const TITLE: &str = "< Get Items >";
 const PROMPT: &str = "Pick up which item?";
+const CANCEL: &str = "[ Cancel ]";
 
 pub enum PickUpMenuModeResult {
     AppQuit,
@@ -51,16 +52,12 @@ impl PickUpMenuMode {
                     .iter_entities_at(player_coord.0.x, player_coord.0.y)
                     .filter(|id| items.contains(*id))
                     .collect::<Vec<_>>();
-                let width = std::cmp::max(
-                    PROMPT.len(),
-                    std::cmp::max(
-                        CANCEL.len(),
-                        items
-                            .iter()
-                            .map(|it| names.get(*it).0.len() + 2)
-                            .max()
-                            .unwrap_or(2),
-                    ),
+                let width = TITLE.len().max(PROMPT.len()).max(CANCEL.len()).max(
+                    items
+                        .iter()
+                        .map(|it| names.get(*it).0.len() + 2)
+                        .max()
+                        .unwrap_or(2),
                 );
 
                 (items, width)
@@ -191,6 +188,7 @@ impl PickUpMenuMode {
         grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
         grid.draw_box((0, 0), (width, height), fg, bg);
+        grid.print_color((2, 0), TITLE, Color::YELLOW, bg);
         grid.print((2, 2), PROMPT);
 
         let list_height = height as i32 - 8;

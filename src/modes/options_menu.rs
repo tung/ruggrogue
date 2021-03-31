@@ -401,7 +401,7 @@ impl OptionsMenuMode {
         grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
-        grid.print((2, 0), "< Options >");
+        grid.print_color((2, 0), "< Options >", Color::YELLOW, bg);
 
         self.draw_tileset(world, grid, fg, bg, selected_bg);
         self.draw_font(world, grid, fg, bg, selected_bg);
