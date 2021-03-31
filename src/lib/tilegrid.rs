@@ -358,8 +358,6 @@ const DEFAULT_BG: Color = Color { r: 0, g: 0, b: 0 };
 
 struct RawTileGrid<Y: Symbol> {
     size: Size,
-    draw_fg: Color,
-    draw_bg: Color,
     draw_offset: Position,
     cells: Vec<Cell<Y>>,
 }
@@ -373,8 +371,6 @@ impl<Y: Symbol> RawTileGrid<Y> {
 
         Self {
             size,
-            draw_fg: DEFAULT_FG,
-            draw_bg: DEFAULT_BG,
             draw_offset: Position { x: 0, y: 0 },
             cells: vec![
                 Cell {
@@ -407,14 +403,6 @@ impl<Y: Symbol> RawTileGrid<Y> {
         }
     }
 
-    fn set_draw_fg(&mut self, fg: Color) {
-        self.draw_fg = fg;
-    }
-
-    fn set_draw_bg(&mut self, bg: Color) {
-        self.draw_bg = bg;
-    }
-
     fn set_draw_offset(&mut self, pos: Position) {
         // Keep draw_offset within the bounds of the grid.
         self.draw_offset.x = if pos.x >= 0 {
@@ -429,12 +417,28 @@ impl<Y: Symbol> RawTileGrid<Y> {
         };
     }
 
-    fn clear_color(&mut self, use_fg: bool, use_bg: bool) {
-        self.cells.fill(Cell {
-            csym: CellSym::<Y>::Char(' '),
-            fg: if use_fg { self.draw_fg } else { DEFAULT_FG },
-            bg: if use_bg { self.draw_bg } else { DEFAULT_BG },
-        });
+    fn clear_color<F, B>(&mut self, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
+        if let (Some(fg), Some(bg)) = (fg.into(), bg.into()) {
+            self.cells.fill(Cell {
+                csym: CellSym::<Y>::Char(' '),
+                fg,
+                bg,
+            });
+        } else {
+            for cell in self.cells.iter_mut() {
+                cell.csym = CellSym::<Y>::Char(' ');
+                if let Some(fg) = fg.into() {
+                    cell.fg = fg;
+                }
+                if let Some(bg) = bg.into() {
+                    cell.bg = bg;
+                }
+            }
+        }
     }
 
     #[inline]
@@ -445,39 +449,55 @@ impl<Y: Symbol> RawTileGrid<Y> {
         (real_y * self.size.w as i32 + real_x) as usize
     }
 
-    fn put_color_raw(&mut self, pos: Position, use_fg: bool, use_bg: bool, csym: CellSym<Y>) {
+    fn put_color_raw<F, B>(&mut self, pos: Position, csym: CellSym<Y>, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
         let index = self.index(pos);
         let cell = &mut self.cells[index];
 
         cell.csym = csym;
-        if use_fg {
-            cell.fg = self.draw_fg;
+        if let Some(fg) = fg.into() {
+            cell.fg = fg;
         }
-        if use_bg {
-            cell.bg = self.draw_bg;
+        if let Some(bg) = bg.into() {
+            cell.bg = bg;
         }
     }
 
-    fn put_color(&mut self, pos: Position, use_fg: bool, use_bg: bool, sym: CellSym<Y>) {
+    fn put_color<F, B>(&mut self, pos: Position, sym: CellSym<Y>, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
         if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
-            self.put_color_raw(pos, use_fg, use_bg, sym);
+            self.put_color_raw(pos, sym, fg, bg);
         }
     }
 
-    fn recolor_pos(&mut self, pos: Position, use_fg: bool, use_bg: bool) {
+    fn recolor_pos<F, B>(&mut self, pos: Position, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
         if pos.x >= 0 && pos.y >= 0 && pos.x < self.size.w as i32 && pos.y < self.size.h as i32 {
             let index = self.index(pos);
 
-            if use_fg {
-                self.cells[index].fg = self.draw_fg;
+            if let Some(fg) = fg.into() {
+                self.cells[index].fg = fg;
             }
-            if use_bg {
-                self.cells[index].bg = self.draw_bg;
+            if let Some(bg) = bg.into() {
+                self.cells[index].bg = bg;
             }
         }
     }
 
-    fn print_color(&mut self, pos: Position, use_fg: bool, use_bg: bool, s: &str) {
+    fn print_color<F, B>(&mut self, pos: Position, s: &str, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
         if pos.y >= 0
             && pos.y < self.size.h as i32
             && pos.x < self.size.w as i32
@@ -491,15 +511,19 @@ impl<Y: Symbol> RawTileGrid<Y> {
                         x: pos.x + i as i32,
                         y: pos.y,
                     },
-                    use_fg,
-                    use_bg,
                     CellSym::<Y>::Char(c),
+                    fg,
+                    bg,
                 );
             }
         }
     }
 
-    fn draw_box(&mut self, pos: Position, size: Size) {
+    fn draw_box<F, B>(&mut self, pos: Position, size: Size, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
         let Position { x, y } = pos;
         let w = size.w as i32;
         let h = size.h as i32;
@@ -509,31 +533,26 @@ impl<Y: Symbol> RawTileGrid<Y> {
         if w > 0 && h > 0 && x + w > 0 && y + h > 0 && x < grid_w && y < grid_h {
             if y >= 0 {
                 if x >= 0 {
-                    self.put_color_raw(Position { x, y }, true, true, CellSym::<Y>::Char('┌'));
+                    self.put_color_raw(Position { x, y }, CellSym::<Y>::Char('┌'), fg, bg);
                 }
                 for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
-                    self.put_color_raw(Position { x: xx, y }, true, true, CellSym::<Y>::Char('─'));
+                    self.put_color_raw(Position { x: xx, y }, CellSym::<Y>::Char('─'), fg, bg);
                 }
                 if x + w - 1 < grid_w {
                     self.put_color_raw(
                         Position { x: x + w - 1, y },
-                        true,
-                        true,
                         CellSym::<Y>::Char('┐'),
+                        fg,
+                        bg,
                     );
                 }
             }
             for yy in std::cmp::max(0, y + 1)..std::cmp::min(grid_h, y + h - 1) {
                 if x >= 0 {
-                    self.put_color_raw(Position { x, y: yy }, true, true, CellSym::<Y>::Char('│'));
+                    self.put_color_raw(Position { x, y: yy }, CellSym::<Y>::Char('│'), fg, bg);
                 }
                 for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
-                    self.put_color_raw(
-                        Position { x: xx, y: yy },
-                        true,
-                        true,
-                        CellSym::<Y>::Char(' '),
-                    );
+                    self.put_color_raw(Position { x: xx, y: yy }, CellSym::<Y>::Char(' '), fg, bg);
                 }
                 if x + w - 1 < grid_w {
                     self.put_color_raw(
@@ -541,9 +560,9 @@ impl<Y: Symbol> RawTileGrid<Y> {
                             x: x + w - 1,
                             y: yy,
                         },
-                        true,
-                        true,
                         CellSym::<Y>::Char('│'),
+                        fg,
+                        bg,
                     );
                 }
             }
@@ -551,9 +570,9 @@ impl<Y: Symbol> RawTileGrid<Y> {
                 if x >= 0 {
                     self.put_color_raw(
                         Position { x, y: y + h - 1 },
-                        true,
-                        true,
                         CellSym::<Y>::Char('└'),
+                        fg,
+                        bg,
                     );
                 }
                 for xx in std::cmp::max(0, x + 1)..std::cmp::min(grid_w, x + w - 1) {
@@ -562,9 +581,9 @@ impl<Y: Symbol> RawTileGrid<Y> {
                             x: xx,
                             y: y + h - 1,
                         },
-                        true,
-                        true,
                         CellSym::<Y>::Char('─'),
+                        fg,
+                        bg,
                     );
                 }
                 if x + w - 1 < grid_w {
@@ -573,16 +592,16 @@ impl<Y: Symbol> RawTileGrid<Y> {
                             x: x + w - 1,
                             y: y + h - 1,
                         },
-                        true,
-                        true,
                         CellSym::<Y>::Char('┘'),
+                        fg,
+                        bg,
                     );
                 }
             }
         }
     }
 
-    fn draw_bar(
+    fn draw_bar<F, B>(
         &mut self,
         vertical: bool,
         pos: Position,
@@ -590,9 +609,12 @@ impl<Y: Symbol> RawTileGrid<Y> {
         offset: i32,
         amount: i32,
         max: i32,
-        use_fg: bool,
-        use_bg: bool,
-    ) {
+        fg: F,
+        bg: B,
+    ) where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
         assert!(length > 0);
         assert!(max >= 0);
 
@@ -615,63 +637,33 @@ impl<Y: Symbol> RawTileGrid<Y> {
         if vertical {
             if x >= 0 && x < grid_w && y < grid_h && y + length >= 0 {
                 for i in std::cmp::max(0, y)..std::cmp::min(grid_h, y + fill_start) {
-                    self.put_color_raw(
-                        Position { x, y: i },
-                        use_fg,
-                        use_bg,
-                        CellSym::<Y>::Char('░'),
-                    );
+                    self.put_color_raw(Position { x, y: i }, CellSym::<Y>::Char('░'), fg, bg);
                 }
                 for i in std::cmp::max(0, y + fill_start)
                     ..std::cmp::min(grid_h, y + fill_start + fill_length)
                 {
-                    self.put_color_raw(
-                        Position { x, y: i },
-                        use_fg,
-                        use_bg,
-                        CellSym::<Y>::Char('█'),
-                    );
+                    self.put_color_raw(Position { x, y: i }, CellSym::<Y>::Char('█'), fg, bg);
                 }
                 for i in std::cmp::max(0, y + fill_start + fill_length)
                     ..std::cmp::min(grid_h, y + length)
                 {
-                    self.put_color_raw(
-                        Position { x, y: i },
-                        use_fg,
-                        use_bg,
-                        CellSym::<Y>::Char('░'),
-                    );
+                    self.put_color_raw(Position { x, y: i }, CellSym::<Y>::Char('░'), fg, bg);
                 }
             }
         } else {
             if y >= 0 && y < grid_h && x < grid_w && x + length >= 0 {
                 for i in std::cmp::max(0, x)..std::cmp::min(grid_w, x + fill_start) {
-                    self.put_color_raw(
-                        Position { x: i, y },
-                        use_fg,
-                        use_bg,
-                        CellSym::<Y>::Char('░'),
-                    );
+                    self.put_color_raw(Position { x: i, y }, CellSym::<Y>::Char('░'), fg, bg);
                 }
                 for i in std::cmp::max(0, x + fill_start)
                     ..std::cmp::min(grid_w, x + fill_start + fill_length)
                 {
-                    self.put_color_raw(
-                        Position { x: i, y },
-                        use_fg,
-                        use_bg,
-                        CellSym::<Y>::Char('█'),
-                    );
+                    self.put_color_raw(Position { x: i, y }, CellSym::<Y>::Char('█'), fg, bg);
                 }
                 for i in std::cmp::max(0, x + fill_start + fill_length)
                     ..std::cmp::min(grid_w, x + length)
                 {
-                    self.put_color_raw(
-                        Position { x: i, y },
-                        use_fg,
-                        use_bg,
-                        CellSym::<Y>::Char('░'),
-                    );
+                    self.put_color_raw(Position { x: i, y }, CellSym::<Y>::Char('░'), fg, bg);
                 }
             }
         }
@@ -833,16 +825,6 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
         }
     }
 
-    /// Set the foreground color to be used for subsequent drawing operations.
-    pub fn set_draw_fg(&mut self, fg: Color) {
-        self.front.set_draw_fg(fg);
-    }
-
-    /// Set the background color to be used for subsequent drawing operations.
-    pub fn set_draw_bg(&mut self, bg: Color) {
-        self.front.set_draw_bg(bg);
-    }
-
     /// Set internal drawing offset hint to take advantage of wrapped offset rendering to reduce
     /// time spent rendering later on.
     ///
@@ -858,105 +840,126 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
 
     /// Clear the entire TileGrid.
     pub fn clear(&mut self) {
-        self.clear_color(false, false);
+        self.clear_color(DEFAULT_FG, DEFAULT_BG);
     }
 
     /// Clear the entire TileGrid, optionally changing the foreground and/or background colors.
-    pub fn clear_color(&mut self, use_fg: bool, use_bg: bool) {
-        self.front.clear_color(use_fg, use_bg);
+    pub fn clear_color<F, B>(&mut self, fg: F, bg: B)
+    where
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
+        self.front.clear_color(fg, bg);
         self.needs_render = true;
     }
 
     /// Put a single character in a given position.
     pub fn put_char<P: Into<Position>>(&mut self, pos: P, ch: char) {
-        self.put_char_color(pos, false, false, ch);
+        self.put_char_color(pos, ch, DEFAULT_FG, DEFAULT_BG);
     }
 
     /// Put a symbol in a given position.
     pub fn put_sym<P: Into<Position>>(&mut self, pos: P, sym: Y) {
-        self.put_sym_color(pos, false, false, sym);
+        self.put_sym_color(pos, sym, DEFAULT_FG, DEFAULT_BG);
     }
 
     /// Put a single character in a given position, optionally changing the foreground and/or
     /// background colors.
-    pub fn put_char_color<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, ch: char)
+    pub fn put_char_color<P, F, B>(&mut self, pos: P, ch: char, fg: F, bg: B)
     where
         P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
     {
         self.front
-            .put_color(pos.into(), use_fg, use_bg, CellSym::<Y>::Char(ch));
+            .put_color(pos.into(), CellSym::<Y>::Char(ch), fg, bg);
         self.needs_render = true;
     }
 
     /// Put a symbol in a given position, optionally changing the foreground and/or background
     /// colors.
-    pub fn put_sym_color<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, sym: Y)
+    pub fn put_sym_color<P, F, B>(&mut self, pos: P, sym: Y, fg: F, bg: B)
     where
         P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
     {
         self.front
-            .put_color(pos.into(), use_fg, use_bg, CellSym::<Y>::Sym(sym));
+            .put_color(pos.into(), CellSym::<Y>::Sym(sym), fg, bg);
         self.needs_render = true;
     }
 
     /// Like [TileGrid::put_char_color], but skips bounds checking.
-    pub fn put_char_color_raw<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, ch: char)
+    pub fn put_char_color_raw<P, F, B>(&mut self, pos: P, ch: char, fg: F, bg: B)
     where
         P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
     {
         self.front
-            .put_color_raw(pos.into(), use_fg, use_bg, CellSym::<Y>::Char(ch));
+            .put_color_raw(pos.into(), CellSym::<Y>::Char(ch), fg, bg);
         self.needs_render = true;
     }
 
     /// Like [TileGrid::put_sym_color], but skips bounds checking.
-    pub fn put_sym_color_raw<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, sym: Y)
+    pub fn put_sym_color_raw<P, F, B>(&mut self, pos: P, sym: Y, fg: F, bg: B)
     where
         P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
     {
         self.front
-            .put_color_raw(pos.into(), use_fg, use_bg, CellSym::<Y>::Sym(sym));
+            .put_color_raw(pos.into(), CellSym::<Y>::Sym(sym), fg, bg);
         self.needs_render = true;
     }
 
-    /// Set background color at a given position.
-    pub fn recolor_pos<P: Into<Position>>(&mut self, pos: P, use_fg: bool, use_bg: bool) {
-        self.front.recolor_pos(pos.into(), use_fg, use_bg);
+    /// Set foreground and background colors at a given position.
+    pub fn recolor_pos<P, F, B>(&mut self, pos: P, fg: F, bg: B)
+    where
+        P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
+        self.front.recolor_pos(pos.into(), fg, bg);
         self.needs_render = true;
     }
 
     /// Print a string on the TileGrid starting at the given position.  If the string goes past the
     /// right edge of the TileGrid it will be truncated.
     pub fn print<P: Into<Position>>(&mut self, pos: P, s: &str) {
-        self.print_color(pos.into(), false, false, s);
+        self.print_color(pos.into(), s, DEFAULT_FG, DEFAULT_BG);
     }
 
     /// Print a string on the TileGrid starting at the given position, optionally changing the
     /// foreground and/or background colors.  If the string goes past the right edge of the
     /// TileGrid it will be truncated.
-    pub fn print_color<P>(&mut self, pos: P, use_fg: bool, use_bg: bool, s: &str)
+    pub fn print_color<P, F, B>(&mut self, pos: P, s: &str, fg: F, bg: B)
     where
         P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
     {
-        self.front.print_color(pos.into(), use_fg, use_bg, s);
+        self.front.print_color(pos.into(), s, fg, bg);
         self.needs_render = true;
     }
 
     /// Draw a box on the TileGrid with the given size and position.  Any part of the box that
     /// falls outside of the TileGrid will be clipped off.
-    pub fn draw_box<P, S>(&mut self, pos: P, size: S)
+    pub fn draw_box<P, S, F, B>(&mut self, pos: P, size: S, fg: F, bg: B)
     where
         P: Into<Position>,
         S: Into<Size>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
     {
-        self.front.draw_box(pos.into(), size.into());
+        self.front.draw_box(pos.into(), size.into(), fg, bg);
         self.needs_render = true;
     }
 
     /// Draw a bar of a given length starting at the given position.  Part of the bar is filled
     /// based on the offset, amount and max values, and the entire bar is colored based on the
     /// current foreground and background colors.
-    pub fn draw_bar<P: Into<Position>>(
+    pub fn draw_bar<P, F, B>(
         &mut self,
         vertical: bool,
         pos: P,
@@ -964,19 +967,15 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
         offset: i32,
         amount: i32,
         max: i32,
-        use_fg: bool,
-        use_bg: bool,
-    ) {
-        self.front.draw_bar(
-            vertical,
-            pos.into(),
-            length,
-            offset,
-            amount,
-            max,
-            use_fg,
-            use_bg,
-        );
+        fg: F,
+        bg: B,
+    ) where
+        P: Into<Position>,
+        F: Into<Option<Color>> + Copy,
+        B: Into<Option<Color>> + Copy,
+    {
+        self.front
+            .draw_bar(vertical, pos.into(), length, offset, amount, max, fg, bg);
         self.needs_render = true;
     }
 

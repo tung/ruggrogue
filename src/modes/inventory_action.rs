@@ -220,6 +220,9 @@ impl InventoryActionMode {
 
     pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
+        let fg = ui::color::WHITE;
+        let bg = ui::color::BLACK;
+        let selected_bg = ui::color::SELECTED_BG;
 
         grid.view.color_mod = if active {
             ui::color::WHITE
@@ -227,37 +230,37 @@ impl InventoryActionMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(ui::color::WHITE);
-        grid.set_draw_bg(ui::color::BLACK);
-        grid.draw_box((0, 0), (grid.width(), grid.height()));
+        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
 
         world.run(|names: View<Name>, renderables: View<Renderable>| {
             let render = renderables.get(self.item_id);
 
-            grid.set_draw_fg(render.fg);
-            grid.set_draw_bg(render.bg);
-            grid.put_sym_color((2, 2), true, true, render.sym);
-
-            grid.set_draw_fg(ui::color::WHITE);
-            grid.print_color((4, 2), true, false, &names.get(self.item_id).0);
+            grid.put_sym_color((2, 2), render.sym, render.fg, render.bg);
+            grid.print_color((4, 2), &names.get(self.item_id).0, fg, bg);
         });
 
         for (i, action) in self.actions.iter().enumerate() {
-            grid.set_draw_bg(ui::color::SELECTED_BG);
             grid.print_color(
                 (4, 4 + i as i32),
-                false,
-                matches!(self.subsection, SubSection::Actions) && i as i32 == self.selection,
                 action.name(),
+                fg,
+                if matches!(self.subsection, SubSection::Actions) && i as i32 == self.selection {
+                    selected_bg
+                } else {
+                    bg
+                },
             );
         }
 
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         grid.print_color(
             (4, grid.height() as i32 - 3),
-            false,
-            matches!(self.subsection, SubSection::Cancel),
             CANCEL,
+            fg,
+            if matches!(self.subsection, SubSection::Cancel) {
+                selected_bg
+            } else {
+                bg
+            },
         );
     }
 }

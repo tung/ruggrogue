@@ -181,6 +181,9 @@ impl PickUpMenuMode {
         let grid = &mut grids[0];
         let width = grid.width();
         let height = grid.height();
+        let fg = ui::color::WHITE;
+        let bg = ui::color::BLACK;
+        let selected_bg = ui::color::SELECTED_BG;
 
         grid.view.color_mod = if active {
             ui::color::WHITE
@@ -188,9 +191,7 @@ impl PickUpMenuMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(ui::color::WHITE);
-        grid.set_draw_bg(ui::color::BLACK);
-        grid.draw_box((0, 0), (width, height));
+        grid.draw_box((0, 0), (width, height), fg, bg);
         grid.print((2, 2), PROMPT);
 
         let list_height = height as i32 - 8;
@@ -210,8 +211,8 @@ impl PickUpMenuMode {
                 list_offset,
                 list_height,
                 self.items.len() as i32,
-                false,
-                false,
+                fg,
+                bg,
             );
         }
 
@@ -225,26 +226,35 @@ impl PickUpMenuMode {
             {
                 let render = renderables.get(*item_id);
 
-                grid.set_draw_fg(render.fg);
-                grid.set_draw_bg(render.bg);
-                grid.put_sym_color((2, 4 + i as i32 - list_offset), true, true, render.sym);
+                grid.put_sym_color(
+                    (2, 4 + i as i32 - list_offset),
+                    render.sym,
+                    render.fg,
+                    render.bg,
+                );
 
-                grid.set_draw_bg(ui::color::SELECTED_BG);
                 grid.print_color(
                     (4, 4 + i as i32 - list_offset),
-                    false,
-                    matches!(self.subsection, SubSection::Items) && i as i32 == self.selection,
                     &names.get(*item_id).0,
+                    fg,
+                    if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {
+                        selected_bg
+                    } else {
+                        bg
+                    },
                 );
             }
         });
 
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         grid.print_color(
             (4, height as i32 - 3),
-            false,
-            matches!(self.subsection, SubSection::Cancel),
             CANCEL,
+            fg,
+            if matches!(self.subsection, SubSection::Cancel) {
+                selected_bg
+            } else {
+                bg
+            },
         );
     }
 }

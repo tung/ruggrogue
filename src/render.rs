@@ -44,12 +44,11 @@ pub fn draw_map(world: &World, grid: &mut TileGrid<GameSym>) {
                 Color { r: v, g: v, b: v }
             };
 
-            grid.set_draw_fg(color);
             grid.put_sym_color_raw(
                 (tx - player_pos.x + cx, ty - player_pos.y + cy),
-                true,
-                false,
                 sym,
+                color,
+                None,
             );
         }
     }
@@ -75,9 +74,7 @@ pub fn draw_renderables(world: &World, grid: &mut TileGrid<GameSym>) {
         let gx = coord.0.x - x + cx;
         let gy = coord.0.y - y + cy;
         if gx >= 0 && gy >= 0 && gx < w && gy < h && fov.get(coord.0.into()) {
-            grid.set_draw_fg(render.fg);
-            grid.set_draw_bg(render.bg);
-            grid.put_sym_color((gx, gy), true, true, render.sym);
+            grid.put_sym_color((gx, gy), render.sym, render.fg, render.bg);
         }
     };
 

@@ -5,7 +5,10 @@ use crate::{
     gamesym::GameSym,
     ui::{self, Options},
 };
-use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
+use ruggle::{
+    util::{Color, Size},
+    InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
+};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -219,7 +222,14 @@ impl OptionsMenuMode {
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    fn draw_tileset(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+    fn draw_tileset(
+        &self,
+        world: &World,
+        grid: &mut TileGrid<GameSym>,
+        fg: Color,
+        bg: Color,
+        selected_bg: Color,
+    ) {
         let tileset_left_x = 3 + TILESET_LABEL.len() as i32;
         let tileset_name_x = 3 + tileset_left_x;
         let tileset_right_x = 1
@@ -233,24 +243,34 @@ impl OptionsMenuMode {
         let tileset = world.borrow::<UniqueView<Options>>().tileset;
 
         grid.print((2, tileset_y), TILESET_LABEL);
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         if tileset > 0 {
-            grid.print((tileset_left_x, tileset_y), "<<");
+            grid.print_color((tileset_left_x, tileset_y), "<<", fg, bg);
         }
         grid.print_color(
             (tileset_name_x, tileset_y),
-            false,
-            matches!(self.selection, Selection::Tileset),
             TILESET_NAMES
                 .get(tileset as usize)
                 .unwrap_or(&UNKNOWN_TILESET_NAME),
+            fg,
+            if matches!(self.selection, Selection::Tileset) {
+                selected_bg
+            } else {
+                bg
+            },
         );
         if tileset as usize + 1 < TILESET_NAMES.len() {
-            grid.print((tileset_right_x, tileset_y), ">>");
+            grid.print_color((tileset_right_x, tileset_y), ">>", fg, bg);
         }
     }
 
-    fn draw_font(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+    fn draw_font(
+        &self,
+        world: &World,
+        grid: &mut TileGrid<GameSym>,
+        fg: Color,
+        bg: Color,
+        selected_bg: Color,
+    ) {
         let font_left_x = 3 + FONT_LABEL.len() as i32;
         let font_name_x = 3 + font_left_x;
         let font_right_x = 1
@@ -264,85 +284,119 @@ impl OptionsMenuMode {
         let font = world.borrow::<UniqueView<Options>>().font;
 
         grid.print((2, font_y), FONT_LABEL);
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         if font > 0 {
-            grid.print((font_left_x, font_y), "<<");
+            grid.print_color((font_left_x, font_y), "<<", fg, bg);
         }
         grid.print_color(
             (font_name_x, font_y),
-            false,
-            matches!(self.selection, Selection::Font),
             TILESET_NAMES
                 .get(font as usize)
                 .unwrap_or(&UNKNOWN_TILESET_NAME),
+            fg,
+            if matches!(self.selection, Selection::Font) {
+                selected_bg
+            } else {
+                bg
+            },
         );
         if font + 1 < NUM_FONTS {
-            grid.print((font_right_x, font_y), ">>");
+            grid.print_color((font_right_x, font_y), ">>", fg, bg);
         }
     }
 
-    fn draw_map_zoom(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+    fn draw_map_zoom(
+        &self,
+        world: &World,
+        grid: &mut TileGrid<GameSym>,
+        fg: Color,
+        bg: Color,
+        selected_bg: Color,
+    ) {
         let map_zoom_1x_x = 3 + MAP_ZOOM_LABEL.len() as i32;
         let map_zoom_2x_x = 4 + (MAP_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
         let map_zoom_y = 4;
         let map_zoom = world.borrow::<UniqueView<Options>>().map_zoom;
 
         grid.print((2, map_zoom_y), MAP_ZOOM_LABEL);
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         grid.print_color(
             (map_zoom_1x_x, map_zoom_y),
-            false,
-            map_zoom == 1 && matches!(self.selection, Selection::MapZoom),
             if map_zoom == 1 {
                 ZOOM_1X_ON
             } else {
                 ZOOM_1X_OFF
             },
+            fg,
+            if map_zoom == 1 && matches!(self.selection, Selection::MapZoom) {
+                selected_bg
+            } else {
+                bg
+            },
         );
         grid.print_color(
             (map_zoom_2x_x, map_zoom_y),
-            false,
-            map_zoom == 2 && matches!(self.selection, Selection::MapZoom),
             if map_zoom == 2 {
                 ZOOM_2X_ON
             } else {
                 ZOOM_2X_OFF
             },
+            fg,
+            if map_zoom == 2 && matches!(self.selection, Selection::MapZoom) {
+                selected_bg
+            } else {
+                bg
+            },
         );
     }
 
-    fn draw_text_zoom(&self, world: &World, grid: &mut TileGrid<GameSym>) {
+    fn draw_text_zoom(
+        &self,
+        world: &World,
+        grid: &mut TileGrid<GameSym>,
+        fg: Color,
+        bg: Color,
+        selected_bg: Color,
+    ) {
         let text_zoom_1x_x = 3 + TEXT_ZOOM_LABEL.len() as i32;
         let text_zoom_2x_x = 4 + (TEXT_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
         let text_zoom_y = 5;
         let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
 
         grid.print((2, text_zoom_y), TEXT_ZOOM_LABEL);
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         grid.print_color(
             (text_zoom_1x_x, text_zoom_y),
-            false,
-            text_zoom == 1 && matches!(self.selection, Selection::TextZoom),
             if text_zoom == 1 {
                 ZOOM_1X_ON
             } else {
                 ZOOM_1X_OFF
             },
+            fg,
+            if text_zoom == 1 && matches!(self.selection, Selection::TextZoom) {
+                selected_bg
+            } else {
+                bg
+            },
         );
         grid.print_color(
             (text_zoom_2x_x, text_zoom_y),
-            false,
-            text_zoom == 2 && matches!(self.selection, Selection::TextZoom),
             if text_zoom == 2 {
                 ZOOM_2X_ON
             } else {
                 ZOOM_2X_OFF
+            },
+            fg,
+            if text_zoom == 2 && matches!(self.selection, Selection::TextZoom) {
+                selected_bg
+            } else {
+                bg
             },
         );
     }
 
     pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
+        let fg = ui::color::WHITE;
+        let bg = ui::color::BLACK;
+        let selected_bg = ui::color::SELECTED_BG;
 
         grid.view.color_mod = if active {
             ui::color::WHITE
@@ -350,22 +404,23 @@ impl OptionsMenuMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(ui::color::WHITE);
-        grid.set_draw_bg(ui::color::BLACK);
-        grid.draw_box((0, 0), (grid.width(), grid.height()));
+        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
         grid.print((2, 0), "< Options >");
 
-        self.draw_tileset(world, grid);
-        self.draw_font(world, grid);
-        self.draw_map_zoom(world, grid);
-        self.draw_text_zoom(world, grid);
+        self.draw_tileset(world, grid, fg, bg, selected_bg);
+        self.draw_font(world, grid, fg, bg, selected_bg);
+        self.draw_map_zoom(world, grid, fg, bg, selected_bg);
+        self.draw_text_zoom(world, grid, fg, bg, selected_bg);
 
-        grid.set_draw_bg(ui::color::SELECTED_BG);
         grid.print_color(
             (2, 7),
-            false,
-            matches!(self.selection, Selection::Quit),
             QUIT,
+            fg,
+            if matches!(self.selection, Selection::Quit) {
+                selected_bg
+            } else {
+                bg
+            },
         );
     }
 }

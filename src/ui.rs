@@ -74,8 +74,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
-    grid.set_draw_fg(color::YELLOW);
-    grid.print_color((x, y), true, false, &depth);
+    grid.print_color((x, y), &depth, color::YELLOW, None);
     x += depth.len() as i32 + 1;
 
     let (hp, max_hp) = world.run(
@@ -86,13 +85,20 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
         },
     );
     let hp_string = format!(" HP: {} / {} ", hp, max_hp);
-    grid.set_draw_fg(color::YELLOW);
-    grid.print_color((x, y), true, false, &hp_string);
+    grid.print_color((x, y), &hp_string, color::YELLOW, None);
     x += hp_string.len() as i32 + 1;
 
     let hp_bar_length = grid.width() as i32 - x - 2;
-    grid.set_draw_fg(color::RED);
-    grid.draw_bar(false, (x, y), hp_bar_length, 0, hp, max_hp, true, false);
+    grid.draw_bar(
+        false,
+        (x, y),
+        hp_bar_length,
+        0,
+        hp,
+        max_hp,
+        color::RED,
+        None,
+    );
 }
 
 fn draw_messages<Y>(world: &World, grid: &mut TileGrid<Y>, active: bool, min_y: i32, max_y: i32)
@@ -100,10 +106,10 @@ where
     Y: Symbol,
 {
     world.run(|messages: UniqueView<Messages>| {
-        grid.set_draw_fg(if active { color::WHITE } else { color::GRAY });
+        let fg = if active { color::WHITE } else { color::GRAY };
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
-            grid.put_char_color((0, y), true, false, '>');
-            grid.print_color((2, y), true, false, message);
+            grid.put_char_color((0, y), '>', fg, None);
+            grid.print_color((2, y), message, fg, None);
         }
     });
 }
@@ -112,16 +118,14 @@ pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<
     let w = grid.width() as i32;
     let h = grid.height() as i32;
 
-    grid.set_draw_fg(color::WHITE);
     for x in 0..w {
-        grid.put_char_color((x, 0), true, false, '─');
+        grid.put_char_color((x, 0), '─', color::WHITE, None);
     }
 
     draw_status_line(world, grid, 0);
 
     if let Some(prompt) = prompt {
-        grid.set_draw_fg(color::WHITE);
-        grid.print_color((2, 1), true, false, prompt);
+        grid.print_color((2, 1), prompt, color::WHITE, None);
         draw_messages(world, grid, false, 2, h - 1);
     } else {
         draw_messages(world, grid, true, 1, h);

@@ -239,31 +239,28 @@ impl TargetMode {
         let radius2 = self.radius * (self.radius + 1);
 
         // Highlight targetable spaces.
-        map_grid.set_draw_bg(ui::color::BLUE);
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
-                    map_grid.recolor_pos((x - px + cx, y - py + cy), false, true);
+                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, ui::color::BLUE);
                 }
             }
         }
 
         // Highlight area of effect.
-        map_grid.set_draw_bg(ui::color::PURPLE);
         for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
             for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
                 if dist2((x, y), self.cursor) <= radius2 {
-                    map_grid.recolor_pos((x - px + cx, y - py + cy), false, true);
+                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, ui::color::PURPLE);
                 }
             }
         }
 
         // Highlight cursor position.
-        map_grid.set_draw_bg(ui::color::MAGENTA);
         map_grid.recolor_pos(
             (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
-            false,
-            true,
+            None,
+            ui::color::MAGENTA,
         );
 
         // Describe the location that the cursor is positioned at.

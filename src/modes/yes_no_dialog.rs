@@ -109,6 +109,9 @@ impl YesNoDialogMode {
         let grid = &mut grids[0];
         let yes_x = grid.width() as i32 - (YES_STR.len() + NO_STR.len() + 4) as i32;
         let no_x = grid.width() as i32 - NO_STR.len() as i32 - 2;
+        let fg = ui::color::WHITE;
+        let bg = ui::color::BLACK;
+        let selected_bg = ui::color::SELECTED_BG;
 
         grid.view.color_mod = if active {
             ui::color::WHITE
@@ -116,13 +119,20 @@ impl YesNoDialogMode {
             ui::color::GRAY
         };
 
-        grid.set_draw_fg(ui::color::WHITE);
-        grid.set_draw_bg(ui::color::BLACK);
-        grid.draw_box((0, 0), (grid.width(), grid.height()));
+        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
         grid.print((2, 2), &self.prompt);
 
-        grid.set_draw_bg(ui::color::SELECTED_BG);
-        grid.print_color((yes_x, 4), false, self.yes_selected, YES_STR);
-        grid.print_color((no_x, 4), false, !self.yes_selected, NO_STR);
+        grid.print_color(
+            (yes_x, 4),
+            YES_STR,
+            fg,
+            if self.yes_selected { selected_bg } else { bg },
+        );
+        grid.print_color(
+            (no_x, 4),
+            NO_STR,
+            fg,
+            if !self.yes_selected { selected_bg } else { bg },
+        );
     }
 }

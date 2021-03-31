@@ -293,9 +293,7 @@ impl InventoryMode {
 
     fn draw_status(&self, _world: &World, grid: &mut TileGrid<GameSym>, fg: Color, bg: Color) {
         // Draw box with right edge off-grid.
-        grid.set_draw_fg(fg);
-        grid.set_draw_bg(bg);
-        grid.draw_box((0, 0), (grid.width() + 1, grid.height()));
+        grid.draw_box((0, 0), (grid.width() + 1, grid.height()), fg, bg);
     }
 
     fn draw_equip(
@@ -307,10 +305,8 @@ impl InventoryMode {
         _selected_bg: Color,
     ) {
         // Draw box with bottom edge off-grid.
-        grid.set_draw_fg(fg);
-        grid.set_draw_bg(bg);
-        grid.draw_box((0, 0), (grid.width(), grid.height() + 1));
-        grid.put_char((0, 0), '┬');
+        grid.draw_box((0, 0), (grid.width(), grid.height() + 1), fg, bg);
+        grid.put_char_color((0, 0), '┬', fg, bg);
     }
 
     fn draw_inventory(
@@ -321,20 +317,21 @@ impl InventoryMode {
         bg: Color,
         selected_bg: Color,
     ) {
-        grid.set_draw_fg(fg);
-        grid.set_draw_bg(bg);
-        grid.draw_box((0, 0), (grid.width(), grid.height()));
-        grid.put_char((0, 0), '├');
-        grid.put_char((grid.width() as i32 - 1, 0), '┤');
-        grid.put_char((0, grid.height() as i32 - 1), '┴');
+        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
+        grid.put_char_color((0, 0), '├', fg, bg);
+        grid.put_char_color((grid.width() as i32 - 1, 0), '┤', fg, bg);
+        grid.put_char_color((0, grid.height() as i32 - 1), '┴', fg, bg);
         grid.print((2, 0), "< Inventory >");
 
-        grid.set_draw_bg(selected_bg);
         grid.print_color(
             (2, 2),
-            false,
-            matches!(self.subsection, SubSection::SortAll),
             "[ Sort all items ]",
+            fg,
+            if matches!(self.subsection, SubSection::SortAll) {
+                selected_bg
+            } else {
+                bg
+            },
         );
 
         world.run(
@@ -347,12 +344,15 @@ impl InventoryMode {
                 let item_y = 4;
 
                 if player_inv.items.is_empty() {
-                    grid.set_draw_bg(selected_bg);
                     grid.print_color(
                         (item_x, item_y),
-                        false,
-                        matches!(self.subsection, SubSection::Inventory),
                         "-- nothing --",
+                        fg,
+                        if matches!(self.subsection, SubSection::Inventory) {
+                            selected_bg
+                        } else {
+                            bg
+                        },
                     );
                 } else {
                     let item_height = (grid.height() as i32 - 6).max(1);
@@ -372,8 +372,8 @@ impl InventoryMode {
                             item_offset,
                             item_height,
                             player_inv.items.len() as i32,
-                            false,
-                            false,
+                            fg,
+                            bg,
                         );
                     }
 
@@ -386,22 +386,24 @@ impl InventoryMode {
                     {
                         let render = renderables.get(*item_id);
 
-                        grid.set_draw_fg(render.fg);
-                        grid.set_draw_bg(render.bg);
                         grid.put_sym_color(
                             (item_x, item_y + i as i32 - item_offset),
-                            true,
-                            true,
                             render.sym,
+                            render.fg,
+                            render.bg,
                         );
 
-                        grid.set_draw_bg(selected_bg);
                         grid.print_color(
                             (item_x + 2, item_y + i as i32 - item_offset),
-                            false,
-                            matches!(self.subsection, SubSection::Inventory)
-                                && i as i32 == self.inv_selection,
                             &names.get(*item_id).0,
+                            fg,
+                            if matches!(self.subsection, SubSection::Inventory)
+                                && i as i32 == self.inv_selection
+                            {
+                                selected_bg
+                            } else {
+                                bg
+                            },
                         );
                     }
                 }
