@@ -9,7 +9,10 @@ use crate::{
     player::PlayerId,
     render, ui,
 };
-use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
+use ruggle::{
+    util::{Color, Size},
+    InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
+};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -220,11 +223,11 @@ impl TargetMode {
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
         if active {
-            map_grid.view.color_mod = ui::color::WHITE;
-            ui_grid.view.color_mod = ui::color::WHITE;
+            map_grid.view.color_mod = Color::WHITE;
+            ui_grid.view.color_mod = Color::WHITE;
         } else {
-            map_grid.view.color_mod = ui::color::GRAY;
-            ui_grid.view.color_mod = ui::color::GRAY;
+            map_grid.view.color_mod = Color::GRAY;
+            ui_grid.view.color_mod = Color::GRAY;
         }
 
         map_grid.clear();
@@ -242,7 +245,7 @@ impl TargetMode {
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
-                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, ui::color::BLUE);
+                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, Color::BLUE);
                 }
             }
         }
@@ -251,7 +254,7 @@ impl TargetMode {
         for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
             for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
                 if dist2((x, y), self.cursor) <= radius2 {
-                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, ui::color::PURPLE);
+                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, Color::PURPLE);
                 }
             }
         }
@@ -260,7 +263,7 @@ impl TargetMode {
         map_grid.recolor_pos(
             (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
             None,
-            ui::color::MAGENTA,
+            Color::MAGENTA,
         );
 
         // Describe the location that the cursor is positioned at.

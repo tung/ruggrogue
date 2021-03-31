@@ -16,7 +16,7 @@ use crate::{
     },
     gamesym::GameSym,
     map::{Map, Rect},
-    player, ui, RuggleRng,
+    player, RuggleRng,
 };
 use ruggle::util::Color;
 
@@ -60,8 +60,8 @@ pub fn spawn_player(
             RenderOnMap {},
             Renderable {
                 sym: GameSym::Player,
-                fg: ui::color::YELLOW,
-                bg: ui::color::BLACK,
+                fg: Color::YELLOW,
+                bg: Color::BLACK,
             },
         ),
     )
@@ -97,8 +97,8 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::HealthPotion,
-                        fg: ui::color::MAGENTA,
-                        bg: ui::color::BLACK,
+                        fg: Color::MAGENTA,
+                        bg: Color::BLACK,
                     },
                 ),
             );
@@ -141,8 +141,8 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::MagicMissileScroll,
-                        fg: ui::color::CYAN,
-                        bg: ui::color::BLACK,
+                        fg: Color::CYAN,
+                        bg: Color::BLACK,
                     },
                 ),
             );
@@ -187,8 +187,8 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::FireballScroll,
-                        fg: ui::color::ORANGE,
-                        bg: ui::color::BLACK,
+                        fg: Color::ORANGE,
+                        bg: Color::BLACK,
                     },
                 ),
             );
@@ -233,8 +233,8 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
                     RenderOnFloor {},
                     Renderable {
                         sym: GameSym::SleepScroll,
-                        fg: ui::color::PINK,
-                        bg: ui::color::BLACK,
+                        fg: Color::PINK,
+                        bg: Color::BLACK,
                     },
                 ),
             );
@@ -283,7 +283,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg:
                     Renderable {
                         sym,
                         fg,
-                        bg: ui::color::BLACK,
+                        bg: Color::BLACK,
                     },
                 ),
             );

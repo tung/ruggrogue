@@ -6,59 +6,11 @@ use ruggle::{
     Symbol, TileGrid, Tileset,
 };
 
-pub mod color {
-    use super::Color;
-
-    pub const WHITE: Color = Color {
-        r: 255,
-        g: 255,
-        b: 255,
-    };
-    pub const BLACK: Color = Color { r: 0, g: 0, b: 0 };
-    pub const GRAY: Color = Color {
-        r: 128,
-        g: 128,
-        b: 128,
-    };
-    pub const RED: Color = Color { r: 255, g: 0, b: 0 };
-    pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
-    pub const YELLOW: Color = Color {
-        r: 255,
-        g: 255,
-        b: 0,
-    };
-    pub const MAGENTA: Color = Color {
-        r: 255,
-        g: 0,
-        b: 255,
-    };
-    pub const CYAN: Color = Color {
-        r: 0,
-        g: 255,
-        b: 255,
-    };
-    pub const ORANGE: Color = Color {
-        r: 255,
-        g: 166,
-        b: 0,
-    };
-    pub const PURPLE: Color = Color {
-        r: 128,
-        g: 0,
-        b: 128,
-    };
-    pub const PINK: Color = Color {
-        r: 255,
-        g: 191,
-        b: 204,
-    };
-
-    pub const SELECTED_BG: Color = Color {
-        r: 0,
-        g: 128,
-        b: 255,
-    };
-}
+pub const SELECTED_BG: Color = Color {
+    r: 0,
+    g: 128,
+    b: 255,
+};
 
 pub struct Options {
     pub tileset: u32,
@@ -74,7 +26,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
-    grid.print_color((x, y), &depth, color::YELLOW, None);
+    grid.print_color((x, y), &depth, Color::YELLOW, None);
     x += depth.len() as i32 + 1;
 
     let (hp, max_hp) = world.run(
@@ -85,7 +37,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
         },
     );
     let hp_string = format!(" HP: {} / {} ", hp, max_hp);
-    grid.print_color((x, y), &hp_string, color::YELLOW, None);
+    grid.print_color((x, y), &hp_string, Color::YELLOW, None);
     x += hp_string.len() as i32 + 1;
 
     let hp_bar_length = grid.width() as i32 - x - 2;
@@ -96,7 +48,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
         0,
         hp,
         max_hp,
-        color::RED,
+        Color::RED,
         None,
     );
 }
@@ -106,7 +58,7 @@ where
     Y: Symbol,
 {
     world.run(|messages: UniqueView<Messages>| {
-        let fg = if active { color::WHITE } else { color::GRAY };
+        let fg = if active { Color::WHITE } else { Color::GRAY };
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
             grid.put_char_color((0, y), '>', fg, None);
             grid.print_color((2, y), message, fg, None);
@@ -119,13 +71,13 @@ pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<
     let h = grid.height() as i32;
 
     for x in 0..w {
-        grid.put_char_color((x, 0), '─', color::WHITE, None);
+        grid.put_char_color((x, 0), '─', Color::WHITE, None);
     }
 
     draw_status_line(world, grid, 0);
 
     if let Some(prompt) = prompt {
-        grid.print_color((2, 1), prompt, color::WHITE, None);
+        grid.print_color((2, 1), prompt, Color::WHITE, None);
         draw_messages(world, grid, false, 2, h - 1);
     } else {
         draw_messages(world, grid, true, 1, h);
@@ -202,7 +154,7 @@ pub fn prepare_main_grids<Y: Symbol>(
             ui_tileset_index as usize,
         ));
         grids[MAP_GRID].view.clear_color = None;
-        grids[UI_GRID].view.clear_color = Some(color::BLACK);
+        grids[UI_GRID].view.clear_color = Some(Color::BLACK);
     }
 
     grids[MAP_GRID].set_tileset(tilesets, map_tileset_index as usize);

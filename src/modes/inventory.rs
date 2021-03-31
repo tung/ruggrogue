@@ -374,16 +374,16 @@ impl InventoryMode {
     pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (equip_grid, grids) = grids.split_first_mut().unwrap(); // EQUIP_GRID
         let (inv_grid, _) = grids.split_first_mut().unwrap(); // INV_GRID
-        let fg = ui::color::WHITE;
-        let bg = ui::color::BLACK;
-        let selected_bg = ui::color::SELECTED_BG;
+        let fg = Color::WHITE;
+        let bg = Color::BLACK;
+        let selected_bg = ui::SELECTED_BG;
 
         if active {
-            equip_grid.view.color_mod = ui::color::WHITE;
-            inv_grid.view.color_mod = ui::color::WHITE;
+            equip_grid.view.color_mod = Color::WHITE;
+            inv_grid.view.color_mod = Color::WHITE;
         } else {
-            equip_grid.view.color_mod = ui::color::GRAY;
-            inv_grid.view.color_mod = ui::color::GRAY;
+            equip_grid.view.color_mod = Color::GRAY;
+            inv_grid.view.color_mod = Color::GRAY;
         }
 
         if equip_grid.view.visible {

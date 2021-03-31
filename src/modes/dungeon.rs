@@ -10,7 +10,10 @@ use crate::{
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
     render, spawn, ui, vision,
 };
-use ruggle::{util::Size, InputBuffer, TileGrid, Tileset};
+use ruggle::{
+    util::{Color, Size},
+    InputBuffer, TileGrid, Tileset,
+};
 
 use super::{
     app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult},
@@ -211,11 +214,11 @@ impl DungeonMode {
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
         if active {
-            map_grid.view.color_mod = ui::color::WHITE;
-            ui_grid.view.color_mod = ui::color::WHITE;
+            map_grid.view.color_mod = Color::WHITE;
+            ui_grid.view.color_mod = Color::WHITE;
         } else {
-            map_grid.view.color_mod = ui::color::GRAY;
-            ui_grid.view.color_mod = ui::color::GRAY;
+            map_grid.view.color_mod = Color::GRAY;
+            ui_grid.view.color_mod = Color::GRAY;
         }
 
         map_grid.clear();

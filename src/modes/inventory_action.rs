@@ -6,7 +6,10 @@ use crate::{
     gamesym::GameSym,
     ui::{self, Options},
 };
-use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
+use ruggle::{
+    util::{Color, Size},
+    InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
+};
 
 use super::{
     target::{TargetMode, TargetModeResult},
@@ -220,15 +223,11 @@ impl InventoryActionMode {
 
     pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let grid = &mut grids[0];
-        let fg = ui::color::WHITE;
-        let bg = ui::color::BLACK;
-        let selected_bg = ui::color::SELECTED_BG;
+        let fg = Color::WHITE;
+        let bg = Color::BLACK;
+        let selected_bg = ui::SELECTED_BG;
 
-        grid.view.color_mod = if active {
-            ui::color::WHITE
-        } else {
-            ui::color::GRAY
-        };
+        grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
 

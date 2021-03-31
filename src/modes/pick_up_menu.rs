@@ -9,7 +9,10 @@ use crate::{
     player::PlayerId,
     ui::{self, Options},
 };
-use ruggle::{util::Size, InputBuffer, InputEvent, KeyMods, TileGrid, Tileset};
+use ruggle::{
+    util::{Color, Size},
+    InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
+};
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
@@ -181,15 +184,11 @@ impl PickUpMenuMode {
         let grid = &mut grids[0];
         let width = grid.width();
         let height = grid.height();
-        let fg = ui::color::WHITE;
-        let bg = ui::color::BLACK;
-        let selected_bg = ui::color::SELECTED_BG;
+        let fg = Color::WHITE;
+        let bg = Color::BLACK;
+        let selected_bg = ui::SELECTED_BG;
 
-        grid.view.color_mod = if active {
-            ui::color::WHITE
-        } else {
-            ui::color::GRAY
-        };
+        grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
         grid.draw_box((0, 0), (width, height), fg, bg);
         grid.print((2, 2), PROMPT);
