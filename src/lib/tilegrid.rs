@@ -349,12 +349,8 @@ impl<Y: Symbol> Cell<Y> {
     }
 }
 
-const DEFAULT_FG: Color = Color {
-    r: 255,
-    g: 255,
-    b: 255,
-};
-const DEFAULT_BG: Color = Color { r: 0, g: 0, b: 0 };
+const DEFAULT_FG: Color = Color::WHITE;
+const DEFAULT_BG: Color = Color::BLACK;
 
 struct RawTileGrid<Y: Symbol> {
     size: Size,
@@ -730,12 +726,8 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
                 dx: 0,
                 dy: 0,
                 visible: true,
-                clear_color: Some(Color { r: 0, g: 0, b: 0 }),
-                color_mod: Color {
-                    r: 255,
-                    g: 255,
-                    b: 255,
-                },
+                clear_color: Some(Color::BLACK),
+                color_mod: Color::WHITE,
                 zoom: 1,
             },
         }
