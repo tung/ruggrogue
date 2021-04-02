@@ -26,7 +26,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
 
     let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
-    grid.print_color((x, y), &depth, Color::YELLOW, None);
+    grid.print_color((x, y), &depth, true, Color::YELLOW, None);
     x += depth.len() as i32 + 1;
 
     let (hp, max_hp) = world.run(
@@ -36,9 +36,6 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
             (player_stats.hp, player_stats.max_hp)
         },
     );
-    let hp_string = format!(" HP: {} / {} ", hp, max_hp);
-    grid.print_color((x, y), &hp_string, Color::YELLOW, None);
-    x += hp_string.len() as i32 + 1;
 
     let hp_bar_length = grid.width() as i32 - x - 2;
     grid.draw_bar(
@@ -48,7 +45,14 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
         0,
         hp,
         max_hp,
-        Color::RED,
+        Color { r: 192, g: 0, b: 0 },
+        None,
+    );
+    grid.print_color(
+        (x, y),
+        &format!("Hit Points: {} / {}", hp, max_hp),
+        false,
+        Color::WHITE,
         None,
     );
 }
@@ -61,7 +65,7 @@ where
         let fg = if active { Color::WHITE } else { Color::GRAY };
         for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
             grid.put_char_color((0, y), '>', fg, None);
-            grid.print_color((2, y), message, fg, None);
+            grid.print_color((2, y), message, true, fg, None);
         }
     });
 }
@@ -77,7 +81,7 @@ pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<
     draw_status_line(world, grid, 0);
 
     if let Some(prompt) = prompt {
-        grid.print_color((2, 1), prompt, Color::WHITE, None);
+        grid.print_color((2, 1), prompt, true, Color::WHITE, None);
         draw_messages(world, grid, false, 2, h - 1);
     } else {
         draw_messages(world, grid, true, 1, h);

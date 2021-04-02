@@ -489,7 +489,7 @@ impl<Y: Symbol> RawTileGrid<Y> {
         }
     }
 
-    fn print_color<F, B>(&mut self, pos: Position, s: &str, fg: F, bg: B)
+    fn print_color<F, B>(&mut self, pos: Position, s: &str, draw_space: bool, fg: F, bg: B)
     where
         F: Into<Option<Color>> + Copy,
         B: Into<Option<Color>> + Copy,
@@ -501,7 +501,12 @@ impl<Y: Symbol> RawTileGrid<Y> {
         {
             let skip_chars = if pos.x < 0 { -pos.x as usize } else { 0 };
 
-            for (i, c) in s.char_indices().skip(skip_chars).take(self.size.w as usize) {
+            for (i, c) in s
+                .char_indices()
+                .skip(skip_chars)
+                .take(self.size.w as usize)
+                .filter(|(_, c)| draw_space || *c != ' ')
+            {
                 self.put_color_raw(
                     Position {
                         x: pos.x + i as i32,
@@ -919,19 +924,20 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
     /// Print a string on the TileGrid starting at the given position.  If the string goes past the
     /// right edge of the TileGrid it will be truncated.
     pub fn print<P: Into<Position>>(&mut self, pos: P, s: &str) {
-        self.print_color(pos.into(), s, DEFAULT_FG, DEFAULT_BG);
+        self.print_color(pos.into(), s, true, DEFAULT_FG, DEFAULT_BG);
     }
 
     /// Print a string on the TileGrid starting at the given position, optionally changing the
     /// foreground and/or background colors.  If the string goes past the right edge of the
-    /// TileGrid it will be truncated.
-    pub fn print_color<P, F, B>(&mut self, pos: P, s: &str, fg: F, bg: B)
+    /// TileGrid it will be truncated.  If `skip_space` is true space characters will overwrite
+    /// cells instead of skipping them and preserving their contents.
+    pub fn print_color<P, F, B>(&mut self, pos: P, s: &str, draw_space: bool, fg: F, bg: B)
     where
         P: Into<Position>,
         F: Into<Option<Color>> + Copy,
         B: Into<Option<Color>> + Copy,
     {
-        self.front.print_color(pos.into(), s, fg, bg);
+        self.front.print_color(pos.into(), s, draw_space, fg, bg);
         self.needs_render = true;
     }
 

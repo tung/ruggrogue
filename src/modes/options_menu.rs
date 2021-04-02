@@ -244,13 +244,14 @@ impl OptionsMenuMode {
 
         grid.print((2, tileset_y), TILESET_LABEL);
         if tileset > 0 {
-            grid.print_color((tileset_left_x, tileset_y), "<<", fg, bg);
+            grid.print_color((tileset_left_x, tileset_y), "<<", true, fg, bg);
         }
         grid.print_color(
             (tileset_name_x, tileset_y),
             TILESET_NAMES
                 .get(tileset as usize)
                 .unwrap_or(&UNKNOWN_TILESET_NAME),
+            true,
             fg,
             if matches!(self.selection, Selection::Tileset) {
                 selected_bg
@@ -259,7 +260,7 @@ impl OptionsMenuMode {
             },
         );
         if tileset as usize + 1 < TILESET_NAMES.len() {
-            grid.print_color((tileset_right_x, tileset_y), ">>", fg, bg);
+            grid.print_color((tileset_right_x, tileset_y), ">>", true, fg, bg);
         }
     }
 
@@ -285,13 +286,14 @@ impl OptionsMenuMode {
 
         grid.print((2, font_y), FONT_LABEL);
         if font > 0 {
-            grid.print_color((font_left_x, font_y), "<<", fg, bg);
+            grid.print_color((font_left_x, font_y), "<<", true, fg, bg);
         }
         grid.print_color(
             (font_name_x, font_y),
             TILESET_NAMES
                 .get(font as usize)
                 .unwrap_or(&UNKNOWN_TILESET_NAME),
+            true,
             fg,
             if matches!(self.selection, Selection::Font) {
                 selected_bg
@@ -300,7 +302,7 @@ impl OptionsMenuMode {
             },
         );
         if font + 1 < NUM_FONTS {
-            grid.print_color((font_right_x, font_y), ">>", fg, bg);
+            grid.print_color((font_right_x, font_y), ">>", true, fg, bg);
         }
     }
 
@@ -325,6 +327,7 @@ impl OptionsMenuMode {
             } else {
                 ZOOM_1X_OFF
             },
+            true,
             fg,
             if map_zoom == 1 && matches!(self.selection, Selection::MapZoom) {
                 selected_bg
@@ -339,6 +342,7 @@ impl OptionsMenuMode {
             } else {
                 ZOOM_2X_OFF
             },
+            true,
             fg,
             if map_zoom == 2 && matches!(self.selection, Selection::MapZoom) {
                 selected_bg
@@ -369,6 +373,7 @@ impl OptionsMenuMode {
             } else {
                 ZOOM_1X_OFF
             },
+            true,
             fg,
             if text_zoom == 1 && matches!(self.selection, Selection::TextZoom) {
                 selected_bg
@@ -383,6 +388,7 @@ impl OptionsMenuMode {
             } else {
                 ZOOM_2X_OFF
             },
+            true,
             fg,
             if text_zoom == 2 && matches!(self.selection, Selection::TextZoom) {
                 selected_bg
@@ -401,7 +407,7 @@ impl OptionsMenuMode {
         grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
-        grid.print_color((2, 0), "< Options >", Color::YELLOW, bg);
+        grid.print_color((2, 0), "< Options >", true, Color::YELLOW, bg);
 
         self.draw_tileset(world, grid, fg, bg, selected_bg);
         self.draw_font(world, grid, fg, bg, selected_bg);
@@ -411,6 +417,7 @@ impl OptionsMenuMode {
         grid.print_color(
             (2, 7),
             QUIT,
+            true,
             fg,
             if matches!(self.selection, Selection::Quit) {
                 selected_bg

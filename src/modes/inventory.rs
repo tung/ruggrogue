@@ -267,7 +267,7 @@ impl InventoryMode {
     ) {
         // Draw box with bottom edge off-grid.
         grid.draw_box((0, 0), (grid.width(), grid.height() + 1), fg, bg);
-        grid.print_color((2, 0), "< Equipment >", Color::YELLOW, bg);
+        grid.print_color((2, 0), "< Equipment >", true, Color::YELLOW, bg);
     }
 
     fn draw_inventory(
@@ -281,11 +281,12 @@ impl InventoryMode {
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
         grid.put_char_color((0, 0), '├', fg, bg);
         grid.put_char_color((grid.width() as i32 - 1, 0), '┤', fg, bg);
-        grid.print_color((2, 0), "< Inventory >", Color::YELLOW, bg);
+        grid.print_color((2, 0), "< Inventory >", true, Color::YELLOW, bg);
 
         grid.print_color(
             (2, 2),
             "[ Sort all items ]",
+            true,
             fg,
             if matches!(self.subsection, SubSection::SortAll) {
                 selected_bg
@@ -307,6 +308,7 @@ impl InventoryMode {
                     grid.print_color(
                         (item_x, item_y),
                         "-- nothing --",
+                        true,
                         fg,
                         if matches!(self.subsection, SubSection::Inventory) {
                             selected_bg
@@ -356,6 +358,7 @@ impl InventoryMode {
                         grid.print_color(
                             (item_x + 2, item_y + i as i32 - item_offset),
                             &names.get(*item_id).0,
+                            true,
                             fg,
                             if matches!(self.subsection, SubSection::Inventory)
                                 && i as i32 == self.inv_selection

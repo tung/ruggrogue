@@ -235,13 +235,14 @@ impl InventoryActionMode {
             let render = renderables.get(self.item_id);
 
             grid.put_sym_color((2, 2), render.sym, render.fg, render.bg);
-            grid.print_color((4, 2), &names.get(self.item_id).0, fg, bg);
+            grid.print_color((4, 2), &names.get(self.item_id).0, true, fg, bg);
         });
 
         for (i, action) in self.actions.iter().enumerate() {
             grid.print_color(
                 (4, 4 + i as i32),
                 action.name(),
+                true,
                 fg,
                 if matches!(self.subsection, SubSection::Actions) && i as i32 == self.selection {
                     selected_bg
@@ -254,6 +255,7 @@ impl InventoryActionMode {
         grid.print_color(
             (4, grid.height() as i32 - 3),
             CANCEL,
+            true,
             fg,
             if matches!(self.subsection, SubSection::Cancel) {
                 selected_bg

@@ -124,12 +124,14 @@ impl YesNoDialogMode {
         grid.print_color(
             (yes_x, 4),
             YES_STR,
+            true,
             fg,
             if self.yes_selected { selected_bg } else { bg },
         );
         grid.print_color(
             (no_x, 4),
             NO_STR,
+            true,
             fg,
             if !self.yes_selected { selected_bg } else { bg },
         );

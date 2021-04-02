@@ -188,7 +188,7 @@ impl PickUpMenuMode {
         grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
         grid.draw_box((0, 0), (width, height), fg, bg);
-        grid.print_color((2, 0), TITLE, Color::YELLOW, bg);
+        grid.print_color((2, 0), TITLE, true, Color::YELLOW, bg);
         grid.print((2, 2), PROMPT);
 
         let list_height = height as i32 - 8;
@@ -233,6 +233,7 @@ impl PickUpMenuMode {
                 grid.print_color(
                     (4, 4 + i as i32 - list_offset),
                     &names.get(*item_id).0,
+                    true,
                     fg,
                     if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {
                         selected_bg
@@ -246,6 +247,7 @@ impl PickUpMenuMode {
         grid.print_color(
             (4, height as i32 - 3),
             CANCEL,
+            true,
             fg,
             if matches!(self.subsection, SubSection::Cancel) {
                 selected_bg
