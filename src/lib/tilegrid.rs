@@ -638,7 +638,7 @@ impl<Y: Symbol> RawTileGrid<Y> {
                 for i in std::cmp::max(0, y + fill_start)
                     ..std::cmp::min(grid_h, y + fill_start + fill_length)
                 {
-                    self.put_color_raw(Position { x, y: i }, CellSym::<Y>::Char('█'), fg, bg);
+                    self.put_color_raw(Position { x, y: i }, CellSym::<Y>::Char(' '), bg, fg);
                 }
                 for i in std::cmp::max(0, y + fill_start + fill_length)
                     ..std::cmp::min(grid_h, y + length)
@@ -654,7 +654,7 @@ impl<Y: Symbol> RawTileGrid<Y> {
                 for i in std::cmp::max(0, x + fill_start)
                     ..std::cmp::min(grid_w, x + fill_start + fill_length)
                 {
-                    self.put_color_raw(Position { x: i, y }, CellSym::<Y>::Char('█'), fg, bg);
+                    self.put_color_raw(Position { x: i, y }, CellSym::<Y>::Char(' '), bg, fg);
                 }
                 for i in std::cmp::max(0, x + fill_start + fill_length)
                     ..std::cmp::min(grid_w, x + length)
