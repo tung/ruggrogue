@@ -53,7 +53,7 @@ impl Symbol for GameSym {
             WallNew => '╩',
             WallNsw => '╣',
             WallEsw => '╦',
-            WallNesw => '╦',
+            WallNesw => '╬',
             WallOther => '#',
             DownStairs => '>',
             Player => '@',
