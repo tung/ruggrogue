@@ -29,28 +29,25 @@ pub fn draw_map(world: &World, grid: &mut TileGrid<GameSym>) {
 
     grid.set_draw_offset(player_pos);
 
-    for (tx, ty, tile) in map.iter_bounds(
+    for (tx, ty, (sym, color)) in map.iter_bounds(
         player_pos.x - cx,
         player_pos.y - cy,
         player_pos.x - cx + w - 1,
         player_pos.y - cy + h - 1,
     ) {
-        if let Some((sym, color)) = tile {
-            let color = if fov.get((tx, ty)) {
-                color
-            } else {
-                let v =
-                    ((color.r as i32 * 30 + color.g as i32 * 59 + color.b as i32 * 11) / 200) as u8;
-                Color { r: v, g: v, b: v }
-            };
+        let color = if fov.get((tx, ty)) {
+            color
+        } else {
+            let v = ((color.r as i32 * 30 + color.g as i32 * 59 + color.b as i32 * 11) / 200) as u8;
+            Color { r: v, g: v, b: v }
+        };
 
-            grid.put_sym_color_raw(
-                (tx - player_pos.x + cx, ty - player_pos.y + cy),
-                sym,
-                color,
-                None,
-            );
-        }
+        grid.put_sym_color_raw(
+            (tx - player_pos.x + cx, ty - player_pos.y + cy),
+            sym,
+            color,
+            None,
+        );
     }
 }
 

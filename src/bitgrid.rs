@@ -20,6 +20,7 @@ impl BitGrid {
         }
     }
 
+    #[inline]
     fn index(&self, x: i32, y: i32) -> usize {
         (y * self.width + x) as usize
     }
@@ -32,6 +33,7 @@ impl BitGrid {
     /// Get the bool at the given x and y.
     ///
     /// Returns false if out of bounds.
+    #[inline]
     pub fn get_bit(&self, x: i32, y: i32) -> bool {
         if x < 0 || y < 0 || x >= self.width || y >= self.height {
             false
@@ -43,6 +45,7 @@ impl BitGrid {
     /// Set the bool at the given x and y to value.
     ///
     /// Panics if out of bounds.
+    #[inline]
     pub fn set_bit(&mut self, x: i32, y: i32, value: bool) {
         let index = self.index(x, y);
         self.bv.set(index, value);

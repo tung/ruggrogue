@@ -108,14 +108,17 @@ impl Map {
         self.tile_entities.clear();
     }
 
+    #[inline]
     fn idx(&self, x: i32, y: i32) -> usize {
         y as usize * self.width as usize + x as usize
     }
 
+    #[inline]
     pub fn get_tile(&self, x: i32, y: i32) -> &Tile {
         &self.tiles[self.idx(x, y)]
     }
 
+    #[inline]
     pub fn set_tile(&mut self, x: i32, y: i32, tile: Tile) {
         let idx = self.idx(x, y);
         self.tiles[idx] = tile;
@@ -156,6 +159,7 @@ impl Map {
         }
     }
 
+    #[inline]
     pub fn wall_or_oob(&self, x: i32, y: i32) -> bool {
         x < 0
             || y < 0
@@ -219,7 +223,7 @@ impl Map {
         y1: i32,
         x2: i32,
         y2: i32,
-    ) -> impl Iterator<Item = (i32, i32, Option<(GameSym, Color)>)> + '_ {
+    ) -> impl Iterator<Item = (i32, i32, (GameSym, Color))> + '_ {
         let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
 
         ys.flat_map(move |y| {
@@ -227,18 +231,38 @@ impl Map {
 
             std::iter::repeat(y).zip(xs)
         })
+        .filter(move |(y, x)| self.seen.get_bit(*x, *y))
         .map(move |(y, x)| {
-            if !self.seen.get_bit(x, y) {
-                (x, y, None)
-            } else {
-                let (sym, color) = match self.get_tile(x, y) {
-                    Tile::Floor => (GameSym::Floor, (102, 102, 102).into()),
-                    Tile::Wall => (self.wall_sym(x, y), (134, 77, 20).into()),
-                    Tile::DownStairs => (GameSym::DownStairs, (255, 255, 0).into()),
-                };
-
-                (x, y, Some((sym, color)))
-            }
+            (
+                x,
+                y,
+                match self.get_tile(x, y) {
+                    Tile::Floor => (
+                        GameSym::Floor,
+                        Color {
+                            r: 102,
+                            g: 102,
+                            b: 102,
+                        },
+                    ),
+                    Tile::Wall => (
+                        self.wall_sym(x, y),
+                        Color {
+                            r: 134,
+                            g: 77,
+                            b: 20,
+                        },
+                    ),
+                    Tile::DownStairs => (
+                        GameSym::DownStairs,
+                        Color {
+                            r: 255,
+                            g: 255,
+                            b: 0,
+                        },
+                    ),
+                },
+            )
         })
     }
 

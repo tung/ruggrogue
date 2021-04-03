@@ -52,6 +52,7 @@ impl FieldOfView {
         }
     }
 
+    #[inline]
     fn offset_xy(&self, (x, y): (i32, i32)) -> (i32, i32) {
         (
             x - self.center.0 + self.range,
@@ -59,11 +60,13 @@ impl FieldOfView {
         )
     }
 
+    #[inline]
     pub fn set(&mut self, pos: (i32, i32), value: bool) {
         let offset_pos = self.offset_xy(pos);
         self.tiles.set_bit(offset_pos.0, offset_pos.1, value);
     }
 
+    #[inline]
     pub fn get(&self, pos: (i32, i32)) -> bool {
         let offset_pos = self.offset_xy(pos);
         self.tiles.get_bit(offset_pos.0, offset_pos.1)
@@ -77,15 +80,8 @@ impl FieldOfView {
 
             std::iter::repeat(y).zip(xs)
         })
-        .filter_map(
-            move |(y, x)| {
-                if self.get((x, y)) {
-                    Some((x, y))
-                } else {
-                    None
-                }
-            },
-        )
+        .filter(move |(y, x)| self.get((*x, *y)))
+        .map(move |(y, x)| (x, y))
     }
 
     pub fn mark_seen(&self, seen: &mut BitGrid) {
