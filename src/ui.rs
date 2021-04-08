@@ -1,6 +1,8 @@
 use shipyard::{Get, UniqueView, View, World};
 
-use crate::{components::CombatStats, map::Map, message::Messages, player::PlayerId};
+use crate::{
+    chunked::ChunkedMapGrid, components::CombatStats, map::Map, message::Messages, player::PlayerId,
+};
 use ruggle::{
     util::{Color, Position, Size},
     Symbol, TileGrid, Tileset,
@@ -88,8 +90,9 @@ pub fn draw_ui<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, prompt: Option<
     }
 }
 
-/// Prepares grid 0 and grid 1 to display the dungeon map and user interface respectively.
+/// Prepares grids to display the dungeon map and user interface.
 pub fn prepare_main_grids<Y: Symbol>(
+    chunked_map_grid: &mut ChunkedMapGrid,
     world: &World,
     grids: &mut Vec<TileGrid<Y>>,
     tilesets: &[Tileset<Y>],
@@ -98,12 +101,9 @@ pub fn prepare_main_grids<Y: Symbol>(
     let Options {
         tileset: map_tileset_index,
         font: ui_tileset_index,
-        map_zoom,
         text_zoom,
+        ..
     } = *world.borrow::<UniqueView<Options>>();
-    let map_tileset = &tilesets
-        .get(map_tileset_index as usize)
-        .unwrap_or(&tilesets[0]);
     let ui_tileset = &tilesets
         .get(ui_tileset_index as usize)
         .unwrap_or(&tilesets[0]);
@@ -114,41 +114,13 @@ pub fn prepare_main_grids<Y: Symbol>(
     };
     let new_ui_px_h = new_ui_size.h * ui_tileset.tile_height() * text_zoom;
 
-    // 17 == standard field of view range * 2 + 1
-    let mut new_map_w = (window_size.w / (map_tileset.tile_width() * map_zoom)).max(17);
-    if window_size.w % (map_tileset.tile_width() * map_zoom) > 0 {
-        // Fill to the edge of the screen.
-        new_map_w += 1;
-    }
-    if new_map_w & 1 == 0 {
-        // Ensure a single center tile exists using an odd number of tiles.
-        new_map_w += 1;
-    }
-
-    // 17 == standard field of view range * 2 + 1
-    let mut new_map_h = (window_size.h.saturating_sub(new_ui_px_h)
-        / (map_tileset.tile_height() * map_zoom))
-        .max(17);
-    if window_size.h % (map_tileset.tile_height() * map_zoom) > 0 {
-        // Fill to the edge of the screen.
-        new_map_h += 1;
-    }
-    if new_map_h & 1 == 0 {
-        // Ensure a single center tile exists using an odd number of tiles.
-        new_map_h += 1;
-    }
-
-    let new_map_size = Size {
-        w: new_map_w,
-        h: new_map_h,
-    };
-
     if !grids.is_empty() {
-        grids[MAP_GRID].resize(new_map_size);
+        // MAP_GRID resizing is handled by ChunkedMapGrid::prepare_grid below.
         grids[UI_GRID].resize(new_ui_size);
     } else {
+        // Use a bogus size for MAP_GRID; ChunkedMapGrid::prepare_grid will resize it below.
         grids.push(TileGrid::new(
-            new_map_size,
+            Size { w: 1, h: 1 },
             tilesets,
             map_tileset_index as usize,
         ));
@@ -157,21 +129,19 @@ pub fn prepare_main_grids<Y: Symbol>(
             tilesets,
             ui_tileset_index as usize,
         ));
-        grids[MAP_GRID].view.clear_color = None;
         grids[UI_GRID].view.clear_color = Some(Color::BLACK);
     }
 
-    grids[MAP_GRID].set_tileset(tilesets, map_tileset_index as usize);
-    grids[MAP_GRID].view_centered(
+    chunked_map_grid.prepare_grid(
+        world,
+        &mut grids[MAP_GRID],
         tilesets,
-        map_zoom,
         Position { x: 0, y: 0 },
         Size {
             w: window_size.w,
             h: window_size.h.saturating_sub(new_ui_px_h).max(1),
         },
     );
-    grids[MAP_GRID].view.zoom = map_zoom;
 
     grids[UI_GRID].set_tileset(tilesets, ui_tileset_index as usize);
     grids[UI_GRID].view.pos = Position {

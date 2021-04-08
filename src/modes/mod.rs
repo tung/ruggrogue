@@ -203,7 +203,7 @@ pub enum ModeUpdate {
 /// Mode method dispatcher.  Add `prepare_grids`, `update` and `draw` calls for new modes here.
 impl Mode {
     fn prepare_grids(
-        &self,
+        &mut self,
         world: &World,
         grids: &mut Vec<TileGrid<GameSym>>,
         tilesets: &[Tileset<GameSym>],
@@ -239,7 +239,7 @@ impl Mode {
         }
     }
 
-    fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
+    fn draw(&mut self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         match self {
             Mode::AppQuitDialogMode(x) => x.draw(world, grids, active),
             Mode::DungeonMode(x) => x.draw(world, grids, active),
@@ -371,7 +371,7 @@ impl ModeStack {
                 let top = self.stack.len().saturating_sub(1);
 
                 // Draw non-top modes with `active` set to `false`.
-                for (i, mode) in self.stack.iter().enumerate().skip(draw_from) {
+                for (i, mode) in self.stack.iter_mut().enumerate().skip(draw_from) {
                     mode.draw(world, &mut layers[i].grids[..], false);
                 }
 

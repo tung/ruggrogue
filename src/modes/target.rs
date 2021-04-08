@@ -2,6 +2,7 @@ use shipyard::{Get, UniqueView, View, World};
 use std::collections::HashSet;
 
 use crate::{
+    chunked::ChunkedMapGrid,
     components::{Coord, FieldOfView, Item, Monster, Name, Player},
     gamekey::{self, GameKey},
     gamesym::GameSym,
@@ -10,7 +11,7 @@ use crate::{
     render, ui,
 };
 use ruggle::{
-    util::{Color, Size},
+    util::{Color, Position, Size},
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };
 
@@ -26,6 +27,7 @@ pub enum TargetModeResult {
 }
 
 pub struct TargetMode {
+    chunked_map_grid: ChunkedMapGrid,
     for_what: String,
     center: (i32, i32), // x, y
     range: i32,
@@ -73,6 +75,7 @@ impl TargetMode {
             .unwrap_or(player_pos);
 
         Self {
+            chunked_map_grid: ChunkedMapGrid::new(),
             for_what,
             center: player_pos,
             range,
@@ -84,13 +87,19 @@ impl TargetMode {
     }
 
     pub fn prepare_grids(
-        &self,
+        &mut self,
         world: &World,
         grids: &mut Vec<TileGrid<GameSym>>,
         tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
-        ui::prepare_main_grids(world, grids, tilesets, window_size);
+        ui::prepare_main_grids(
+            &mut self.chunked_map_grid,
+            world,
+            grids,
+            tilesets,
+            window_size,
+        );
     }
 
     pub fn update(
@@ -134,6 +143,7 @@ impl TargetMode {
             let max_x = self.center.0 + self.range;
             let min_y = self.center.1 - self.range;
             let max_y = self.center.1 + self.range;
+            let old_cursor = self.cursor;
 
             match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
                 GameKey::Left => {
@@ -213,12 +223,26 @@ impl TargetMode {
                 }
                 _ => {}
             }
+
+            if self.cursor != old_cursor {
+                // Moving the cursor is the only reason to redraw right now.
+                self.chunked_map_grid.mark_dirty(
+                    Position {
+                        x: self.center.0 - self.range - self.radius,
+                        y: self.center.1 - self.range - self.radius,
+                    },
+                    Size {
+                        w: 2 * (self.range + self.radius) as u32,
+                        h: 2 * (self.range + self.radius) as u32,
+                    },
+                );
+            }
         }
 
         (ModeControl::Stay, ModeUpdate::WaitForEvent)
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
+    pub fn draw(&mut self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
@@ -230,22 +254,21 @@ impl TargetMode {
             ui_grid.view.color_mod = Color::GRAY;
         }
 
-        map_grid.clear();
-        render::draw_map(world, map_grid);
-        render::draw_renderables(world, map_grid);
+        self.chunked_map_grid.draw(world, map_grid);
+        render::draw_renderables(&self.chunked_map_grid, world, map_grid);
 
-        let cx = map_grid.width() as i32 / 2;
-        let cy = map_grid.height() as i32 / 2;
-        let (px, py) = world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
-            coords.get(player_id.0).0.into()
-        });
         let radius2 = self.radius * (self.radius + 1);
 
         // Highlight targetable spaces.
         for y in (self.center.1 - self.range)..=(self.center.1 + self.range) {
             for x in (self.center.0 - self.range)..=(self.center.0 + self.range) {
                 if self.valid.contains(&(x, y)) {
-                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, Color::BLUE);
+                    if let Some(pos) = self
+                        .chunked_map_grid
+                        .map_to_grid_pos(world, Position { x, y })
+                    {
+                        map_grid.recolor_pos(pos, None, Color::BLUE);
+                    }
                 }
             }
         }
@@ -254,17 +277,23 @@ impl TargetMode {
         for y in (self.cursor.1 - self.radius)..=(self.cursor.1 + self.radius) {
             for x in (self.cursor.0 - self.radius)..=(self.cursor.0 + self.radius) {
                 if dist2((x, y), self.cursor) <= radius2 {
-                    map_grid.recolor_pos((x - px + cx, y - py + cy), None, Color::PURPLE);
+                    if let Some(pos) = self
+                        .chunked_map_grid
+                        .map_to_grid_pos(world, Position { x, y })
+                    {
+                        map_grid.recolor_pos(pos, None, Color::PURPLE);
+                    }
                 }
             }
         }
 
         // Highlight cursor position.
-        map_grid.recolor_pos(
-            (self.cursor.0 - px + cx, self.cursor.1 - py + cy),
-            None,
-            Color::MAGENTA,
-        );
+        if let Some(pos) = self
+            .chunked_map_grid
+            .map_to_grid_pos(world, self.cursor.into())
+        {
+            map_grid.recolor_pos(pos, None, Color::MAGENTA);
+        }
 
         // Describe the location that the cursor is positioned at.
         let cursor_desc = if self.valid.contains(&self.cursor) {

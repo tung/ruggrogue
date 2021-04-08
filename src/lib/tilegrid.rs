@@ -1040,8 +1040,8 @@ impl<'b, 'r, Y: Symbol> TileGrid<'b, 'r, Y> {
             }
         }
 
-        // Page flip front and back grid contents.
-        std::mem::swap(&mut self.front.cells, &mut self.back.cells);
+        // Update back buffer with front buffer contents.
+        self.back.cells.copy_from_slice(&self.front.cells[..]);
 
         buffer_updated
     }

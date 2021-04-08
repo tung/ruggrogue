@@ -2,7 +2,9 @@ use rand::Rng;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
 use std::collections::HashMap;
 
-use crate::{bitgrid::BitGrid, components::Coord, gamesym::GameSym, player::PlayerId, RuggleRng};
+use crate::{
+    bitgrid::BitGrid, chunked, components::Coord, gamesym::GameSym, player::PlayerId, RuggleRng,
+};
 use ruggle::util::Color;
 
 #[derive(Clone, Copy)]
@@ -86,11 +88,16 @@ impl Map {
     pub fn new(width: i32, height: i32) -> Self {
         assert!(width > 0 && height > 0);
 
+        let padded_width = (width + chunked::CHUNK_TILE_WIDTH - 1) / chunked::CHUNK_TILE_WIDTH
+            * chunked::CHUNK_TILE_WIDTH;
+        let padded_height = (height + chunked::CHUNK_TILE_HEIGHT - 1) / chunked::CHUNK_TILE_HEIGHT
+            * chunked::CHUNK_TILE_HEIGHT;
+
         Self {
             depth: 0,
             width,
             height,
-            tiles: vec![Tile::Floor; (width * height) as usize],
+            tiles: vec![Tile::Floor; (padded_width * padded_height) as usize],
             rooms: Vec::new(),
             seen: BitGrid::new(width, height),
             tile_entities: HashMap::new(),
@@ -99,28 +106,44 @@ impl Map {
     }
 
     pub fn clear(&mut self) {
-        let len = (self.width * self.height) as usize;
+        let padded_width = (self.width + chunked::CHUNK_TILE_WIDTH - 1) / chunked::CHUNK_TILE_WIDTH
+            * chunked::CHUNK_TILE_WIDTH;
+        let padded_height = (self.height + chunked::CHUNK_TILE_HEIGHT - 1)
+            / chunked::CHUNK_TILE_HEIGHT
+            * chunked::CHUNK_TILE_HEIGHT;
 
         self.tiles.clear();
-        self.tiles.resize(len, Tile::Floor);
+        self.tiles
+            .resize((padded_width * padded_height) as usize, Tile::Floor);
         self.rooms.clear();
         self.seen.zero_out_bits();
         self.tile_entities.clear();
     }
 
     #[inline]
-    fn idx(&self, x: i32, y: i32) -> usize {
-        y as usize * self.width as usize + x as usize
+    fn index(&self, x: i32, y: i32) -> usize {
+        let chunks_across =
+            (self.width + chunked::CHUNK_TILE_WIDTH - 1) / chunked::CHUNK_TILE_WIDTH;
+        let chunk_x = x / chunked::CHUNK_TILE_WIDTH;
+        let chunk_y = y / chunked::CHUNK_TILE_HEIGHT;
+        let sub_x = x % chunked::CHUNK_TILE_WIDTH;
+        let sub_y = y % chunked::CHUNK_TILE_HEIGHT;
+
+        ((chunk_y * chunks_across + chunk_x)
+            * chunked::CHUNK_TILE_WIDTH
+            * chunked::CHUNK_TILE_HEIGHT
+            + sub_y * chunked::CHUNK_TILE_WIDTH
+            + sub_x) as usize
     }
 
     #[inline]
     pub fn get_tile(&self, x: i32, y: i32) -> &Tile {
-        &self.tiles[self.idx(x, y)]
+        &self.tiles[self.index(x, y)]
     }
 
     #[inline]
     pub fn set_tile(&mut self, x: i32, y: i32, tile: Tile) {
-        let idx = self.idx(x, y);
+        let idx = self.index(x, y);
         self.tiles[idx] = tile;
     }
 
@@ -223,7 +246,7 @@ impl Map {
         y1: i32,
         x2: i32,
         y2: i32,
-    ) -> impl Iterator<Item = (i32, i32, (GameSym, Color))> + '_ {
+    ) -> impl Iterator<Item = (i32, i32, Option<(GameSym, Color)>)> + '_ {
         let ys = if y1 <= y2 { y1..=y2 } else { y2..=y1 };
 
         ys.flat_map(move |y| {
@@ -231,38 +254,41 @@ impl Map {
 
             std::iter::repeat(y).zip(xs)
         })
-        .filter(move |(y, x)| self.seen.get_bit(*x, *y))
         .map(move |(y, x)| {
-            (
-                x,
-                y,
-                match self.get_tile(x, y) {
-                    Tile::Floor => (
-                        GameSym::Floor,
-                        Color {
-                            r: 102,
-                            g: 102,
-                            b: 102,
-                        },
-                    ),
-                    Tile::Wall => (
-                        self.wall_sym(x, y),
-                        Color {
-                            r: 134,
-                            g: 77,
-                            b: 20,
-                        },
-                    ),
-                    Tile::DownStairs => (
-                        GameSym::DownStairs,
-                        Color {
-                            r: 255,
-                            g: 255,
-                            b: 0,
-                        },
-                    ),
-                },
-            )
+            if self.seen.get_bit(x, y) {
+                (
+                    x,
+                    y,
+                    Some(match self.get_tile(x, y) {
+                        Tile::Floor => (
+                            GameSym::Floor,
+                            Color {
+                                r: 102,
+                                g: 102,
+                                b: 102,
+                            },
+                        ),
+                        Tile::Wall => (
+                            self.wall_sym(x, y),
+                            Color {
+                                r: 134,
+                                g: 77,
+                                b: 20,
+                            },
+                        ),
+                        Tile::DownStairs => (
+                            GameSym::DownStairs,
+                            Color {
+                                r: 255,
+                                g: 255,
+                                b: 0,
+                            },
+                        ),
+                    }),
+                )
+            } else {
+                (x, y, None)
+            }
         })
     }
 

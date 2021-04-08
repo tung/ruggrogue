@@ -1,6 +1,8 @@
-use shipyard::{UniqueView, UniqueViewMut, World};
+use shipyard::{Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
+    chunked::ChunkedMapGrid,
+    components::FieldOfView,
     damage,
     gamesym::GameSym,
     item,
@@ -11,7 +13,7 @@ use crate::{
     render, spawn, ui, vision,
 };
 use ruggle::{
-    util::{Color, Size},
+    util::{Color, Position, Size},
     InputBuffer, TileGrid, Tileset,
 };
 
@@ -28,13 +30,30 @@ pub enum DungeonModeResult {
     Done,
 }
 
-pub struct DungeonMode;
+pub struct DungeonMode {
+    chunked_map_grid: ChunkedMapGrid,
+}
 
 fn app_quit_dialog(inputs: &mut InputBuffer) -> (ModeControl, ModeUpdate) {
     inputs.clear_input();
     (
         ModeControl::Push(AppQuitDialogMode::new().into()),
         ModeUpdate::Immediate,
+    )
+}
+
+fn get_player_fov(player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>) -> (Position, Size) {
+    let player_fov = fovs.get(player_id.0);
+
+    (
+        Position {
+            x: player_fov.center.0 - player_fov.range - 1,
+            y: player_fov.center.1 - player_fov.range - 1,
+        },
+        Size {
+            w: 2 * player_fov.range as u32 + 1 + 2,
+            h: 2 * player_fov.range as u32 + 1 + 2,
+        },
     )
 }
 
@@ -52,17 +71,25 @@ impl DungeonMode {
         spawn::fill_rooms_with_spawns(world);
         world.run(vision::recalculate_fields_of_view);
 
-        Self {}
+        Self {
+            chunked_map_grid: ChunkedMapGrid::new(),
+        }
     }
 
     pub fn prepare_grids(
-        &self,
+        &mut self,
         world: &World,
         grids: &mut Vec<TileGrid<GameSym>>,
         tilesets: &[Tileset<GameSym>],
         window_size: Size,
     ) {
-        ui::prepare_main_grids(world, grids, tilesets, window_size);
+        ui::prepare_main_grids(
+            &mut self.chunked_map_grid,
+            world,
+            grids,
+            tilesets,
+            window_size,
+        );
     }
 
     pub fn update(
@@ -72,6 +99,8 @@ impl DungeonMode {
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if world.run(player::player_is_alive) {
+            let old_player_fov = world.run(get_player_fov);
+            let old_depth = world.borrow::<UniqueView<Map>>().depth;
             let time_passed = if let Some(result) = pop_result {
                 match result {
                     ModeResult::AppQuitDialogModeResult(result) => match result {
@@ -189,6 +218,18 @@ impl DungeonMode {
                     world.run(damage::delete_dead_entities);
                     world.run(vision::recalculate_fields_of_view);
                 }
+
+                // Redraw map chunks containing the player's old and new fields of view.
+                let new_player_fov = world.run(get_player_fov);
+                self.chunked_map_grid
+                    .mark_dirty(old_player_fov.0, old_player_fov.1);
+                self.chunked_map_grid
+                    .mark_dirty(new_player_fov.0, new_player_fov.1);
+            }
+
+            // Redraw all map chunks when changing levels.
+            if world.borrow::<UniqueView<Map>>().depth != old_depth {
+                self.chunked_map_grid.mark_all_dirty();
             }
 
             (
@@ -209,7 +250,7 @@ impl DungeonMode {
         }
     }
 
-    pub fn draw(&self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
+    pub fn draw(&mut self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
         let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
 
@@ -221,9 +262,8 @@ impl DungeonMode {
             ui_grid.view.color_mod = Color::GRAY;
         }
 
-        map_grid.clear();
-        render::draw_map(world, map_grid);
-        render::draw_renderables(world, map_grid);
+        self.chunked_map_grid.draw(world, map_grid);
+        render::draw_renderables(&self.chunked_map_grid, world, map_grid);
 
         ui_grid.clear();
         ui::draw_ui(world, ui_grid, None);
