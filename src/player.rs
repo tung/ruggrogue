@@ -28,6 +28,7 @@ enum AutoRunWallSide {
 
 #[derive(Clone, Copy)]
 enum AutoRunType {
+    RestUntilHealed,
     Corridor,
     Straight { expect_wall: AutoRunWallSide },
 }
@@ -106,7 +107,17 @@ fn player_check_frontier(
     players: View<Player>,
 ) -> bool {
     let player = players.get(player_id.0);
-    let (auto_run_dx, auto_run_dy) = player.auto_run.as_ref().unwrap().dir;
+    let AutoRun {
+        dir: (auto_run_dx, auto_run_dy),
+        run_type,
+        ..
+    } = *player.auto_run.as_ref().unwrap();
+
+    if matches!(run_type, AutoRunType::RestUntilHealed) {
+        // Interrupting resting until healed is handled elsewhere.
+        return false;
+    }
+
     let player_coord = coords.get(player_id.0);
     let (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y) =
         rotate_view(auto_run_dx, auto_run_dy);
@@ -522,6 +533,18 @@ fn auto_run_next_step(world: &World) -> Option<(i32, i32)> {
 
     if let Some((run_type, dx, dy)) = auto_run {
         match run_type {
+            AutoRunType::RestUntilHealed => {
+                let (player_id, combat_stats) =
+                    world.borrow::<(UniqueView<PlayerId>, View<CombatStats>)>();
+                let CombatStats { hp, max_hp, .. } = combat_stats.get(player_id.0);
+
+                // Rest until player is healed.
+                if hp < max_hp {
+                    Some((0, 0))
+                } else {
+                    None
+                }
+            }
             AutoRunType::Corridor => {
                 if let Some(new_dir) = auto_run_corridor_check(world, dx, dy) {
                     // Adjust facing to follow the corridor.
@@ -637,6 +660,43 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
     }
 }
 
+fn wait_player(world: &World, rest_until_healed: bool) -> PlayerInputResult {
+    let foes_seen = world.run(player_sees_foes);
+    let (player_id, mut combat_stats, mut players) =
+        world.borrow::<(UniqueView<PlayerId>, ViewMut<CombatStats>, ViewMut<Player>)>();
+    let mut player_stats = (&mut combat_stats).get(player_id.0);
+    let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
+
+    if rest_until_healed {
+        if foes_seen {
+            msgs.add("You cannot rest while foes are near.".into());
+            return PlayerInputResult::NoResult;
+        } else if player_stats.hp >= player_stats.max_hp {
+            msgs.add("You are already fully rested.".into());
+            return PlayerInputResult::NoResult;
+        }
+    }
+
+    // Regain hit points when waiting without foes in field of view.
+    if !foes_seen && player_stats.hp < player_stats.max_hp {
+        player_stats.hp += 1;
+        if rest_until_healed {
+            msgs.add("You tend to your wounds.".into());
+        }
+    }
+
+    // Continue resting until healed if requested.
+    if rest_until_healed && player_stats.hp < player_stats.max_hp {
+        (&mut players).get(player_id.0).auto_run = Some(AutoRun {
+            limit: 200,
+            dir: (0, 0),
+            run_type: AutoRunType::RestUntilHealed,
+        });
+    }
+
+    PlayerInputResult::TurnDone
+}
+
 pub fn all_player_associated_ids(
     inventories: View<Inventory>,
     players: View<Player>,
@@ -691,15 +751,6 @@ pub fn player_do_descend(world: &World) {
         }
     });
     world.run(vision::recalculate_fields_of_view);
-
-    // Heal the player a bit for the next level.
-    world.run(
-        |mut combat_stats: ViewMut<CombatStats>, players: View<Player>| {
-            for (stats, _) in (&mut combat_stats, &players).iter() {
-                stats.hp = stats.hp.max(stats.max_hp / 2);
-            }
-        },
-    );
 
     world.run(
         |map: UniqueView<Map>,
@@ -794,7 +845,11 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
                 PlayerInputResult::NoResult
             } else if let Some((dx, dy)) = auto_run_next_step(world) {
                 // Do one step of auto running.
-                try_move_player(world, dx, dy, false)
+                if dx == 0 && dy == 0 {
+                    wait_player(world, false)
+                } else {
+                    try_move_player(world, dx, dy, false)
+                }
             } else {
                 world.run(player_stop_auto_run);
                 PlayerInputResult::NoResult
@@ -814,7 +869,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             GameKey::UpRight => try_move_player(world, 1, -1, shift),
             GameKey::DownLeft => try_move_player(world, -1, 1, shift),
             GameKey::DownRight => try_move_player(world, 1, 1, shift),
-            GameKey::Wait => PlayerInputResult::TurnDone,
+            GameKey::Wait => wait_player(world, shift),
             GameKey::Cancel => PlayerInputResult::ShowOptionsMenu,
             GameKey::Descend | GameKey::Confirm => PlayerInputResult::TryDescend,
             GameKey::PickUp => PlayerInputResult::ShowPickUpMenu,
