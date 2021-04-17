@@ -40,7 +40,7 @@ fn main() {
     world.add_unique(Options {
         tileset: 2,
         font: 0,
-        map_zoom: 2,
+        map_zoom: 1,
         text_zoom: 1,
     });
     world.add_unique(RuggleRng(Pcg32::from_rng(rand::thread_rng()).unwrap()));
