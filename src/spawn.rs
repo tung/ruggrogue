@@ -3,8 +3,8 @@ use rand::{
     Rng,
 };
 use shipyard::{
-    AllStoragesViewMut, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueViewMut, View,
-    ViewMut, World,
+    AllStoragesViewMut, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView, UniqueViewMut,
+    View, ViewMut, World,
 };
 use std::collections::HashSet;
 
@@ -293,65 +293,66 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg:
     );
 }
 
-fn spawn_random_monster_at(world: &World, pos: (i32, i32)) {
-    let choice = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
-        [
-            (
-                GameSym::Goblin,
-                "Goblin",
-                Color {
-                    r: 128,
-                    g: 230,
-                    b: 51,
-                },
-            ),
-            (
-                GameSym::Orc,
-                "Orc",
-                Color {
-                    r: 230,
-                    g: 77,
-                    b: 51,
-                },
-            ),
-        ]
-        .choose(&mut rng.0)
-    });
+fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
+    let choice = [
+        (
+            GameSym::Goblin,
+            "Goblin",
+            Color {
+                r: 128,
+                g: 230,
+                b: 51,
+            },
+        ),
+        (
+            GameSym::Orc,
+            "Orc",
+            Color {
+                r: 230,
+                g: 77,
+                b: 51,
+            },
+        ),
+    ]
+    .choose(rng);
 
     if let Some((sym, name, fg)) = choice {
         spawn_monster(world, pos, *sym, name.to_string(), *fg);
     }
 }
 
-fn spawn_random_item_at(world: &World, pos: (i32, i32)) {
-    match world.borrow::<UniqueViewMut<RuggleRng>>().0.gen_range(0, 4) {
-        1 => spawn_magic_missile_scroll(world, pos),
-        2 => spawn_fireball_scroll(world, pos),
-        3 => spawn_sleep_scroll(world, pos),
-        _ => spawn_health_potion(world, pos),
+fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
+    let choice = [
+        spawn_health_potion,
+        spawn_magic_missile_scroll,
+        spawn_fireball_scroll,
+        spawn_sleep_scroll,
+    ]
+    .choose(rng);
+
+    if let Some(item_fn) = choice {
+        item_fn(world, pos);
     }
 }
 
 fn fill_room_with_spawns(world: &World, room: &Rect) {
-    if world.run(|mut rng: UniqueViewMut<RuggleRng>| rng.0.gen_ratio(1, 4)) {
-        let positions = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
-            let num = rng.0.gen_range(1, 2);
-            room.iter_xy().choose_multiple(&mut rng.0, num)
-        });
+    let mut rng = world.borrow::<UniqueViewMut<RuggleRng>>();
+    let depth = world.borrow::<UniqueView<Map>>().depth;
+    let depth = if depth < 1 { 1usize } else { depth as usize };
 
-        for pos in positions {
-            spawn_random_item_at(world, pos);
+    if rng.0.gen_ratio(1, 4) {
+        let num = rng.0.gen_range(1, 2);
+
+        for pos in room.iter_xy().choose_multiple(&mut rng.0, num) {
+            spawn_random_item_at(world, &mut rng.0, pos);
         }
     }
 
-    if world.run(|mut rng: UniqueViewMut<RuggleRng>| rng.0.gen_ratio(1, 2)) {
-        let positions = world.run(|mut rng: UniqueViewMut<RuggleRng>| {
-            let num = rng.0.gen_range(1, 4);
-            room.iter_xy().choose_multiple(&mut rng.0, num)
-        });
+    if rng.0.gen_ratio(1, 2) {
+        let num = rng.0.gen_range(1, 1 + ((depth + 1) / 2).min(3));
 
-        for pos in positions {
-            spawn_random_monster_at(world, pos);
+        for pos in room.iter_xy().choose_multiple(&mut rng.0, num) {
+            spawn_random_monster_at(world, &mut rng.0, pos);
         }
     }
 }
