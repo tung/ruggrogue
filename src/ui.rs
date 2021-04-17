@@ -52,9 +52,9 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     );
     grid.print_color(
         (x, y),
-        &format!("Hit Points: {} / {}", hp, max_hp),
+        &format!("HP: {} / {}", hp, max_hp),
         false,
-        Color::WHITE,
+        Color::YELLOW,
         None,
     );
 }
