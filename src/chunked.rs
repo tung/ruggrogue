@@ -250,9 +250,17 @@ impl ChunkedMapGrid {
 
             for dirty_chunk_y in start_chunk_y..=end_chunk_y {
                 for dirty_chunk_x in start_chunk_x..=end_chunk_x {
-                    let index = (dirty_chunk_y % self.chunks_down * self.chunks_across
-                        + dirty_chunk_x % self.chunks_across)
-                        as usize;
+                    let dirty_chunk_x = if dirty_chunk_x < 0 {
+                        self.chunks_across - (-dirty_chunk_x % self.chunks_across)
+                    } else {
+                        dirty_chunk_x % self.chunks_across
+                    };
+                    let dirty_chunk_y = if dirty_chunk_y < 0 {
+                        self.chunks_down - (-dirty_chunk_y % self.chunks_down)
+                    } else {
+                        dirty_chunk_y % self.chunks_down
+                    };
+                    let index = (dirty_chunk_y * self.chunks_across + dirty_chunk_x) as usize;
 
                     self.screen_chunks[index].dirty = true;
                 }
