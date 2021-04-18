@@ -395,23 +395,49 @@ pub fn generate_rooms_and_corridors(
 
         if !map.rooms.iter().any(|r| new_room.intersects(&r, 1)) {
             map.set_rect(&new_room, Tile::Floor);
-
-            // Connect the new room to the last-added room.
-            if !map.rooms.is_empty() {
-                let (new_x, new_y) = new_room.center();
-                let (last_x, last_y) = map.rooms.last().unwrap().center();
-
-                if rng.0.gen() {
-                    map.set_hline(last_x, new_x, last_y, Tile::Floor);
-                    map.set_vline(last_y, new_y, new_x, Tile::Floor);
-                } else {
-                    map.set_vline(last_y, new_y, last_x, Tile::Floor);
-                    map.set_hline(last_x, new_x, new_y, Tile::Floor);
-                }
-            }
-
             map.rooms.push(new_room);
         }
+    }
+
+    let mut connected: Vec<usize> = Vec::new();
+    let mut disconnected: Vec<usize> = Vec::new();
+
+    // Consider the first room as the start of connectedness.
+    connected.push(0);
+
+    // All other rooms start disconnected.
+    for i in 1..map.rooms.len() {
+        disconnected.push(i);
+    }
+
+    // Connect all the disconnected rooms to the connected rooms based on closeness.
+    while !disconnected.is_empty() {
+        // Find the closest match between connected and disconnected.
+        let (closest_connected, closest_disconnected) = connected
+            .iter()
+            .enumerate()
+            .flat_map(|c| std::iter::repeat(c).zip(disconnected.iter().enumerate()))
+            .min_by_key(|&((_, &croom), (_, &droom))| {
+                let ccenter = map.rooms[croom].center();
+                let dcenter = map.rooms[droom].center();
+                (ccenter.0 - dcenter.0).abs() + (ccenter.1 - dcenter.1).abs()
+            })
+            .map(|((ci, _), (di, _))| (ci, di))
+            .unwrap();
+        let (conn_x, conn_y) = map.rooms[connected[closest_connected]].center();
+        let (disconn_x, disconn_y) = map.rooms[disconnected[closest_disconnected]].center();
+
+        // Connect the closest connected and disconnected rooms together.
+        if rng.0.gen() {
+            map.set_hline(disconn_x, conn_x, disconn_y, Tile::Floor);
+            map.set_vline(disconn_y, conn_y, conn_x, Tile::Floor);
+        } else {
+            map.set_vline(disconn_y, conn_y, disconn_x, Tile::Floor);
+            map.set_hline(disconn_x, conn_x, conn_y, Tile::Floor);
+        }
+
+        // Transfer newly-connected room index from disconnected to connected.
+        connected.push(disconnected.remove(closest_disconnected));
     }
 
     if let Some(last_room) = map.rooms.last() {
