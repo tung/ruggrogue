@@ -3,8 +3,8 @@ use rand::{
     Rng,
 };
 use shipyard::{
-    AllStoragesViewMut, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView, UniqueViewMut,
-    View, ViewMut, World,
+    AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView,
+    UniqueViewMut, View, ViewMut, World,
 };
 use std::collections::HashSet;
 
@@ -67,184 +67,154 @@ pub fn spawn_player(
     )
 }
 
-fn spawn_health_potion(world: &World, pos: (i32, i32)) {
+fn spawn_item(world: &World, pos: (i32, i32), name: &str, sym: GameSym, fg: Color) -> EntityId {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
-         mut consumables: ViewMut<Consumable>,
          mut coords: ViewMut<Coord>,
          mut items: ViewMut<Item>,
          mut names: ViewMut<Name>,
-         mut provides_healings: ViewMut<ProvidesHealing>,
          mut render_on_floors: ViewMut<RenderOnFloor>,
          mut renderables: ViewMut<Renderable>| {
             let item_id = entities.add_entity(
                 (
                     &mut items,
-                    &mut consumables,
                     &mut coords,
                     &mut names,
-                    &mut provides_healings,
                     &mut render_on_floors,
                     &mut renderables,
                 ),
                 (
                     Item {},
-                    Consumable {},
                     Coord(pos.into()),
-                    Name("Health Potion".into()),
-                    ProvidesHealing { heal_amount: 8 },
+                    Name(name.into()),
                     RenderOnFloor {},
                     Renderable {
-                        sym: GameSym::HealthPotion,
-                        fg: Color::MAGENTA,
+                        sym,
+                        fg,
                         bg: Color::BLACK,
                     },
                 ),
             );
 
             map.place_entity(item_id, pos, false);
+
+            item_id
         },
+    )
+}
+
+fn spawn_health_potion(world: &World, pos: (i32, i32)) {
+    let item_id = spawn_item(
+        world,
+        pos,
+        "Health Potion",
+        GameSym::HealthPotion,
+        Color::MAGENTA,
+    );
+    let (entities, mut consumables, mut provides_healings) =
+        world.borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<ProvidesHealing>)>();
+
+    entities.add_component(
+        (&mut consumables, &mut provides_healings),
+        (Consumable {}, ProvidesHealing { heal_amount: 8 }),
+        item_id,
     );
 }
 
 fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut entities: EntitiesViewMut,
-         mut consumables: ViewMut<Consumable>,
-         mut coords: ViewMut<Coord>,
-         mut inflicts_damages: ViewMut<InflictsDamage>,
-         mut items: ViewMut<Item>,
-         mut names: ViewMut<Name>,
-         mut rangeds: ViewMut<Ranged>,
-         mut render_on_floors: ViewMut<RenderOnFloor>,
-         mut renderables: ViewMut<Renderable>| {
-            let item_id = entities.add_entity(
-                (
-                    &mut items,
-                    &mut consumables,
-                    &mut coords,
-                    &mut inflicts_damages,
-                    &mut names,
-                    &mut rangeds,
-                    &mut render_on_floors,
-                    &mut renderables,
-                ),
-                (
-                    Item {},
-                    Consumable {},
-                    Coord(pos.into()),
-                    InflictsDamage { damage: 8 },
-                    Name("Magic Missile Scroll".into()),
-                    Ranged { range: 6 },
-                    RenderOnFloor {},
-                    Renderable {
-                        sym: GameSym::MagicMissileScroll,
-                        fg: Color::CYAN,
-                        bg: Color::BLACK,
-                    },
-                ),
-            );
+    let item_id = spawn_item(
+        world,
+        pos,
+        "Magic Missile Scroll",
+        GameSym::MagicMissileScroll,
+        Color::CYAN,
+    );
+    let (entities, mut consumables, mut inflicts_damages, mut rangeds) = world.borrow::<(
+        EntitiesView,
+        ViewMut<Consumable>,
+        ViewMut<InflictsDamage>,
+        ViewMut<Ranged>,
+    )>();
 
-            map.place_entity(item_id, pos, false);
-        },
+    entities.add_component(
+        (&mut consumables, &mut inflicts_damages, &mut rangeds),
+        (
+            Consumable {},
+            InflictsDamage { damage: 8 },
+            Ranged { range: 6 },
+        ),
+        item_id,
     );
 }
 
 fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut entities: EntitiesViewMut,
-         mut aoes: ViewMut<AreaOfEffect>,
-         mut consumables: ViewMut<Consumable>,
-         mut coords: ViewMut<Coord>,
-         mut inflicts_damages: ViewMut<InflictsDamage>,
-         mut items: ViewMut<Item>,
-         mut names: ViewMut<Name>,
-         mut rangeds: ViewMut<Ranged>,
-         (mut render_on_floors, mut renderables): (ViewMut<RenderOnFloor>, ViewMut<Renderable>)| {
-            let item_id = entities.add_entity(
-                (
-                    &mut items,
-                    &mut aoes,
-                    &mut consumables,
-                    &mut coords,
-                    &mut inflicts_damages,
-                    &mut names,
-                    &mut rangeds,
-                    &mut render_on_floors,
-                    &mut renderables,
-                ),
-                (
-                    Item {},
-                    AreaOfEffect { radius: 3 },
-                    Consumable {},
-                    Coord(pos.into()),
-                    InflictsDamage { damage: 20 },
-                    Name("Fireball Scroll".into()),
-                    Ranged { range: 6 },
-                    RenderOnFloor {},
-                    Renderable {
-                        sym: GameSym::FireballScroll,
-                        fg: Color::ORANGE,
-                        bg: Color::BLACK,
-                    },
-                ),
-            );
+    let item_id = spawn_item(
+        world,
+        pos,
+        "Fireball Scroll",
+        GameSym::FireballScroll,
+        Color::ORANGE,
+    );
+    let (entities, mut aoes, mut consumables, mut inflicts_damages, mut rangeds) = world.borrow::<(
+        EntitiesView,
+        ViewMut<AreaOfEffect>,
+        ViewMut<Consumable>,
+        ViewMut<InflictsDamage>,
+        ViewMut<Ranged>,
+    )>();
 
-            map.place_entity(item_id, pos, false);
-        },
+    entities.add_component(
+        (
+            &mut aoes,
+            &mut consumables,
+            &mut inflicts_damages,
+            &mut rangeds,
+        ),
+        (
+            AreaOfEffect { radius: 3 },
+            Consumable {},
+            InflictsDamage { damage: 20 },
+            Ranged { range: 6 },
+        ),
+        item_id,
     );
 }
 
 fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut entities: EntitiesViewMut,
-         mut aoes: ViewMut<AreaOfEffect>,
-         mut consumables: ViewMut<Consumable>,
-         mut coords: ViewMut<Coord>,
-         mut inflicts_sleeps: ViewMut<InflictsSleep>,
-         mut items: ViewMut<Item>,
-         mut names: ViewMut<Name>,
-         mut rangeds: ViewMut<Ranged>,
-         (mut render_on_floors, mut renderables): (ViewMut<RenderOnFloor>, ViewMut<Renderable>)| {
-            let item_id = entities.add_entity(
-                (
-                    &mut items,
-                    &mut aoes,
-                    &mut consumables,
-                    &mut coords,
-                    &mut inflicts_sleeps,
-                    &mut names,
-                    &mut rangeds,
-                    &mut render_on_floors,
-                    &mut renderables,
-                ),
-                (
-                    Item {},
-                    AreaOfEffect { radius: 1 },
-                    Consumable {},
-                    Coord(pos.into()),
-                    InflictsSleep { sleepiness: 36 },
-                    Name("Sleep Scroll".into()),
-                    Ranged { range: 6 },
-                    RenderOnFloor {},
-                    Renderable {
-                        sym: GameSym::SleepScroll,
-                        fg: Color::PINK,
-                        bg: Color::BLACK,
-                    },
-                ),
-            );
+    let item_id = spawn_item(
+        world,
+        pos,
+        "Sleep Scroll",
+        GameSym::SleepScroll,
+        Color::PINK,
+    );
+    let (entities, mut aoes, mut consumables, mut inflicts_sleeps, mut rangeds) = world.borrow::<(
+        EntitiesView,
+        ViewMut<AreaOfEffect>,
+        ViewMut<Consumable>,
+        ViewMut<InflictsSleep>,
+        ViewMut<Ranged>,
+    )>();
 
-            map.place_entity(item_id, pos, false);
-        },
+    entities.add_component(
+        (
+            &mut aoes,
+            &mut consumables,
+            &mut inflicts_sleeps,
+            &mut rangeds,
+        ),
+        (
+            AreaOfEffect { radius: 1 },
+            Consumable {},
+            InflictsSleep { sleepiness: 36 },
+            Ranged { range: 6 },
+        ),
+        item_id,
     );
 }
 
-fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg: Color) {
+fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: Color) {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
@@ -278,7 +248,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: String, fg:
                     },
                     Coord(pos.into()),
                     FieldOfView::new(8),
-                    Name(name),
+                    Name(name.into()),
                     RenderOnMap {},
                     Renderable {
                         sym,
@@ -317,7 +287,7 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
     .choose(rng);
 
     if let Some((sym, name, fg)) = choice {
-        spawn_monster(world, pos, *sym, name.to_string(), *fg);
+        spawn_monster(world, pos, *sym, name, *fg);
     }
 }
 
