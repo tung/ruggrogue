@@ -10,7 +10,7 @@ use crate::{
     message::Messages,
     monster,
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
-    render, spawn, ui, vision,
+    render, spawn, ui, vision, TurnCount,
 };
 use ruggle::{
     util::{Color, Position, Size},
@@ -64,6 +64,7 @@ impl DungeonMode {
         world
             .borrow::<UniqueViewMut<Messages>>()
             .add("Welcome to Ruggle!".into());
+        world.borrow::<UniqueViewMut<TurnCount>>().0 = 1;
         world.borrow::<UniqueViewMut<Map>>().depth = 1;
         world.run(map::generate_rooms_and_corridors);
         world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
@@ -218,6 +219,8 @@ impl DungeonMode {
                     world.run(damage::delete_dead_entities);
                     world.run(vision::recalculate_fields_of_view);
                 }
+
+                world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
 
                 // Redraw map chunks containing the player's old and new fields of view.
                 let new_player_fov = world.run(get_player_fov);

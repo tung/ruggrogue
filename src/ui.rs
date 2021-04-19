@@ -1,7 +1,8 @@
 use shipyard::{Get, UniqueView, View, World};
 
 use crate::{
-    chunked::ChunkedMapGrid, components::CombatStats, map::Map, message::Messages, player::PlayerId,
+    chunked::ChunkedMapGrid, components::CombatStats, map::Map, message::Messages,
+    player::PlayerId, TurnCount,
 };
 use ruggle::{
     util::{Color, Position, Size},
@@ -27,9 +28,13 @@ pub const UI_GRID: usize = 1;
 fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
     let mut x = 2;
 
-    let depth = format!(" Depth: {} ", world.borrow::<UniqueView<Map>>().depth);
+    let depth = format!(" D:{} ", world.borrow::<UniqueView<Map>>().depth);
     grid.print_color((x, y), &depth, true, Color::YELLOW, None);
     x += depth.len() as i32 + 1;
+
+    let turn_count = format!(" T:{} ", world.borrow::<UniqueView<TurnCount>>().0);
+    grid.print_color((x, y), &turn_count, true, Color::YELLOW, None);
+    x += turn_count.len() as i32 + 1;
 
     let (hp, max_hp) = world.run(
         |player_id: UniqueView<PlayerId>, combat_stats: View<CombatStats>| {
