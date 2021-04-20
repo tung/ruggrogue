@@ -62,18 +62,10 @@ impl InventoryActionMode {
             SubSection::Actions
         };
 
-        let item_width = 2 + world.run(|names: View<Name>| names.get(item_id).0.len());
-        let inner_width = std::cmp::max(
-            item_width,
-            std::cmp::max(
-                CANCEL.len(),
-                actions
-                    .iter()
-                    .map(|a| 2 + a.name().len())
-                    .max()
-                    .unwrap_or(2),
-            ),
-        );
+        let item_width = world.run(|names: View<Name>| names.get(item_id).0.len());
+        let inner_width = 2 + item_width
+            .max(CANCEL.len())
+            .max(actions.iter().map(|a| a.name().len()).max().unwrap_or(0));
 
         Self {
             item_id,
