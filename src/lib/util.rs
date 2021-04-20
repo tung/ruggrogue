@@ -18,6 +18,7 @@ impl Color {
         b: 128,
     };
     pub const RED: Color = Color { r: 255, g: 0, b: 0 };
+    pub const GREEN: Color = Color { r: 0, g: 255, b: 0 };
     pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
     pub const YELLOW: Color = Color {
         r: 255,
@@ -28,6 +29,11 @@ impl Color {
         r: 255,
         g: 0,
         b: 255,
+    };
+    pub const BROWN: Color = Color {
+        r: 191,
+        g: 92,
+        b: 0,
     };
     pub const CYAN: Color = Color {
         r: 0,

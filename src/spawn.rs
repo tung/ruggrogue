@@ -11,8 +11,8 @@ use std::collections::HashSet;
 use crate::{
     components::{
         AreaOfEffect, BlocksTile, CombatStats, Consumable, Coord, FieldOfView, InflictsDamage,
-        InflictsSleep, Inventory, Item, Monster, Name, Player, ProvidesHealing, Ranged,
-        RenderOnFloor, RenderOnMap, Renderable,
+        InflictsSleep, Inventory, Item, Monster, Name, Nutrition, Player, ProvidesHealing, Ranged,
+        RenderOnFloor, RenderOnMap, Renderable, Stomach,
     },
     gamesym::GameSym,
     map::{Map, Rect},
@@ -33,6 +33,7 @@ pub fn spawn_player(
     mut players: ViewMut<Player>,
     mut render_on_maps: ViewMut<RenderOnMap>,
     mut renderables: ViewMut<Renderable>,
+    mut stomachs: ViewMut<Stomach>,
 ) -> EntityId {
     entities.add_entity(
         (
@@ -44,6 +45,7 @@ pub fn spawn_player(
             &mut names,
             &mut render_on_maps,
             &mut renderables,
+            &mut stomachs,
         ),
         (
             Player { auto_run: None },
@@ -62,6 +64,11 @@ pub fn spawn_player(
                 sym: GameSym::Player,
                 fg: Color::YELLOW,
                 bg: Color::BLACK,
+            },
+            Stomach {
+                fullness: 1000,
+                max_fullness: 1000,
+                sub_hp: 0,
             },
         ),
     )
@@ -102,6 +109,18 @@ fn spawn_item(world: &World, pos: (i32, i32), name: &str, sym: GameSym, fg: Colo
             item_id
         },
     )
+}
+
+fn spawn_ration(world: &World, pos: (i32, i32)) {
+    let item_id = spawn_item(world, pos, "Ration", GameSym::Ration, Color::BROWN);
+    let (entities, mut consumables, mut nutritions) =
+        world.borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<Nutrition>)>();
+
+    entities.add_component(
+        (&mut consumables, &mut nutritions),
+        (Consumable {}, Nutrition(400)),
+        item_id,
+    );
 }
 
 fn spawn_health_potion(world: &World, pos: (i32, i32)) {
@@ -331,8 +350,23 @@ pub fn fill_rooms_with_spawns(world: &World) {
     let rooms =
         world.run(|map: UniqueViewMut<Map>| map.rooms.iter().skip(1).copied().collect::<Vec<_>>());
 
-    for room in rooms {
-        fill_room_with_spawns(world, &room);
+    for room in &rooms {
+        fill_room_with_spawns(world, room);
+    }
+
+    let ration_pos = {
+        let (map, mut rng, items) =
+            world.borrow::<(UniqueView<Map>, UniqueViewMut<RuggleRng>, View<Item>)>();
+        rooms.choose(&mut rng.0).and_then(|ration_room| {
+            ration_room
+                .iter_xy()
+                .filter(|&(x, y)| !map.iter_entities_at(x, y).any(|id| items.contains(id)))
+                .choose(&mut rng.0)
+        })
+    };
+
+    if let Some(ration_pos) = ration_pos {
+        spawn_ration(world, ration_pos);
     }
 }
 

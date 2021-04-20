@@ -6,7 +6,8 @@ use shipyard::{
 use crate::{
     components::{
         AreaOfEffect, Asleep, CombatStats, Consumable, Coord, FieldOfView, InflictsDamage,
-        InflictsSleep, Inventory, Monster, Name, Player, ProvidesHealing, RenderOnFloor,
+        InflictsSleep, Inventory, Monster, Name, Nutrition, Player, ProvidesHealing, RenderOnFloor,
+        Stomach,
     },
     map::Map,
     message::Messages,
@@ -56,16 +57,16 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
 
 pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {
     world.run(
-        |(map, mut msgs): (UniqueView<Map>, UniqueViewMut<Messages>),
-         entities: EntitiesView,
+        |(map, mut msgs, entities): (UniqueView<Map>, UniqueViewMut<Messages>, EntitiesView),
          aoes: View<AreaOfEffect>,
          mut asleeps: ViewMut<Asleep>,
          mut combat_stats: ViewMut<CombatStats>,
          coords: View<Coord>,
          inflicts_damages: View<InflictsDamage>,
          inflicts_sleeps: View<InflictsSleep>,
-         (monsters, names, players): (View<Monster>, View<Name>, View<Player>),
-         provides_healings: View<ProvidesHealing>| {
+         (monsters, names, nutritions): (View<Monster>, View<Name>, View<Nutrition>),
+         players: View<Player>,
+         (provides_healings, mut stomachs): (View<ProvidesHealing>, ViewMut<Stomach>)| {
             let center = target.unwrap_or_else(|| coords.get(user_id).0.into());
             let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
             let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
@@ -79,6 +80,13 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
 
             for target_id in targets {
                 let target_name = &names.get(target_id).0;
+
+                if let Ok(stomach) = (&mut stomachs).try_get(target_id) {
+                    if let Ok(nutrition) = nutritions.try_get(item_id) {
+                        stomach.fullness =
+                            (stomach.fullness + nutrition.0).max(stomach.max_fullness);
+                    }
+                }
 
                 if let Ok(stats) = (&mut combat_stats).try_get(target_id) {
                     if let Ok(ProvidesHealing { heal_amount }) = provides_healings.try_get(item_id)

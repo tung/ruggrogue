@@ -24,6 +24,7 @@ pub enum GameSym {
     WallOther,
     DownStairs,
     Player,
+    Ration,
     HealthPotion,
     MagicMissileScroll,
     FireballScroll,
@@ -57,6 +58,7 @@ impl Symbol for GameSym {
             WallOther => '#',
             DownStairs => '>',
             Player => '@',
+            Ration => '%',
             HealthPotion => '!',
             MagicMissileScroll => '?',
             FireballScroll => '?',
@@ -150,6 +152,7 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(WallOther, (1, 0));
         symbol_map.insert(DownStairs, (10, 0));
         symbol_map.insert(Player, (29, 0));
+        symbol_map.insert(Ration, (5, 16));
         symbol_map.insert(HealthPotion, (29, 19));
         symbol_map.insert(MagicMissileScroll, (28, 25));
         symbol_map.insert(FireballScroll, (28, 25));

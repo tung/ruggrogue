@@ -8,6 +8,7 @@ use crate::{
     components::{CombatStats, Coord, FieldOfView, Inventory, Item, Monster, Name, Player},
     damage,
     gamekey::{self, GameKey},
+    hunger::{self, CanRegenResult},
     item,
     map::{self, Map, Tile},
     message::Messages,
@@ -28,7 +29,7 @@ enum AutoRunWallSide {
 
 #[derive(Clone, Copy)]
 enum AutoRunType {
-    RestUntilHealed,
+    RestInPlace,
     Corridor,
     Straight { expect_wall: AutoRunWallSide },
 }
@@ -113,8 +114,8 @@ fn player_check_frontier(
         ..
     } = *player.auto_run.as_ref().unwrap();
 
-    if matches!(run_type, AutoRunType::RestUntilHealed) {
-        // Interrupting resting until healed is handled elsewhere.
+    if matches!(run_type, AutoRunType::RestInPlace) {
+        // Interrupting resting is handled elsewhere.
         return false;
     }
 
@@ -533,7 +534,7 @@ fn auto_run_next_step(world: &World) -> Option<(i32, i32)> {
 
     if let Some((run_type, dx, dy)) = auto_run {
         match run_type {
-            AutoRunType::RestUntilHealed => {
+            AutoRunType::RestInPlace => {
                 let (player_id, combat_stats) =
                     world.borrow::<(UniqueView<PlayerId>, View<CombatStats>)>();
                 let CombatStats { hp, max_hp, .. } = combat_stats.get(player_id.0);
@@ -660,37 +661,34 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
     }
 }
 
-fn wait_player(world: &World, rest_until_healed: bool) -> PlayerInputResult {
+fn wait_player(world: &World, rest_in_place: bool) -> PlayerInputResult {
     let foes_seen = world.run(player_sees_foes);
-    let (player_id, mut combat_stats, mut players) =
-        world.borrow::<(UniqueView<PlayerId>, ViewMut<CombatStats>, ViewMut<Player>)>();
-    let mut player_stats = (&mut combat_stats).get(player_id.0);
+    let (player_id, mut players) = world.borrow::<(UniqueView<PlayerId>, ViewMut<Player>)>();
+    let player_can_regen = hunger::can_regen(world, player_id.0);
     let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
 
-    if rest_until_healed {
+    if rest_in_place {
         if foes_seen {
             msgs.add("You cannot rest while foes are near.".into());
             return PlayerInputResult::NoResult;
-        } else if player_stats.hp >= player_stats.max_hp {
-            msgs.add("You are already fully rested.".into());
+        } else if !matches!(player_can_regen, CanRegenResult::CanRegen) {
+            match player_can_regen {
+                CanRegenResult::CanRegen => unreachable!(),
+                CanRegenResult::NoRegen => msgs.add("You cannot rest to heal.".into()),
+                CanRegenResult::FullyRested => msgs.add("You are already fully rested.".into()),
+                CanRegenResult::TooHungry => msgs.add("You are too hungry to rest.".into()),
+            }
             return PlayerInputResult::NoResult;
         }
     }
 
-    // Regain hit points when waiting without foes in field of view.
-    if !foes_seen && player_stats.hp < player_stats.max_hp {
-        player_stats.hp += 1;
-        if rest_until_healed {
-            msgs.add("You tend to your wounds.".into());
-        }
-    }
-
-    // Continue resting until healed if requested.
-    if rest_until_healed && player_stats.hp < player_stats.max_hp {
+    // Rest in place if requested.
+    if rest_in_place && matches!(player_can_regen, CanRegenResult::CanRegen) {
+        msgs.add("You tend to your wounds.".into());
         (&mut players).get(player_id.0).auto_run = Some(AutoRun {
-            limit: 200,
+            limit: 400,
             dir: (0, 0),
-            run_type: AutoRunType::RestUntilHealed,
+            run_type: AutoRunType::RestInPlace,
         });
     }
 

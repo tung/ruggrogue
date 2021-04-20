@@ -1,7 +1,7 @@
 use shipyard::{Get, UniqueView, View, World};
 
 use crate::{
-    chunked::ChunkedMapGrid, components::CombatStats, map::Map, message::Messages,
+    chunked::ChunkedMapGrid, components::CombatStats, hunger, map::Map, message::Messages,
     player::PlayerId, TurnCount,
 };
 use ruggle::{
@@ -34,7 +34,7 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
 
     let turn_count = format!(" T:{} ", world.borrow::<UniqueView<TurnCount>>().0);
     grid.print_color((x, y), &turn_count, true, Color::YELLOW, None);
-    x += turn_count.len() as i32 + 1;
+    x += turn_count.len() as i32 + 2;
 
     let (hp, max_hp) = world.run(
         |player_id: UniqueView<PlayerId>, combat_stats: View<CombatStats>| {
@@ -44,7 +44,19 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
         },
     );
 
-    let hp_bar_length = grid.width() as i32 - x - 2;
+    for hunger_x in 0..hunger::MAX_HUNGER_WIDTH + 2 {
+        grid.put_char((grid.width() as i32 - hunger_x as i32 - 3, y), ' ');
+    }
+    let (hunger_label, hunger_fg, hunger_bg) = world.run(hunger::player_hunger_label);
+    grid.print_color(
+        (grid.width() as i32 - hunger::MAX_HUNGER_WIDTH as i32 - 3, y),
+        hunger_label,
+        true,
+        hunger_fg,
+        hunger_bg,
+    );
+
+    let hp_bar_length = grid.width() as i32 - hunger::MAX_HUNGER_WIDTH as i32 - x - 6;
     grid.draw_bar(
         false,
         (x, y),

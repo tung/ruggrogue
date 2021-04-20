@@ -5,7 +5,7 @@ use crate::{
     components::FieldOfView,
     damage,
     gamesym::GameSym,
-    item,
+    hunger, item,
     map::{self, Map},
     message::Messages,
     monster,
@@ -220,7 +220,16 @@ impl DungeonMode {
                     world.run(vision::recalculate_fields_of_view);
                 }
 
-                world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
+                if world.run(player::player_is_alive) {
+                    world.run(hunger::tick_hunger);
+                    world.run(damage::check_for_dead);
+                    world.run(damage::delete_dead_entities);
+                    world.run(vision::recalculate_fields_of_view);
+
+                    if world.run(player::player_is_alive) {
+                        world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
+                    }
+                }
 
                 // Redraw map chunks containing the player's old and new fields of view.
                 let new_player_fov = world.run(get_player_fov);

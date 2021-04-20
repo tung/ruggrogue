@@ -108,6 +108,8 @@ pub struct Monster;
 
 pub struct Name(pub String);
 
+pub struct Nutrition(pub i32);
+
 pub struct Player {
     pub auto_run: Option<AutoRun>,
 }
@@ -128,4 +130,10 @@ pub struct Renderable {
     pub sym: GameSym,
     pub fg: Color,
     pub bg: Color,
+}
+
+pub struct Stomach {
+    pub fullness: i32,
+    pub max_fullness: i32,
+    pub sub_hp: i32,
 }

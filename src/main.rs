@@ -4,6 +4,7 @@ mod components;
 mod damage;
 mod gamekey;
 mod gamesym;
+mod hunger;
 mod item;
 mod map;
 mod message;
