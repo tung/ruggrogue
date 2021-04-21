@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::{seq::IteratorRandom, Rng};
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
 use std::collections::HashMap;
 
@@ -399,6 +399,17 @@ pub fn generate_rooms_and_corridors(
         }
     }
 
+    let connect_rooms = |map: &mut UniqueViewMut<Map>, r1: usize, r2: usize, h_then_v: bool| {
+        let (r1x, r1y) = map.rooms[r1].center();
+        let (r2x, r2y) = map.rooms[r2].center();
+        if h_then_v {
+            map.set_hline(r2x, r1x, r2y, Tile::Floor);
+            map.set_vline(r2y, r1y, r1x, Tile::Floor);
+        } else {
+            map.set_vline(r2y, r1y, r2x, Tile::Floor);
+            map.set_hline(r2x, r1x, r1y, Tile::Floor);
+        }
+    };
     let mut connected: Vec<usize> = Vec::new();
     let mut disconnected: Vec<usize> = Vec::new();
 
@@ -424,20 +435,32 @@ pub fn generate_rooms_and_corridors(
             })
             .map(|((ci, _), (di, _))| (ci, di))
             .unwrap();
-        let (conn_x, conn_y) = map.rooms[connected[closest_connected]].center();
-        let (disconn_x, disconn_y) = map.rooms[disconnected[closest_disconnected]].center();
 
         // Connect the closest connected and disconnected rooms together.
-        if rng.0.gen() {
-            map.set_hline(disconn_x, conn_x, disconn_y, Tile::Floor);
-            map.set_vline(disconn_y, conn_y, conn_x, Tile::Floor);
-        } else {
-            map.set_vline(disconn_y, conn_y, disconn_x, Tile::Floor);
-            map.set_hline(disconn_x, conn_x, conn_y, Tile::Floor);
-        }
+        connect_rooms(
+            &mut map,
+            connected[closest_connected],
+            disconnected[closest_disconnected],
+            rng.0.gen(),
+        );
 
         // Transfer newly-connected room index from disconnected to connected.
         connected.push(disconnected.remove(closest_disconnected));
+    }
+
+    // Decide corridor styles to connect random extra rooms.
+    let mut extra_corridors = [false; 3];
+    for extra_corridor in extra_corridors.iter_mut() {
+        *extra_corridor = rng.0.gen();
+    }
+
+    // Connect random extra rooms.
+    for (extra_rooms, extra_corridor) in (0..map.rooms.len())
+        .choose_multiple(&mut rng.0, extra_corridors.len() * 2)
+        .chunks_exact(2)
+        .zip(&extra_corridors)
+    {
+        connect_rooms(&mut map, extra_rooms[0], extra_rooms[1], *extra_corridor);
     }
 
     if let Some(last_room) = map.rooms.last() {
