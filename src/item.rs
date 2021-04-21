@@ -91,11 +91,21 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
                 if let Ok(stats) = (&mut combat_stats).try_get(target_id) {
                     if let Ok(ProvidesHealing { heal_amount }) = provides_healings.try_get(item_id)
                     {
-                        stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
-                        msgs.add(format!(
-                            "{} heals {} for {} hp.",
-                            item_name, target_name, heal_amount,
-                        ));
+                        if stats.hp < stats.max_hp {
+                            stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
+                            msgs.add(format!(
+                                "{} heals {} for {} hp.",
+                                item_name, target_name, heal_amount,
+                            ));
+                        } else {
+                            let amount = 2;
+                            stats.hp += amount;
+                            stats.max_hp += amount;
+                            msgs.add(format!(
+                                "{} grants {} max hp to {}.",
+                                item_name, amount, target_name,
+                            ));
+                        }
                     }
 
                     if let Ok(InflictsDamage { damage }) = inflicts_damages.try_get(item_id) {
