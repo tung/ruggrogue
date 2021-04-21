@@ -311,15 +311,17 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
 }
 
 fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
-    let choice = [
-        spawn_health_potion,
-        spawn_magic_missile_scroll,
-        spawn_fireball_scroll,
-        spawn_sleep_scroll,
-    ]
-    .choose(rng);
+    type ItemFn = fn(&World, (i32, i32));
 
-    if let Some(item_fn) = choice {
+    let choice: Result<&(usize, ItemFn), _> = [
+        (2, spawn_health_potion as _),
+        (2, spawn_magic_missile_scroll as _),
+        (1, spawn_fireball_scroll as _),
+        (1, spawn_sleep_scroll as _),
+    ]
+    .choose_weighted(rng, |&(weight, _)| weight);
+
+    if let Ok((_, item_fn)) = choice {
         item_fn(world, pos);
     }
 }
