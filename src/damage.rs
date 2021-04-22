@@ -1,30 +1,14 @@
 use shipyard::{
-    AllStoragesViewMut, EntityId, Get, IntoIter, Shiperator, UniqueViewMut, View, ViewMut, World,
+    AllStoragesViewMut, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View,
+    ViewMut, World,
 };
-use std::collections::VecDeque;
 
 use crate::{
-    components::{BlocksTile, CombatStats, Coord, Name, Player},
+    components::{BlocksTile, CombatStats, Coord, Name},
     map::Map,
     message::Messages,
-    player::PlayerAlive,
+    player::{PlayerAlive, PlayerId},
 };
-
-pub struct DeadEntities(VecDeque<EntityId>);
-
-impl DeadEntities {
-    pub fn new() -> Self {
-        Self(VecDeque::new())
-    }
-
-    pub fn push_back(&mut self, e: EntityId) {
-        self.0.push_back(e);
-    }
-
-    pub fn pop_front(&mut self) -> Option<EntityId> {
-        self.0.pop_front()
-    }
-}
 
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     let (mut msgs, mut combat_stats, names) =
@@ -44,48 +28,64 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     }
 }
 
-pub fn check_for_dead(
-    mut dead_entities: UniqueViewMut<DeadEntities>,
-    mut msgs: UniqueViewMut<Messages>,
-    combat_stats: View<CombatStats>,
-    names: View<Name>,
-) {
-    for (id, stats) in combat_stats.iter().with_id() {
-        if stats.hp <= 0 {
-            msgs.add(format!("{} dies!", names.get(id).0));
-            dead_entities.push_back(id);
+/// Check for dead entities, do any special handling for them and delete them.
+pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
+    loop {
+        let mut entities = [EntityId::dead(); 10];
+        let mut num_entities = 0;
+
+        // Fill buffer with dead entities.
+        all_storages.run(|combat_stats: View<CombatStats>| {
+            for ((id, _), entity) in combat_stats
+                .iter()
+                .with_id()
+                .into_iter()
+                .filter(|(_, stats)| stats.hp <= 0)
+                .zip(entities.iter_mut())
+            {
+                *entity = id;
+                num_entities += 1;
+            }
+        });
+
+        for &entity in entities.iter().take(num_entities) {
+            all_storages.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+                msgs.add(format!("{} dies!", &names.get(entity).0));
+            });
+
+            if entity == all_storages.borrow::<UniqueView<PlayerId>>().0 {
+                // The player has died.
+                all_storages.run(
+                    |mut msgs: UniqueViewMut<Messages>,
+                     mut player_alive: UniqueViewMut<PlayerAlive>| {
+                        msgs.add("Press SPACE to continue...".into());
+                        player_alive.0 = false;
+                    },
+                );
+
+                // Don't handle any more dead entities.
+                num_entities = 0;
+            } else {
+                // Remove dead entity from the map.
+                all_storages.run(
+                    |mut map: UniqueViewMut<Map>,
+                     blocks_tile: View<BlocksTile>,
+                     coords: View<Coord>| {
+                        map.remove_entity(
+                            entity,
+                            coords.get(entity).0.into(),
+                            blocks_tile.contains(entity),
+                        );
+                    },
+                );
+
+                // Delete the dead entity.
+                all_storages.delete(entity);
+            }
         }
-    }
-}
 
-fn pop_dead_entity(mut dead_entities: UniqueViewMut<DeadEntities>) -> Option<EntityId> {
-    dead_entities.pop_front()
-}
-
-/// Delete entities in the DeadEntities queue, clearing them from the map in the process.
-pub fn delete_dead_entities(mut all_storages: AllStoragesViewMut) {
-    while let Some(dead_entity) = all_storages.run(pop_dead_entity) {
-        if all_storages.run(|players: View<Player>| players.contains(dead_entity)) {
-            all_storages.run(
-                |mut messages: UniqueViewMut<Messages>,
-                 mut player_alive: UniqueViewMut<PlayerAlive>| {
-                    messages.add("Press SPACE to continue...".into());
-                    player_alive.0 = false;
-                },
-            );
-        } else {
-            all_storages.run(
-                |mut map: UniqueViewMut<Map>,
-                 blocks_tile: View<BlocksTile>,
-                 coords: View<Coord>| {
-                    map.remove_entity(
-                        dead_entity,
-                        coords.get(dead_entity).0.into(),
-                        blocks_tile.contains(dead_entity),
-                    );
-                },
-            );
-            all_storages.delete(dead_entity);
+        if num_entities == 0 {
+            break;
         }
     }
 }

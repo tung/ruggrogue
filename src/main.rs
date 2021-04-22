@@ -22,7 +22,6 @@ use shipyard::World;
 use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
-    damage::DeadEntities,
     gamesym::GameSym,
     map::Map,
     message::Messages,
@@ -53,7 +52,6 @@ fn main() {
     world.add_unique(PlayerId(world.run(spawn::spawn_player)));
     world.add_unique(PlayerAlive(true));
     world.add_unique(MonsterTurns::new());
-    world.add_unique(DeadEntities::new());
 
     let mut mode_stack = ModeStack::new(vec![DungeonMode::new(&world).into()]);
 
