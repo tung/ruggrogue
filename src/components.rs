@@ -31,6 +31,13 @@ impl Coord {
     }
 }
 
+pub struct Experience {
+    pub level: i32,
+    pub exp: u64,
+    pub next: u64,
+    pub base: u64,
+}
+
 pub struct FieldOfView {
     pub tiles: BitGrid,
     pub range: i32,
@@ -88,6 +95,13 @@ impl FieldOfView {
         self.tiles
             .apply_bits_onto(seen, self.center.0 - self.range, self.center.1 - self.range);
     }
+}
+
+pub struct GivesExperience(pub u64);
+
+pub enum HurtBy {
+    Someone(EntityId),
+    Starvation,
 }
 
 pub struct InflictsDamage {

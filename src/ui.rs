@@ -1,8 +1,13 @@
 use shipyard::{Get, UniqueView, View, World};
 
 use crate::{
-    chunked::ChunkedMapGrid, components::CombatStats, hunger, map::Map, message::Messages,
-    player::PlayerId, TurnCount,
+    chunked::ChunkedMapGrid,
+    components::{CombatStats, Experience},
+    hunger,
+    map::Map,
+    message::Messages,
+    player::PlayerId,
+    TurnCount,
 };
 use ruggle::{
     util::{Color, Position, Size},
@@ -34,7 +39,13 @@ fn draw_status_line<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>, y: i32) {
 
     let turn_count = format!(" T:{} ", world.borrow::<UniqueView<TurnCount>>().0);
     grid.print_color((x, y), &turn_count, true, Color::YELLOW, None);
-    x += turn_count.len() as i32 + 2;
+    x += turn_count.len() as i32 + 1;
+
+    let exp_level = world.run(|player_id: UniqueView<PlayerId>, exps: View<Experience>| {
+        format!(" Lv{} ", exps.get(player_id.0).level)
+    });
+    grid.print_color((x, y), &exp_level, true, Color::YELLOW, None);
+    x += exp_level.len() as i32 + 2;
 
     let (hp, max_hp) = world.run(
         |player_id: UniqueView<PlayerId>, combat_stats: View<CombatStats>| {
@@ -126,7 +137,7 @@ pub fn prepare_main_grids<Y: Symbol>(
         .unwrap_or(&tilesets[0]);
 
     let new_ui_size = Size {
-        w: (window_size.w / (ui_tileset.tile_width() * text_zoom)).max(40),
+        w: (window_size.w / (ui_tileset.tile_width() * text_zoom)).max(60),
         h: 5,
     };
     let new_ui_px_h = new_ui_size.h * ui_tileset.tile_height() * text_zoom;

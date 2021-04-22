@@ -2,6 +2,7 @@ mod bitgrid;
 mod chunked;
 mod components;
 mod damage;
+mod experience;
 mod gamekey;
 mod gamesym;
 mod hunger;

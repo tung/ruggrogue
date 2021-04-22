@@ -1,9 +1,10 @@
 use shipyard::{
-    EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut, World,
+    EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
+    World,
 };
 
 use crate::{
-    components::{CombatStats, Name, Player, Stomach},
+    components::{CombatStats, HurtBy, Name, Player, Stomach},
     message::Messages,
     player::PlayerId,
 };
@@ -132,7 +133,9 @@ pub fn player_hunger_label(
 pub fn tick_hunger(
     mut msgs: UniqueViewMut<Messages>,
     player_id: UniqueView<PlayerId>,
+    entities: EntitiesView,
     mut combat_stats: ViewMut<CombatStats>,
+    mut hurt_bys: ViewMut<HurtBy>,
     names: View<Name>,
     mut players: ViewMut<Player>,
     mut stomachs: ViewMut<Stomach>,
@@ -194,6 +197,7 @@ pub fn tick_hunger(
                         let amount = -stomach.sub_hp / starve_turns;
                         stats.hp = (stats.hp - amount).max(0);
                         stomach.sub_hp += starve_turns * amount;
+                        entities.add_component(&mut hurt_bys, HurtBy::Starvation, id);
 
                         // Stop auto-run when taking damage from starvation.
                         if let Ok(player) = (&mut players).try_get(id) {

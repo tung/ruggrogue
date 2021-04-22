@@ -1,18 +1,22 @@
 use shipyard::{
-    AllStoragesViewMut, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View,
-    ViewMut, World,
+    AllStoragesViewMut, EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView,
+    UniqueViewMut, View, ViewMut, World,
 };
 
 use crate::{
-    components::{BlocksTile, CombatStats, Coord, Name},
+    components::{BlocksTile, CombatStats, Coord, Experience, GivesExperience, HurtBy, Name},
     map::Map,
     message::Messages,
     player::{PlayerAlive, PlayerId},
 };
 
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
-    let (mut msgs, mut combat_stats, names) =
-        world.borrow::<(UniqueViewMut<Messages>, ViewMut<CombatStats>, View<Name>)>();
+    let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
+    let entities = world.borrow::<EntitiesView>();
+    let mut combat_stats = world.borrow::<ViewMut<CombatStats>>();
+    let mut hurt_bys = world.borrow::<ViewMut<HurtBy>>();
+    let names = world.borrow::<View<Name>>();
+
     let damage = combat_stats.get(attacker).power - combat_stats.get(defender).defense;
     let att_name = &names.get(attacker).0;
     let def_name = &names.get(defender).0;
@@ -20,6 +24,7 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     if damage > 0 {
         msgs.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
         (&mut combat_stats).get(defender).hp -= damage;
+        entities.add_component(&mut hurt_bys, HurtBy::Someone(attacker), defender);
     } else {
         msgs.add(format!(
             "{} hits {}, but does no damage.",
@@ -52,6 +57,21 @@ pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
             all_storages.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
                 msgs.add(format!("{} dies!", &names.get(entity).0));
             });
+
+            // Give experience to whoever last hurt this entity, if applicable.
+            all_storages.run(
+                |mut exps: ViewMut<Experience>,
+                 gives_exps: View<GivesExperience>,
+                 hurt_bys: View<HurtBy>| {
+                    if let Ok(&HurtBy::Someone(receiver)) = hurt_bys.try_get(entity) {
+                        if let Ok(receiver_exp) = (&mut exps).try_get(receiver) {
+                            if let Ok(gives_exp) = gives_exps.try_get(entity) {
+                                receiver_exp.exp += gives_exp.0;
+                            }
+                        }
+                    }
+                },
+            );
 
             if entity == all_storages.borrow::<UniqueView<PlayerId>>().0 {
                 // The player has died.
@@ -88,4 +108,9 @@ pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
             break;
         }
     }
+}
+
+/// Clear all HurtBy components off of all entities.
+pub fn clear_hurt_bys(mut hurt_bys: ViewMut<HurtBy>) {
+    hurt_bys.clear();
 }

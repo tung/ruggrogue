@@ -5,7 +5,7 @@ use shipyard::{
 
 use crate::{
     components::{
-        AreaOfEffect, Asleep, CombatStats, Consumable, Coord, FieldOfView, InflictsDamage,
+        AreaOfEffect, Asleep, CombatStats, Consumable, Coord, FieldOfView, HurtBy, InflictsDamage,
         InflictsSleep, Inventory, Monster, Name, Nutrition, Player, ProvidesHealing, RenderOnFloor,
         Stomach,
     },
@@ -56,81 +56,86 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
 }
 
 pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {
-    world.run(
-        |(map, mut msgs, entities): (UniqueView<Map>, UniqueViewMut<Messages>, EntitiesView),
-         aoes: View<AreaOfEffect>,
-         mut asleeps: ViewMut<Asleep>,
-         mut combat_stats: ViewMut<CombatStats>,
-         coords: View<Coord>,
-         inflicts_damages: View<InflictsDamage>,
-         inflicts_sleeps: View<InflictsSleep>,
-         (monsters, names, nutritions): (View<Monster>, View<Name>, View<Nutrition>),
-         players: View<Player>,
-         (provides_healings, mut stomachs): (View<ProvidesHealing>, ViewMut<Stomach>)| {
-            let center = target.unwrap_or_else(|| coords.get(user_id).0.into());
-            let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
-            let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
-                .filter(|(_, _, symmetric)| *symmetric)
-                .flat_map(|(x, y, _)| map.iter_entities_at(x, y))
-                .filter(|id| monsters.contains(*id) || players.contains(*id));
-            let user_name = &names.get(user_id).0;
-            let item_name = &names.get(item_id).0;
+    {
+        let map = world.borrow::<UniqueView<Map>>();
+        let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
+        let entities = world.borrow::<EntitiesView>();
+        let aoes = world.borrow::<View<AreaOfEffect>>();
+        let mut asleeps = world.borrow::<ViewMut<Asleep>>();
+        let mut combat_stats = world.borrow::<ViewMut<CombatStats>>();
+        let coords = world.borrow::<View<Coord>>();
+        let mut hurt_bys = world.borrow::<ViewMut<HurtBy>>();
+        let inflicts_damages = world.borrow::<View<InflictsDamage>>();
+        let inflicts_sleeps = world.borrow::<View<InflictsSleep>>();
+        let monsters = world.borrow::<View<Monster>>();
+        let names = world.borrow::<View<Name>>();
+        let nutritions = world.borrow::<View<Nutrition>>();
+        let players = world.borrow::<View<Player>>();
+        let provides_healings = world.borrow::<View<ProvidesHealing>>();
+        let mut stomachs = world.borrow::<ViewMut<Stomach>>();
 
-            msgs.add(format!("{} uses {}.", user_name, item_name));
+        let center = target.unwrap_or_else(|| coords.get(user_id).0.into());
+        let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
+        let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
+            .filter(|(_, _, symmetric)| *symmetric)
+            .flat_map(|(x, y, _)| map.iter_entities_at(x, y))
+            .filter(|id| monsters.contains(*id) || players.contains(*id));
+        let user_name = &names.get(user_id).0;
+        let item_name = &names.get(item_id).0;
 
-            for target_id in targets {
-                let target_name = &names.get(target_id).0;
+        msgs.add(format!("{} uses {}.", user_name, item_name));
 
-                if let Ok(stomach) = (&mut stomachs).try_get(target_id) {
-                    if let Ok(nutrition) = nutritions.try_get(item_id) {
-                        stomach.fullness =
-                            (stomach.fullness + nutrition.0).max(stomach.max_fullness);
-                    }
-                }
+        for target_id in targets {
+            let target_name = &names.get(target_id).0;
 
-                if let Ok(stats) = (&mut combat_stats).try_get(target_id) {
-                    if let Ok(ProvidesHealing { heal_amount }) = provides_healings.try_get(item_id)
-                    {
-                        if stats.hp < stats.max_hp {
-                            stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
-                            msgs.add(format!(
-                                "{} heals {} for {} hp.",
-                                item_name, target_name, heal_amount,
-                            ));
-                        } else {
-                            let amount = 2;
-                            stats.hp += amount;
-                            stats.max_hp += amount;
-                            msgs.add(format!(
-                                "{} grants {} max hp to {}.",
-                                item_name, amount, target_name,
-                            ));
-                        }
-                    }
-
-                    if let Ok(InflictsDamage { damage }) = inflicts_damages.try_get(item_id) {
-                        stats.hp -= damage;
-                        msgs.add(format!(
-                            "{} hits {} for {} hp.",
-                            item_name, target_name, damage,
-                        ));
-                    }
-
-                    if let Ok(InflictsSleep { sleepiness }) = inflicts_sleeps.try_get(item_id) {
-                        entities.add_component(
-                            &mut asleeps,
-                            Asleep {
-                                sleepiness: *sleepiness,
-                                last_hp: stats.hp,
-                            },
-                            target_id,
-                        );
-                        msgs.add(format!("{} sends {} to sleep.", item_name, target_name));
-                    }
+            if let Ok(stomach) = (&mut stomachs).try_get(target_id) {
+                if let Ok(nutrition) = nutritions.try_get(item_id) {
+                    stomach.fullness = (stomach.fullness + nutrition.0).max(stomach.max_fullness);
                 }
             }
-        },
-    );
+
+            if let Ok(stats) = (&mut combat_stats).try_get(target_id) {
+                if let Ok(ProvidesHealing { heal_amount }) = provides_healings.try_get(item_id) {
+                    if stats.hp < stats.max_hp {
+                        stats.hp = (stats.hp + heal_amount).min(stats.max_hp);
+                        msgs.add(format!(
+                            "{} heals {} for {} hp.",
+                            item_name, target_name, heal_amount,
+                        ));
+                    } else {
+                        let amount = 2;
+                        stats.hp += amount;
+                        stats.max_hp += amount;
+                        msgs.add(format!(
+                            "{} grants {} max hp to {}.",
+                            item_name, amount, target_name,
+                        ));
+                    }
+                }
+
+                if let Ok(InflictsDamage { damage }) = inflicts_damages.try_get(item_id) {
+                    stats.hp -= damage;
+                    entities.add_component(&mut hurt_bys, HurtBy::Someone(user_id), target_id);
+                    msgs.add(format!(
+                        "{} hits {} for {} hp.",
+                        item_name, target_name, damage,
+                    ));
+                }
+
+                if let Ok(InflictsSleep { sleepiness }) = inflicts_sleeps.try_get(item_id) {
+                    entities.add_component(
+                        &mut asleeps,
+                        Asleep {
+                            sleepiness: *sleepiness,
+                            last_hp: stats.hp,
+                        },
+                        target_id,
+                    );
+                    msgs.add(format!("{} sends {} to sleep.", item_name, target_name));
+                }
+            }
+        }
+    }
 
     if world.borrow::<View<Consumable>>().contains(item_id) {
         remove_item_from_inventory(world, user_id, item_id);

@@ -10,9 +10,9 @@ use std::collections::HashSet;
 
 use crate::{
     components::{
-        AreaOfEffect, BlocksTile, CombatStats, Consumable, Coord, FieldOfView, InflictsDamage,
-        InflictsSleep, Inventory, Item, Monster, Name, Nutrition, Player, ProvidesHealing, Ranged,
-        RenderOnFloor, RenderOnMap, Renderable, Stomach,
+        AreaOfEffect, BlocksTile, CombatStats, Consumable, Coord, Experience, FieldOfView,
+        GivesExperience, InflictsDamage, InflictsSleep, Inventory, Item, Monster, Name, Nutrition,
+        Player, ProvidesHealing, Ranged, RenderOnFloor, RenderOnMap, Renderable, Stomach,
     },
     gamesym::GameSym,
     map::{Map, Rect},
@@ -27,19 +27,20 @@ pub fn spawn_player(
     mut entities: EntitiesViewMut,
     mut combat_stats: ViewMut<CombatStats>,
     mut coords: ViewMut<Coord>,
+    mut exps: ViewMut<Experience>,
     mut fovs: ViewMut<FieldOfView>,
     mut inventories: ViewMut<Inventory>,
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
     mut render_on_maps: ViewMut<RenderOnMap>,
-    mut renderables: ViewMut<Renderable>,
-    mut stomachs: ViewMut<Stomach>,
+    (mut renderables, mut stomachs): (ViewMut<Renderable>, ViewMut<Stomach>),
 ) -> EntityId {
     entities.add_entity(
         (
             &mut players,
             &mut combat_stats,
             &mut coords,
+            &mut exps,
             &mut fovs,
             &mut inventories,
             &mut names,
@@ -56,6 +57,12 @@ pub fn spawn_player(
                 power: 5,
             },
             Coord((0, 0).into()),
+            Experience {
+                level: 1,
+                exp: 0,
+                next: 100,
+                base: 0,
+            },
             FieldOfView::new(8),
             Inventory { items: Vec::new() },
             Name("Player".into()),
@@ -234,52 +241,50 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
 }
 
 fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: Color) {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut entities: EntitiesViewMut,
-         mut blocks: ViewMut<BlocksTile>,
-         mut combat_stats: ViewMut<CombatStats>,
-         mut coords: ViewMut<Coord>,
-         mut fovs: ViewMut<FieldOfView>,
-         mut monsters: ViewMut<Monster>,
-         mut names: ViewMut<Name>,
-         mut render_on_maps: ViewMut<RenderOnMap>,
-         mut renderables: ViewMut<Renderable>| {
-            let monster_id = entities.add_entity(
-                (
-                    &mut monsters,
-                    &mut blocks,
-                    &mut combat_stats,
-                    &mut coords,
-                    &mut fovs,
-                    &mut names,
-                    &mut render_on_maps,
-                    &mut renderables,
-                ),
-                (
-                    Monster {},
-                    BlocksTile {},
-                    CombatStats {
-                        max_hp: 16,
-                        hp: 16,
-                        defense: 1,
-                        power: 4,
-                    },
-                    Coord(pos.into()),
-                    FieldOfView::new(8),
-                    Name(name.into()),
-                    RenderOnMap {},
-                    Renderable {
-                        sym,
-                        fg,
-                        bg: Color::BLACK,
-                    },
-                ),
-            );
-
-            map.place_entity(monster_id, pos, true);
-        },
+    let monster_id = world.borrow::<EntitiesViewMut>().add_entity(
+        (
+            &mut world.borrow::<ViewMut<Monster>>(),
+            &mut world.borrow::<ViewMut<BlocksTile>>(),
+            &mut world.borrow::<ViewMut<CombatStats>>(),
+            &mut world.borrow::<ViewMut<Coord>>(),
+            &mut world.borrow::<ViewMut<Experience>>(),
+            &mut world.borrow::<ViewMut<FieldOfView>>(),
+            &mut world.borrow::<ViewMut<GivesExperience>>(),
+            &mut world.borrow::<ViewMut<Name>>(),
+            &mut world.borrow::<ViewMut<RenderOnMap>>(),
+            &mut world.borrow::<ViewMut<Renderable>>(),
+        ),
+        (
+            Monster {},
+            BlocksTile {},
+            CombatStats {
+                max_hp: 16,
+                hp: 16,
+                defense: 1,
+                power: 4,
+            },
+            Coord(pos.into()),
+            Experience {
+                level: 1,
+                exp: 0,
+                next: 0,
+                base: 0,
+            },
+            FieldOfView::new(8),
+            GivesExperience(10),
+            Name(name.into()),
+            RenderOnMap {},
+            Renderable {
+                sym,
+                fg,
+                bg: Color::BLACK,
+            },
+        ),
     );
+
+    world
+        .borrow::<UniqueViewMut<Map>>()
+        .place_entity(monster_id, pos, true);
 }
 
 fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {

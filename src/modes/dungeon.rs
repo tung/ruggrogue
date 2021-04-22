@@ -3,7 +3,7 @@ use shipyard::{Get, UniqueView, UniqueViewMut, View, World};
 use crate::{
     chunked::ChunkedMapGrid,
     components::FieldOfView,
-    damage,
+    damage, experience,
     gamesym::GameSym,
     hunger, item,
     map::{self, Map},
@@ -208,6 +208,8 @@ impl DungeonMode {
 
             if time_passed {
                 world.run(damage::handle_dead_entities);
+                world.run(damage::clear_hurt_bys);
+                world.run(experience::gain_levels);
                 world.run(vision::recalculate_fields_of_view);
                 world.run(monster::enqueue_monster_turns);
 
@@ -215,12 +217,16 @@ impl DungeonMode {
                 {
                     monster::do_monster_turns(world);
                     world.run(damage::handle_dead_entities);
+                    world.run(damage::clear_hurt_bys);
+                    world.run(experience::gain_levels);
                     world.run(vision::recalculate_fields_of_view);
                 }
 
                 if world.run(player::player_is_alive) {
                     world.run(hunger::tick_hunger);
                     world.run(damage::handle_dead_entities);
+                    world.run(damage::clear_hurt_bys);
+                    world.run(experience::gain_levels);
                     world.run(vision::recalculate_fields_of_view);
 
                     if world.run(player::player_is_alive) {
