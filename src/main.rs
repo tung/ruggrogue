@@ -38,6 +38,12 @@ pub struct TurnCount(u64);
 
 fn main() {
     let world = World::new();
+    let game_seed = std::env::args()
+        .nth(1)
+        .and_then(|arg| u64::from_str_radix(arg.as_str(), 10).ok())
+        .unwrap_or_else(rand::random);
+
+    println!("Game seed: {}", game_seed);
 
     world.add_unique(Options {
         tileset: 2,
@@ -45,7 +51,7 @@ fn main() {
         map_zoom: 1,
         text_zoom: 1,
     });
-    world.add_unique(GameSeed(rand::random()));
+    world.add_unique(GameSeed(game_seed));
     world.add_unique(TurnCount(0));
     world.add_unique(Messages::new(4));
     world.add_unique(Map::new(80, 50));
