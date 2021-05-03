@@ -1,9 +1,12 @@
-use rand::{seq::IteratorRandom, Rng};
+use rand::{seq::IteratorRandom, Rng, SeedableRng};
+use rand_pcg::Pcg32;
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
-use std::collections::HashMap;
+use std::{collections::HashMap, hash::Hasher};
+use wyhash::WyHash;
 
 use crate::{
-    bitgrid::BitGrid, chunked, components::Coord, gamesym::GameSym, player::PlayerId, RuggleRng,
+    bitgrid::BitGrid, chunked, components::Coord, gamesym::GameSym, magicnum, player::PlayerId,
+    GameSeed,
 };
 use ruggle::util::Color;
 
@@ -376,21 +379,25 @@ impl ruggle::PathableMap for Map {
     }
 }
 
-pub fn generate_rooms_and_corridors(
-    mut map: UniqueViewMut<Map>,
-    mut rng: UniqueViewMut<RuggleRng>,
-) {
+pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: UniqueViewMut<Map>) {
     {
         let w = map.width;
         let h = map.height;
         map.set_rect(&Rect::new(0, 0, w, h), Tile::Wall);
     }
 
+    let mut rng = {
+        let mut hasher = WyHash::with_seed(magicnum::GENERATE_ROOMS_AND_CORRIDORS);
+        hasher.write_u64(game_seed.0);
+        hasher.write_i32(map.depth);
+        Pcg32::seed_from_u64(hasher.finish())
+    };
+
     for _ in 0..30 {
-        let w: i32 = rng.0.gen_range(6, 15);
-        let h: i32 = rng.0.gen_range(6, 11);
-        let x: i32 = rng.0.gen_range(1, map.width - w - 1);
-        let y: i32 = rng.0.gen_range(1, map.height - h - 1);
+        let w: i32 = rng.gen_range(6, 15);
+        let h: i32 = rng.gen_range(6, 11);
+        let x: i32 = rng.gen_range(1, map.width - w - 1);
+        let y: i32 = rng.gen_range(1, map.height - h - 1);
         let new_room = Rect::new(x, y, w, h);
 
         if !map.rooms.iter().any(|r| new_room.intersects(&r, 1)) {
@@ -441,7 +448,7 @@ pub fn generate_rooms_and_corridors(
             &mut map,
             connected[closest_connected],
             disconnected[closest_disconnected],
-            rng.0.gen(),
+            rng.gen(),
         );
 
         // Transfer newly-connected room index from disconnected to connected.
@@ -451,12 +458,12 @@ pub fn generate_rooms_and_corridors(
     // Decide corridor styles to connect random extra rooms.
     let mut extra_corridors = [false; 3];
     for extra_corridor in extra_corridors.iter_mut() {
-        *extra_corridor = rng.0.gen();
+        *extra_corridor = rng.gen();
     }
 
     // Connect random extra rooms.
     for (extra_rooms, extra_corridor) in (0..map.rooms.len())
-        .choose_multiple(&mut rng.0, extra_corridors.len() * 2)
+        .choose_multiple(&mut rng, extra_corridors.len() * 2)
         .chunks_exact(2)
         .zip(&extra_corridors)
     {

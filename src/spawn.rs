@@ -1,12 +1,14 @@
 use rand::{
     seq::{IteratorRandom, SliceRandom},
-    Rng,
+    Rng, SeedableRng,
 };
+use rand_pcg::Pcg32;
 use shipyard::{
     AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView,
     UniqueViewMut, View, ViewMut, World,
 };
-use std::collections::HashSet;
+use std::{collections::HashSet, hash::Hasher};
+use wyhash::WyHash;
 
 use crate::{
     components::{
@@ -15,8 +17,9 @@ use crate::{
         Player, ProvidesHealing, Ranged, RenderOnFloor, RenderOnMap, Renderable, Stomach,
     },
     gamesym::GameSym,
+    magicnum,
     map::{Map, Rect},
-    player, RuggleRng,
+    player, GameSeed,
 };
 use ruggle::util::Color;
 
@@ -331,44 +334,53 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     }
 }
 
-fn fill_room_with_spawns(world: &World, room: &Rect) {
-    let mut rng = world.borrow::<UniqueViewMut<RuggleRng>>();
+fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
     let depth = world.borrow::<UniqueView<Map>>().depth;
     let depth = if depth < 1 { 1usize } else { depth as usize };
 
-    if rng.0.gen_ratio(1, 4) {
-        let num = rng.0.gen_range(1, 2);
+    if rng.gen_ratio(1, 4) {
+        let num = rng.gen_range(1, 2);
 
-        for pos in room.iter_xy().choose_multiple(&mut rng.0, num) {
-            spawn_random_item_at(world, &mut rng.0, pos);
+        for pos in room.iter_xy().choose_multiple(rng, num) {
+            spawn_random_item_at(world, rng, pos);
         }
     }
 
-    if rng.0.gen_ratio(1, 2) {
-        let num = rng.0.gen_range(1, 1 + ((depth + 1) / 2).min(3));
+    if rng.gen_ratio(1, 2) {
+        let num = rng.gen_range(1, 1 + ((depth + 1) / 2).min(3));
 
-        for pos in room.iter_xy().choose_multiple(&mut rng.0, num) {
-            spawn_random_monster_at(world, &mut rng.0, pos);
+        for pos in room.iter_xy().choose_multiple(rng, num) {
+            spawn_random_monster_at(world, rng, pos);
         }
     }
 }
 
 pub fn fill_rooms_with_spawns(world: &World) {
-    let rooms =
-        world.run(|map: UniqueViewMut<Map>| map.rooms.iter().skip(1).copied().collect::<Vec<_>>());
+    let rooms = world
+        .borrow::<UniqueViewMut<Map>>()
+        .rooms
+        .iter()
+        .skip(1)
+        .copied()
+        .collect::<Vec<_>>();
+    let mut rng = {
+        let mut hasher = WyHash::with_seed(magicnum::FILL_ROOM_WITH_SPAWNS);
+        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
+        hasher.write_i32(world.borrow::<UniqueView<Map>>().depth);
+        Pcg32::seed_from_u64(hasher.finish())
+    };
 
     for room in &rooms {
-        fill_room_with_spawns(world, room);
+        fill_room_with_spawns(world, &mut rng, room);
     }
 
     let ration_pos = {
-        let (map, mut rng, items) =
-            world.borrow::<(UniqueView<Map>, UniqueViewMut<RuggleRng>, View<Item>)>();
-        rooms.choose(&mut rng.0).and_then(|ration_room| {
+        let (map, items) = world.borrow::<(UniqueView<Map>, View<Item>)>();
+        rooms.choose(&mut rng).and_then(|ration_room| {
             ration_room
                 .iter_xy()
                 .filter(|&(x, y)| !map.iter_entities_at(x, y).any(|id| items.contains(id)))
-                .choose(&mut rng.0)
+                .choose(&mut rng)
         })
     };
 

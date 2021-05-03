@@ -7,6 +7,7 @@ mod gamekey;
 mod gamesym;
 mod hunger;
 mod item;
+mod magicnum;
 mod map;
 mod message;
 mod modes;
@@ -17,8 +18,6 @@ mod spawn;
 mod ui;
 mod vision;
 
-use rand::SeedableRng;
-use rand_pcg::Pcg32;
 use shipyard::World;
 use std::{collections::HashMap, path::PathBuf};
 
@@ -33,7 +32,7 @@ use crate::{
 };
 use ruggle::{RunSettings, TilesetInfo};
 
-pub struct RuggleRng(Pcg32);
+pub struct GameSeed(u64);
 
 pub struct TurnCount(u64);
 
@@ -46,7 +45,7 @@ fn main() {
         map_zoom: 1,
         text_zoom: 1,
     });
-    world.add_unique(RuggleRng(Pcg32::from_rng(rand::thread_rng()).unwrap()));
+    world.add_unique(GameSeed(rand::random()));
     world.add_unique(TurnCount(0));
     world.add_unique(Messages::new(4));
     world.add_unique(Map::new(80, 50));
