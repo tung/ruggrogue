@@ -56,8 +56,8 @@ pub fn spawn_player(
             CombatStats {
                 max_hp: 30,
                 hp: 30,
+                attack: 5,
                 defense: 2,
-                power: 5,
             },
             Coord((0, 0).into()),
             Experience {
@@ -263,8 +263,8 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: C
             CombatStats {
                 max_hp: 16,
                 hp: 16,
+                attack: 4,
                 defense: 1,
-                power: 4,
             },
             Coord(pos.into()),
             Experience {

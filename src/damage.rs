@@ -17,7 +17,7 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     let mut hurt_bys = world.borrow::<ViewMut<HurtBy>>();
     let names = world.borrow::<View<Name>>();
 
-    let damage = combat_stats.get(attacker).power - combat_stats.get(defender).defense;
+    let damage = combat_stats.get(attacker).attack - combat_stats.get(defender).defense;
     let att_name = &names.get(attacker).0;
     let def_name = &names.get(defender).0;
 
