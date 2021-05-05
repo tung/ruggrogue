@@ -14,6 +14,11 @@ pub struct Asleep {
 
 pub struct BlocksTile;
 
+pub struct CombatBonus {
+    pub attack: i32,
+    pub defense: i32,
+}
+
 pub struct CombatStats {
     pub max_hp: i32,
     pub hp: i32,
@@ -29,6 +34,16 @@ impl Coord {
     pub fn dist(&self, other: &Coord) -> i32 {
         std::cmp::max((other.0.x - self.0.x).abs(), (other.0.y - self.0.y).abs())
     }
+}
+
+pub enum EquipSlot {
+    Weapon,
+    Armor,
+}
+
+pub struct Equipment {
+    pub weapon: Option<EntityId>,
+    pub armor: Option<EntityId>,
 }
 
 pub struct Experience {

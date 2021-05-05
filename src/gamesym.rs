@@ -29,6 +29,8 @@ pub enum GameSym {
     MagicMissileScroll,
     FireballScroll,
     SleepScroll,
+    Knife,
+    WoodenShield,
     Goblin,
     Orc,
 }
@@ -63,6 +65,8 @@ impl Symbol for GameSym {
             MagicMissileScroll => '?',
             FireballScroll => '?',
             SleepScroll => '?',
+            Knife => ')',
+            WoodenShield => '[',
             Goblin => 'g',
             Orc => 'o',
         }
@@ -157,6 +161,8 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(MagicMissileScroll, (28, 25));
         symbol_map.insert(FireballScroll, (28, 25));
         symbol_map.insert(SleepScroll, (28, 25));
+        symbol_map.insert(Knife, (43, 21));
+        symbol_map.insert(WoodenShield, (27, 23));
         symbol_map.insert(Goblin, (41, 2));
         symbol_map.insert(Orc, (26, 4));
     }

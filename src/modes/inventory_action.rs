@@ -1,7 +1,7 @@
 use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
-    components::{AreaOfEffect, Name, Ranged, Renderable},
+    components::{AreaOfEffect, Consumable, EquipSlot, Name, Ranged, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
     ui::{self, Options},
@@ -21,6 +21,7 @@ const CANCEL: &str = "[ Cancel ]";
 pub enum InventoryActionModeResult {
     AppQuit,
     Cancelled,
+    EquipItem(EntityId),
     UseItem(EntityId, Option<(i32, i32)>),
     DropItem(EntityId),
 }
@@ -30,7 +31,9 @@ enum SubSection {
     Cancel,
 }
 
+#[allow(clippy::enum_variant_names)]
 enum Action {
+    EquipItem,
     UseItem,
     DropItem,
 }
@@ -38,6 +41,7 @@ enum Action {
 impl Action {
     fn name(&self) -> &'static str {
         match self {
+            Action::EquipItem => "[ Equip ]",
             Action::UseItem => "[ Apply ]",
             Action::DropItem => "[ Drop ]",
         }
@@ -55,7 +59,16 @@ pub struct InventoryActionMode {
 /// Show a menu of actions for a single item in the player's inventory.
 impl InventoryActionMode {
     pub fn new(world: &World, item_id: EntityId) -> Self {
-        let actions = vec![Action::UseItem, Action::DropItem];
+        let mut actions = Vec::new();
+
+        if world.borrow::<View<EquipSlot>>().contains(item_id) {
+            actions.push(Action::EquipItem);
+        }
+        if world.borrow::<View<Consumable>>().contains(item_id) {
+            actions.push(Action::UseItem);
+        }
+        actions.push(Action::DropItem);
+
         let subsection = if actions.is_empty() {
             SubSection::Cancel
         } else {
@@ -176,6 +189,7 @@ impl InventoryActionMode {
                 GameKey::Confirm => {
                     let result = match self.subsection {
                         SubSection::Actions => match self.actions[self.selection as usize] {
+                            Action::EquipItem => InventoryActionModeResult::EquipItem(self.item_id),
                             Action::UseItem => {
                                 if let Some(Ranged { range }) =
                                     &world.borrow::<View<Ranged>>().try_get(self.item_id).ok()

@@ -4,11 +4,7 @@ use shipyard::{
 };
 
 use crate::{
-    components::{
-        AreaOfEffect, Asleep, CombatStats, Consumable, Coord, FieldOfView, HurtBy, InflictsDamage,
-        InflictsSleep, Inventory, Monster, Name, Nutrition, Player, ProvidesHealing, RenderOnFloor,
-        Stomach,
-    },
+    components::*,
     map::Map,
     message::Messages,
     player::{self, PlayerId},
@@ -53,6 +49,88 @@ pub fn remove_item_from_inventory(world: &World, holder_id: EntityId, item_id: E
     if let Some(inv_pos) = holder_inv.items.iter().position(|id| *id == item_id) {
         holder_inv.items.remove(inv_pos);
     }
+}
+
+fn unequip_item(world: &World, unequipper_id: EntityId, item_id: EntityId) {
+    let mut equipments = world.borrow::<ViewMut<Equipment>>();
+    let equipment = (&mut equipments).get(unequipper_id);
+
+    match world.borrow::<View<EquipSlot>>().get(item_id) {
+        EquipSlot::Weapon => equipment.weapon = None,
+        EquipSlot::Armor => equipment.armor = None,
+    };
+}
+
+pub fn remove_equipment(world: &World, remover_id: EntityId, item_id: EntityId) {
+    if world.borrow::<View<Inventory>>().contains(remover_id) {
+        unequip_item(world, remover_id, item_id);
+        add_item_to_inventory(world, remover_id, item_id);
+
+        let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
+        let names = world.borrow::<View<Name>>();
+
+        msgs.add(format!(
+            "{} removes {}.",
+            &names.get(remover_id).0,
+            &names.get(item_id).0
+        ));
+    } else {
+        // Remover has no inventory, so attempt dropping the equipment instead.
+        drop_equipment(world, remover_id, item_id);
+    }
+}
+
+pub fn drop_equipment(world: &World, dropper_id: EntityId, item_id: EntityId) {
+    let dropper_pos: (i32, i32) = {
+        let coords = world.borrow::<View<Coord>>();
+        coords.get(dropper_id).0.into()
+    };
+
+    unequip_item(world, dropper_id, item_id);
+    add_item_to_map(world, item_id, dropper_pos);
+
+    let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
+    let names = world.borrow::<View<Name>>();
+
+    msgs.add(format!(
+        "{} drops {}.",
+        &names.get(dropper_id).0,
+        &names.get(item_id).0
+    ));
+}
+
+pub fn equip_item(world: &World, equipper_id: EntityId, item_id: EntityId) {
+    let mut equipments = world.borrow::<ViewMut<Equipment>>();
+    let equipment = (&mut equipments).get(equipper_id);
+    let equip_field = match world.borrow::<View<EquipSlot>>().get(item_id) {
+        EquipSlot::Weapon => &mut equipment.weapon,
+        EquipSlot::Armor => &mut equipment.armor,
+    };
+
+    if equip_field.is_some() {
+        let mut inventories = world.borrow::<ViewMut<Inventory>>();
+        let equipper_inv = (&mut inventories).get(equipper_id);
+        let item_pos = equipper_inv
+            .items
+            .iter()
+            .position(|id| *id == item_id)
+            .unwrap();
+
+        // Swap the item IDs of the equip field and inventory position.
+        equipper_inv.items[item_pos] = equip_field.replace(item_id).unwrap();
+    } else {
+        *equip_field = Some(item_id);
+        remove_item_from_inventory(world, equipper_id, item_id);
+    }
+
+    let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
+    let names = world.borrow::<View<Name>>();
+
+    msgs.add(format!(
+        "{} equips {}.",
+        &names.get(equipper_id).0,
+        &names.get(item_id).0
+    ));
 }
 
 pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {

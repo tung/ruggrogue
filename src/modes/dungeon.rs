@@ -143,20 +143,34 @@ impl DungeonMode {
                         PickUpMenuModeResult::Cancelled => false,
                     },
 
-                    ModeResult::InventoryModeResult(result) => match result {
-                        InventoryModeResult::AppQuit => return app_quit_dialog(inputs),
-                        InventoryModeResult::DoNothing => false,
-                        InventoryModeResult::UseItem(item_id, target) => {
-                            let player_id =
-                                world.run(|player_id: UniqueView<PlayerId>| player_id.0);
-                            item::use_item(world, player_id, *item_id, *target);
-                            true
+                    ModeResult::InventoryModeResult(result) => {
+                        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
+
+                        match result {
+                            InventoryModeResult::AppQuit => return app_quit_dialog(inputs),
+                            InventoryModeResult::DoNothing => false,
+                            InventoryModeResult::RemoveEquipment(item_id) => {
+                                item::remove_equipment(world, player_id, *item_id);
+                                true
+                            }
+                            InventoryModeResult::DropEquipment(item_id) => {
+                                item::drop_equipment(world, player_id, *item_id);
+                                true
+                            }
+                            InventoryModeResult::EquipItem(item_id) => {
+                                item::equip_item(world, player_id, *item_id);
+                                true
+                            }
+                            InventoryModeResult::UseItem(item_id, target) => {
+                                item::use_item(world, player_id, *item_id, *target);
+                                true
+                            }
+                            InventoryModeResult::DropItem(item_id) => {
+                                player::player_drop_item(world, *item_id);
+                                true
+                            }
                         }
-                        InventoryModeResult::DropItem(item_id) => {
-                            player::player_drop_item(world, *item_id);
-                            true
-                        }
-                    },
+                    }
 
                     _ => unreachable!(),
                 }

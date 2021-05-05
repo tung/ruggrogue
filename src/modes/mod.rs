@@ -25,6 +25,7 @@
 
 pub mod app_quit_dialog;
 pub mod dungeon;
+pub mod equipment_action;
 pub mod inventory;
 pub mod inventory_action;
 pub mod options_menu;
@@ -39,6 +40,7 @@ use ruggle::{util::Size, InputBuffer, RunControl, TileGrid, TileGridLayer, Tiles
 
 use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
 use dungeon::{DungeonMode, DungeonModeResult};
+use equipment_action::{EquipmentActionMode, EquipmentActionModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
 use options_menu::{OptionsMenuMode, OptionsMenuModeResult};
@@ -52,6 +54,7 @@ use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 pub enum Mode {
     AppQuitDialogMode(AppQuitDialogMode),
     DungeonMode(DungeonMode),
+    EquipmentActionMode(EquipmentActionMode),
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
     OptionsMenuMode(OptionsMenuMode),
@@ -69,6 +72,12 @@ impl From<AppQuitDialogMode> for Mode {
 impl From<DungeonMode> for Mode {
     fn from(mode: DungeonMode) -> Self {
         Self::DungeonMode(mode)
+    }
+}
+
+impl From<EquipmentActionMode> for Mode {
+    fn from(mode: EquipmentActionMode) -> Self {
+        Self::EquipmentActionMode(mode)
     }
 }
 
@@ -115,6 +124,7 @@ impl From<YesNoDialogMode> for Mode {
 pub enum ModeResult {
     AppQuitDialogModeResult(AppQuitDialogModeResult),
     DungeonModeResult(DungeonModeResult),
+    EquipmentActionModeResult(EquipmentActionModeResult),
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
     OptionsMenuModeResult(OptionsMenuModeResult),
@@ -132,6 +142,12 @@ impl From<AppQuitDialogModeResult> for ModeResult {
 impl From<DungeonModeResult> for ModeResult {
     fn from(result: DungeonModeResult) -> Self {
         Self::DungeonModeResult(result)
+    }
+}
+
+impl From<EquipmentActionModeResult> for ModeResult {
+    fn from(result: EquipmentActionModeResult) -> Self {
+        Self::EquipmentActionModeResult(result)
     }
 }
 
@@ -212,6 +228,7 @@ impl Mode {
         match self {
             Mode::AppQuitDialogMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::DungeonMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::EquipmentActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
@@ -230,6 +247,7 @@ impl Mode {
         match self {
             Mode::AppQuitDialogMode(x) => x.update(world, inputs, pop_result),
             Mode::DungeonMode(x) => x.update(world, inputs, pop_result),
+            Mode::EquipmentActionMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryMode(x) => x.update(world, inputs, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, pop_result),
             Mode::OptionsMenuMode(x) => x.update(world, inputs, pop_result),
@@ -243,6 +261,7 @@ impl Mode {
         match self {
             Mode::AppQuitDialogMode(x) => x.draw(world, grids, active),
             Mode::DungeonMode(x) => x.draw(world, grids, active),
+            Mode::EquipmentActionMode(x) => x.draw(world, grids, active),
             Mode::InventoryMode(x) => x.draw(world, grids, active),
             Mode::InventoryActionMode(x) => x.draw(world, grids, active),
             Mode::OptionsMenuMode(x) => x.draw(world, grids, active),
@@ -257,6 +276,7 @@ impl Mode {
         match self {
             Mode::AppQuitDialogMode(_) => true,
             Mode::DungeonMode(_) => false,
+            Mode::EquipmentActionMode(_) => true,
             Mode::InventoryMode(_) => true,
             Mode::InventoryActionMode(_) => true,
             Mode::OptionsMenuMode(_) => true,

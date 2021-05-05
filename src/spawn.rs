@@ -11,11 +11,7 @@ use std::{collections::HashSet, hash::Hasher};
 use wyhash::WyHash;
 
 use crate::{
-    components::{
-        AreaOfEffect, BlocksTile, CombatStats, Consumable, Coord, Experience, FieldOfView,
-        GivesExperience, InflictsDamage, InflictsSleep, Inventory, Item, Monster, Name, Nutrition,
-        Player, ProvidesHealing, Ranged, RenderOnFloor, RenderOnMap, Renderable, Stomach,
-    },
+    components::*,
     gamesym::GameSym,
     magicnum,
     map::{Map, Rect},
@@ -30,15 +26,19 @@ pub fn spawn_player(
     mut entities: EntitiesViewMut,
     mut combat_stats: ViewMut<CombatStats>,
     mut coords: ViewMut<Coord>,
+    mut equipments: ViewMut<Equipment>,
     mut exps: ViewMut<Experience>,
     mut fovs: ViewMut<FieldOfView>,
     mut inventories: ViewMut<Inventory>,
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
-    mut render_on_maps: ViewMut<RenderOnMap>,
-    (mut renderables, mut stomachs): (ViewMut<Renderable>, ViewMut<Stomach>),
+    (mut render_on_maps, mut renderables, mut stomachs): (
+        ViewMut<RenderOnMap>,
+        ViewMut<Renderable>,
+        ViewMut<Stomach>,
+    ),
 ) -> EntityId {
-    entities.add_entity(
+    let id = entities.add_entity(
         (
             &mut players,
             &mut combat_stats,
@@ -81,7 +81,18 @@ pub fn spawn_player(
                 sub_hp: 0,
             },
         ),
-    )
+    );
+
+    entities.add_component(
+        (&mut equipments,),
+        (Equipment {
+            weapon: None,
+            armor: None,
+        },),
+        id,
+    );
+
+    id
 }
 
 fn spawn_item(world: &World, pos: (i32, i32), name: &str, sym: GameSym, fg: Color) -> EntityId {
@@ -243,6 +254,48 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
+fn spawn_knife(world: &World, pos: (i32, i32)) {
+    let item_id = spawn_item(world, pos, "Knife", GameSym::Knife, Color::GRAY);
+    let (entities, mut combat_bonuses, mut equip_slots) =
+        world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
+
+    entities.add_component(
+        (&mut combat_bonuses, &mut equip_slots),
+        (
+            CombatBonus {
+                attack: 1,
+                defense: 0,
+            },
+            EquipSlot::Weapon,
+        ),
+        item_id,
+    );
+}
+
+fn spawn_wooden_shield(world: &World, pos: (i32, i32)) {
+    let item_id = spawn_item(
+        world,
+        pos,
+        "Wooden Shield",
+        GameSym::WoodenShield,
+        Color::BROWN,
+    );
+    let (entities, mut combat_bonuses, mut equip_slots) =
+        world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
+
+    entities.add_component(
+        (&mut combat_bonuses, &mut equip_slots),
+        (
+            CombatBonus {
+                attack: 0,
+                defense: 1,
+            },
+            EquipSlot::Armor,
+        ),
+        item_id,
+    );
+}
+
 fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: Color) {
     let monster_id = world.borrow::<EntitiesViewMut>().add_entity(
         (
@@ -322,10 +375,12 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     type ItemFn = fn(&World, (i32, i32));
 
     let choice: Result<&(usize, ItemFn), _> = [
-        (2, spawn_health_potion as _),
-        (2, spawn_magic_missile_scroll as _),
-        (1, spawn_fireball_scroll as _),
-        (1, spawn_sleep_scroll as _),
+        (3, spawn_health_potion as _),
+        (3, spawn_magic_missile_scroll as _),
+        (2, spawn_fireball_scroll as _),
+        (2, spawn_sleep_scroll as _),
+        (1, spawn_knife as _),
+        (1, spawn_wooden_shield as _),
     ]
     .choose_weighted(rng, |&(weight, _)| weight);
 

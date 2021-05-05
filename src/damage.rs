@@ -4,7 +4,10 @@ use shipyard::{
 };
 
 use crate::{
-    components::{BlocksTile, CombatStats, Coord, Experience, GivesExperience, HurtBy, Name},
+    components::{
+        BlocksTile, CombatBonus, CombatStats, Coord, Equipment, Experience, GivesExperience,
+        HurtBy, Name,
+    },
     map::Map,
     message::Messages,
     player::{PlayerAlive, PlayerId},
@@ -13,11 +16,33 @@ use crate::{
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
     let entities = world.borrow::<EntitiesView>();
+    let combat_bonuses = world.borrow::<View<CombatBonus>>();
     let mut combat_stats = world.borrow::<ViewMut<CombatStats>>();
+    let equipments = world.borrow::<View<Equipment>>();
     let mut hurt_bys = world.borrow::<ViewMut<HurtBy>>();
     let names = world.borrow::<View<Name>>();
 
-    let damage = combat_stats.get(attacker).attack - combat_stats.get(defender).defense;
+    let attack_value = combat_stats.get(attacker).attack
+        + equipments.try_get(attacker).map_or(0, |equip| {
+            equip
+                .weapon
+                .iter()
+                .chain(equip.armor.iter())
+                .filter_map(|&e| combat_bonuses.try_get(e).ok())
+                .map(|b| b.attack)
+                .sum()
+        });
+    let defense_value = combat_stats.get(defender).defense
+        + equipments.try_get(defender).map_or(0, |equip| {
+            equip
+                .weapon
+                .iter()
+                .chain(equip.armor.iter())
+                .filter_map(|&e| combat_bonuses.try_get(e).ok())
+                .map(|b| b.defense)
+                .sum()
+        });
+    let damage = attack_value - defense_value;
     let att_name = &names.get(attacker).0;
     let def_name = &names.get(defender).0;
 

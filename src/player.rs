@@ -5,7 +5,9 @@ use shipyard::{
 use std::collections::HashSet;
 
 use crate::{
-    components::{CombatStats, Coord, FieldOfView, Inventory, Item, Monster, Name, Player},
+    components::{
+        CombatStats, Coord, Equipment, FieldOfView, Inventory, Item, Monster, Name, Player,
+    },
     damage,
     gamekey::{self, GameKey},
     hunger::{self, CanRegenResult},
@@ -696,6 +698,7 @@ fn wait_player(world: &World, rest_in_place: bool) -> PlayerInputResult {
 }
 
 pub fn all_player_associated_ids(
+    equipments: View<Equipment>,
     inventories: View<Inventory>,
     players: View<Player>,
 ) -> HashSet<EntityId> {
@@ -704,6 +707,12 @@ pub fn all_player_associated_ids(
     for (id, _) in players.iter().with_id() {
         // Add the player.
         ids.insert(id);
+
+        // Add the player's equipment.
+        if let Ok(equip) = equipments.try_get(id) {
+            ids.extend(equip.weapon.iter());
+            ids.extend(equip.armor.iter());
+        }
 
         // Add the player's inventory items.
         if let Ok(inv) = inventories.try_get(id) {

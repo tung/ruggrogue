@@ -1,7 +1,7 @@
 use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
-    components::{Inventory, Name, Renderable},
+    components::{Equipment, Inventory, Name, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
     player::PlayerId,
@@ -13,6 +13,7 @@ use ruggle::{
 };
 
 use super::{
+    equipment_action::{EquipmentActionMode, EquipmentActionModeResult},
     inventory_action::{InventoryActionMode, InventoryActionModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
@@ -23,11 +24,16 @@ const INV_GRID: usize = 1;
 pub enum InventoryModeResult {
     AppQuit,
     DoNothing,
+    RemoveEquipment(EntityId),
+    DropEquipment(EntityId),
+    EquipItem(EntityId),
     UseItem(EntityId, Option<(i32, i32)>),
     DropItem(EntityId),
 }
 
 enum SubSection {
+    EquipWeapon,
+    EquipArmor,
     SortAll,
     Inventory,
 }
@@ -154,6 +160,24 @@ impl InventoryMode {
     ) -> (ModeControl, ModeUpdate) {
         if let Some(result) = pop_result {
             return match result {
+                ModeResult::EquipmentActionModeResult(result) => match result {
+                    EquipmentActionModeResult::AppQuit => (
+                        ModeControl::Pop(InventoryModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    EquipmentActionModeResult::Cancelled => {
+                        (ModeControl::Stay, ModeUpdate::WaitForEvent)
+                    }
+                    EquipmentActionModeResult::RemoveEquipment(item_id) => (
+                        ModeControl::Pop(InventoryModeResult::RemoveEquipment(*item_id).into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    EquipmentActionModeResult::DropEquipment(item_id) => (
+                        ModeControl::Pop(InventoryModeResult::DropEquipment(*item_id).into()),
+                        ModeUpdate::Immediate,
+                    ),
+                },
+
                 ModeResult::InventoryActionModeResult(result) => match result {
                     InventoryActionModeResult::AppQuit => (
                         ModeControl::Pop(InventoryModeResult::AppQuit.into()),
@@ -162,6 +186,10 @@ impl InventoryMode {
                     InventoryActionModeResult::Cancelled => {
                         (ModeControl::Stay, ModeUpdate::WaitForEvent)
                     }
+                    InventoryActionModeResult::EquipItem(item_id) => (
+                        ModeControl::Pop(InventoryModeResult::EquipItem(*item_id).into()),
+                        ModeUpdate::Immediate,
+                    ),
                     InventoryActionModeResult::UseItem(item_id, target) => (
                         ModeControl::Pop(InventoryModeResult::UseItem(*item_id, *target).into()),
                         ModeUpdate::Immediate,
@@ -171,7 +199,8 @@ impl InventoryMode {
                         ModeUpdate::Immediate,
                     ),
                 },
-                _ => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+
+                _ => unreachable!(),
             };
         }
 
@@ -183,75 +212,102 @@ impl InventoryMode {
                 ModeUpdate::Immediate,
             )
         } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            world.run(
-                |player_id: UniqueView<PlayerId>, inventories: View<Inventory>| {
-                    let player_inv = inventories.get(player_id.0);
+            let player_id = world.borrow::<UniqueView<PlayerId>>();
+            let equipments = world.borrow::<View<Equipment>>();
+            let inventories = world.borrow::<View<Inventory>>();
+            let player_equipment = equipments.get(player_id.0);
+            let player_inv = inventories.get(player_id.0);
+            let shift = inputs.get_mods(KeyMods::SHIFT);
 
-                    match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
-                        GameKey::Down => match self.subsection {
-                            SubSection::SortAll => {
-                                self.subsection = SubSection::Inventory;
-                                self.inv_selection = 0;
-                            }
-                            SubSection::Inventory => {
-                                if !player_inv.items.is_empty()
-                                    && self.inv_selection < player_inv.items.len() as i32 - 1
-                                {
-                                    self.inv_selection += 1;
-                                } else {
-                                    self.subsection = SubSection::SortAll;
-                                }
-                            }
-                        },
-                        GameKey::Up => match self.subsection {
-                            SubSection::SortAll => {
-                                self.subsection = SubSection::Inventory;
-                                self.inv_selection = if player_inv.items.is_empty() {
-                                    0
-                                } else {
-                                    player_inv.items.len() as i32 - 1
-                                }
-                            }
-                            SubSection::Inventory => {
-                                if self.inv_selection > 0 {
-                                    self.inv_selection -= 1;
-                                } else {
-                                    self.subsection = SubSection::SortAll;
-                                }
-                            }
-                        },
-                        GameKey::Cancel | GameKey::Inventory => {
-                            return (
-                                ModeControl::Pop(InventoryModeResult::DoNothing.into()),
-                                ModeUpdate::Immediate,
-                            )
-                        }
-                        GameKey::Confirm => {
-                            match self.subsection {
-                                SubSection::SortAll => {} // TODO
-                                SubSection::Inventory => {
-                                    if !player_inv.items.is_empty() {
-                                        inputs.clear_input();
-                                        return (
-                                            ModeControl::Push(
-                                                InventoryActionMode::new(
-                                                    world,
-                                                    player_inv.items[self.inv_selection as usize],
-                                                )
-                                                .into(),
-                                            ),
-                                            ModeUpdate::Immediate,
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                        _ => {}
+            match (&self.subsection, gamekey::from_keycode(keycode, shift)) {
+                (SubSection::EquipWeapon, GameKey::Up) => {
+                    self.subsection = SubSection::Inventory;
+                    self.inv_selection = if player_inv.items.is_empty() {
+                        0
+                    } else {
+                        player_inv.items.len() as i32 - 1
                     }
+                }
+                (SubSection::EquipWeapon, GameKey::Down) => {
+                    self.subsection = SubSection::EquipArmor;
+                }
+                (SubSection::EquipWeapon, GameKey::Confirm) => {
+                    if let Some(weapon) = player_equipment.weapon {
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(EquipmentActionMode::new(world, weapon).into()),
+                            ModeUpdate::Immediate,
+                        );
+                    }
+                }
 
-                    (ModeControl::Stay, ModeUpdate::WaitForEvent)
-                },
-            )
+                (SubSection::EquipArmor, GameKey::Up) => {
+                    self.subsection = SubSection::EquipWeapon;
+                }
+                (SubSection::EquipArmor, GameKey::Down) => {
+                    self.subsection = SubSection::SortAll;
+                }
+                (SubSection::EquipArmor, GameKey::Confirm) => {
+                    if let Some(armor) = player_equipment.armor {
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(EquipmentActionMode::new(world, armor).into()),
+                            ModeUpdate::Immediate,
+                        );
+                    }
+                }
+
+                (SubSection::SortAll, GameKey::Up) => {
+                    self.subsection = SubSection::EquipArmor;
+                }
+                (SubSection::SortAll, GameKey::Down) => {
+                    self.subsection = SubSection::Inventory;
+                    self.inv_selection = 0;
+                }
+                (SubSection::SortAll, GameKey::Confirm) => {} // TODO
+
+                (SubSection::Inventory, GameKey::Up) => {
+                    if self.inv_selection > 0 {
+                        self.inv_selection -= 1;
+                    } else {
+                        self.subsection = SubSection::SortAll;
+                    }
+                }
+                (SubSection::Inventory, GameKey::Down) => {
+                    if !player_inv.items.is_empty()
+                        && self.inv_selection < player_inv.items.len() as i32 - 1
+                    {
+                        self.inv_selection += 1;
+                    } else {
+                        self.subsection = SubSection::EquipWeapon;
+                    }
+                }
+                (SubSection::Inventory, GameKey::Confirm) => {
+                    if !player_inv.items.is_empty() {
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(
+                                InventoryActionMode::new(
+                                    world,
+                                    player_inv.items[self.inv_selection as usize],
+                                )
+                                .into(),
+                            ),
+                            ModeUpdate::Immediate,
+                        );
+                    }
+                }
+
+                (_, GameKey::Cancel) | (_, GameKey::Inventory) => {
+                    return (
+                        ModeControl::Pop(InventoryModeResult::DoNothing.into()),
+                        ModeUpdate::Immediate,
+                    )
+                }
+                _ => {}
+            }
+
+            (ModeControl::Stay, ModeUpdate::WaitForEvent)
         } else {
             (ModeControl::Stay, ModeUpdate::WaitForEvent)
         }
@@ -259,15 +315,48 @@ impl InventoryMode {
 
     fn draw_equip(
         &self,
-        _world: &World,
+        world: &World,
         grid: &mut TileGrid<GameSym>,
         fg: Color,
         bg: Color,
-        _selected_bg: Color,
+        selected_bg: Color,
     ) {
+        let equipments = world.borrow::<View<Equipment>>();
+        let names = world.borrow::<View<Name>>();
+        let renderables = world.borrow::<View<Renderable>>();
+        let player_equipment = equipments.get(world.borrow::<UniqueView<PlayerId>>().0);
+        let weapon_bg = if matches!(self.subsection, SubSection::EquipWeapon) {
+            selected_bg
+        } else {
+            bg
+        };
+        let armor_bg = if matches!(self.subsection, SubSection::EquipArmor) {
+            selected_bg
+        } else {
+            bg
+        };
+
         // Draw box with bottom edge off-grid.
         grid.draw_box((0, 0), (grid.width(), grid.height() + 1), fg, bg);
         grid.print_color((2, 0), "< Equipment >", true, Color::YELLOW, bg);
+
+        grid.print((2, 2), "Weapon:");
+        if let Some(weapon) = player_equipment.weapon {
+            let render = renderables.get(weapon);
+            grid.put_sym_color((10, 2), render.sym, render.fg, render.bg);
+            grid.print_color((12, 2), &names.get(weapon).0, true, fg, weapon_bg);
+        } else {
+            grid.print_color((10, 2), "-- nothing --", true, fg, weapon_bg);
+        }
+
+        grid.print((2, 3), "Armor:");
+        if let Some(armor) = player_equipment.armor {
+            let render = renderables.get(armor);
+            grid.put_sym_color((10, 3), render.sym, render.fg, render.bg);
+            grid.print_color((12, 3), &names.get(armor).0, true, fg, armor_bg);
+        } else {
+            grid.print_color((10, 3), "-- nothing --", true, fg, armor_bg);
+        }
     }
 
     fn draw_inventory(
