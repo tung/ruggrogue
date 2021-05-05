@@ -1,16 +1,22 @@
+use rand::{Rng, SeedableRng};
+use rand_pcg::Pcg32;
 use shipyard::{
     AllStoragesViewMut, EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView,
     UniqueViewMut, View, ViewMut, World,
 };
+use std::hash::Hasher;
+use wyhash::WyHash;
 
 use crate::{
     components::{
         BlocksTile, CombatBonus, CombatStats, Coord, Equipment, Experience, GivesExperience,
         HurtBy, Name,
     },
+    magicnum,
     map::Map,
     message::Messages,
     player::{PlayerAlive, PlayerId},
+    GameSeed, TurnCount,
 };
 
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
@@ -21,6 +27,28 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     let equipments = world.borrow::<View<Equipment>>();
     let mut hurt_bys = world.borrow::<ViewMut<HurtBy>>();
     let names = world.borrow::<View<Name>>();
+    let att_name = &names.get(attacker).0;
+    let def_name = &names.get(defender).0;
+    let mut rng = {
+        let coords = world.borrow::<View<Coord>>();
+        let mut hasher = WyHash::with_seed(magicnum::MELEE_ATTACK);
+        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
+        hasher.write_u64(world.borrow::<UniqueView<TurnCount>>().0);
+        if let Ok(attacker_coord) = coords.try_get(attacker) {
+            hasher.write_i32(attacker_coord.0.x);
+            hasher.write_i32(attacker_coord.0.y);
+        }
+        if let Ok(defender_coord) = coords.try_get(defender) {
+            hasher.write_i32(defender_coord.0.x);
+            hasher.write_i32(defender_coord.0.y);
+        }
+        Pcg32::seed_from_u64(hasher.finish())
+    };
+
+    if rng.gen_range(0, 10) == 0 {
+        msgs.add(format!("{} misses {}.", att_name, def_name));
+        return;
+    }
 
     let attack_value = combat_stats.get(attacker).attack
         + equipments.try_get(attacker).map_or(0, |equip| {
@@ -42,9 +70,14 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
                 .map(|b| b.defense)
                 .sum()
         });
-    let damage = attack_value - defense_value;
-    let att_name = &names.get(attacker).0;
-    let def_name = &names.get(defender).0;
+    let damage = (attack_value - defense_value) as f32;
+    let damage = rng.gen_range(damage * 0.8, damage * 1.2);
+    let damage = damage.trunc() as i32
+        + if rng.gen_range(0, 100) < (damage.fract() * 100.0) as u32 {
+            1
+        } else {
+            0
+        };
 
     if damage > 0 {
         msgs.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));

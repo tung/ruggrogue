@@ -49,25 +49,27 @@ fn do_turn_for_one_monster(world: &World, monster: EntityId) {
     if item::is_asleep(world, monster) {
         item::handle_sleep_turn(world, monster);
     } else if player::can_see_player(world, monster) {
-        let (mut map, player_id, blocks, mut coords, mut fovs) = world.borrow::<(
-            UniqueViewMut<Map>,
-            UniqueView<PlayerId>,
-            View<BlocksTile>,
-            ViewMut<Coord>,
-            ViewMut<FieldOfView>,
-        )>();
-        let fov = (&mut fovs).get(monster);
-        let player_pos: (i32, i32) = coords.get(player_id.0).0.into();
-        let coord_mut = (&mut coords).get(monster);
-        let pos: (i32, i32) = coord_mut.0.into();
+        let mut map = world.borrow::<UniqueViewMut<Map>>();
+        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let (player_pos, pos): ((i32, i32), (i32, i32)) = {
+            let coords = world.borrow::<View<Coord>>();
+            (
+                coords.get(player_id.0).0.into(),
+                coords.get(monster).0.into(),
+            )
+        };
 
         if let Some(step) = ruggle::find_path(&*map, pos, player_pos, 4, true).nth(1) {
             if step == player_pos {
                 damage::melee_attack(world, monster, player_id.0);
             } else {
+                let blocks = world.borrow::<View<BlocksTile>>();
+                let mut coords = world.borrow::<ViewMut<Coord>>();
+                let mut fovs = world.borrow::<ViewMut<FieldOfView>>();
+
                 map.move_entity(monster, pos, step, blocks.contains(monster));
-                coord_mut.0 = step.into();
-                fov.dirty = true;
+                (&mut coords).get(monster).0 = step.into();
+                (&mut fovs).get(monster).dirty = true;
             }
         }
     }
