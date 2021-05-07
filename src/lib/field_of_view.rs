@@ -191,11 +191,7 @@ impl<T: BoundedMap + ViewableField> FovIter<'_, T> {
             }
         }
 
-        if let Some(pos) = out_pos {
-            Some((pos.0, pos.1, out_symmetric))
-        } else {
-            None
-        }
+        out_pos.map(|pos| (pos.0, pos.1, out_symmetric))
     }
 }
 

@@ -40,7 +40,7 @@ fn main() {
     let world = World::new();
     let game_seed = std::env::args()
         .nth(1)
-        .and_then(|arg| u64::from_str_radix(arg.as_str(), 10).ok())
+        .and_then(|arg| arg.as_str().parse().ok())
         .unwrap_or_else(rand::random);
 
     println!("Game seed: {}", game_seed);
