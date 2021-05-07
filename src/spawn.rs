@@ -56,8 +56,8 @@ pub fn spawn_player(
             CombatStats {
                 max_hp: 30,
                 hp: 30,
-                attack: 5,
-                defense: 2,
+                attack: 5.0,
+                defense: 2.0,
             },
             Coord((0, 0).into()),
             Experience {
@@ -263,8 +263,8 @@ fn spawn_knife(world: &World, pos: (i32, i32)) {
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
-                attack: 1,
-                defense: 0,
+                attack: 1.0,
+                defense: 0.0,
             },
             EquipSlot::Weapon,
         ),
@@ -287,8 +287,8 @@ fn spawn_wooden_shield(world: &World, pos: (i32, i32)) {
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
-                attack: 0,
-                defense: 1,
+                attack: 0.0,
+                defense: 1.0,
             },
             EquipSlot::Armor,
         ),
@@ -316,8 +316,8 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: C
             CombatStats {
                 max_hp: 16,
                 hp: 16,
-                attack: 4,
-                defense: 1,
+                attack: 4.0,
+                defense: 1.0,
             },
             Coord(pos.into()),
             Experience {

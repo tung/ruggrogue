@@ -15,15 +15,15 @@ pub struct Asleep {
 pub struct BlocksTile;
 
 pub struct CombatBonus {
-    pub attack: i32,
-    pub defense: i32,
+    pub attack: f32,
+    pub defense: f32,
 }
 
 pub struct CombatStats {
     pub max_hp: i32,
     pub hp: i32,
-    pub attack: i32,
-    pub defense: i32,
+    pub attack: f32,
+    pub defense: f32,
 }
 
 pub struct Consumable;

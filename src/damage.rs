@@ -51,7 +51,7 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     }
 
     let attack_value = combat_stats.get(attacker).attack
-        + equipments.try_get(attacker).map_or(0, |equip| {
+        + equipments.try_get(attacker).map_or(0.0, |equip| {
             equip
                 .weapon
                 .iter()
@@ -61,7 +61,7 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
                 .sum()
         });
     let defense_value = combat_stats.get(defender).defense
-        + equipments.try_get(defender).map_or(0, |equip| {
+        + equipments.try_get(defender).map_or(0.0, |equip| {
             equip
                 .weapon
                 .iter()
@@ -70,7 +70,7 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
                 .map(|b| b.defense)
                 .sum()
         });
-    let damage = (attack_value - defense_value) as f32;
+    let damage = attack_value - defense_value;
     let damage = rng.gen_range(damage * 0.8, damage * 1.2);
     let damage = damage.trunc() as i32
         + if rng.gen_range(0, 100) < (damage.fract() * 100.0) as u32 {
