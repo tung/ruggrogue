@@ -16,11 +16,11 @@ pub fn calc_player_max_hp(level: i32) -> i32 {
 }
 
 pub fn calc_player_attack(level: i32) -> f32 {
-    level_factor(level) * 5.0
+    level_factor(level) * 3.0
 }
 
 pub fn calc_player_defense(level: i32) -> f32 {
-    level_factor(level) * 2.0
+    level_factor(level) * 1.2
 }
 
 pub fn calc_monster_max_hp(level: i32) -> i32 {
@@ -36,11 +36,11 @@ pub fn calc_monster_defense(level: i32) -> f32 {
 }
 
 pub fn calc_weapon_attack(level: i32) -> f32 {
-    level_factor(level)
+    level_factor(level) * 2.0
 }
 
 pub fn calc_armor_defense(level: i32) -> f32 {
-    level_factor(level)
+    level_factor(level) * 0.8
 }
 
 pub fn gain_levels(

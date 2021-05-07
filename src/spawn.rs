@@ -412,6 +412,32 @@ fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
 }
 
 pub fn fill_rooms_with_spawns(world: &World) {
+    let mut rng = {
+        let mut hasher = WyHash::with_seed(magicnum::FILL_ROOM_WITH_SPAWNS);
+        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
+        hasher.write_i32(world.borrow::<UniqueView<Map>>().depth);
+        Pcg32::seed_from_u64(hasher.finish())
+    };
+
+    if world.borrow::<UniqueView<Map>>().depth == 1 {
+        let mut start_equips = [(0, 0); 2];
+        let num = world
+            .borrow::<UniqueView<Map>>()
+            .rooms
+            .first()
+            .map(|room| {
+                room.iter_xy()
+                    .choose_multiple_fill(&mut rng, &mut start_equips[..])
+            })
+            .unwrap_or(0);
+
+        if num > 0 {
+            start_equips[0..num].shuffle(&mut rng);
+            spawn_wooden_shield(world, start_equips[0]);
+            spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }]);
+        }
+    }
+
     let rooms = world
         .borrow::<UniqueViewMut<Map>>()
         .rooms
@@ -419,12 +445,6 @@ pub fn fill_rooms_with_spawns(world: &World) {
         .skip(1)
         .copied()
         .collect::<Vec<_>>();
-    let mut rng = {
-        let mut hasher = WyHash::with_seed(magicnum::FILL_ROOM_WITH_SPAWNS);
-        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
-        hasher.write_i32(world.borrow::<UniqueView<Map>>().depth);
-        Pcg32::seed_from_u64(hasher.finish())
-    };
 
     for room in &rooms {
         fill_room_with_spawns(world, &mut rng, room);
