@@ -12,6 +12,7 @@ use wyhash::WyHash;
 
 use crate::{
     components::*,
+    experience,
     gamesym::GameSym,
     magicnum,
     map::{Map, Rect},
@@ -54,10 +55,10 @@ pub fn spawn_player(
         (
             Player { auto_run: None },
             CombatStats {
-                max_hp: 30,
-                hp: 30,
-                attack: 5.0,
-                defense: 2.0,
+                max_hp: experience::calc_player_max_hp(1),
+                hp: experience::calc_player_max_hp(1),
+                attack: experience::calc_player_attack(1),
+                defense: experience::calc_player_defense(1),
             },
             Coord((0, 0).into()),
             Experience {
@@ -263,7 +264,7 @@ fn spawn_knife(world: &World, pos: (i32, i32)) {
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
-                attack: 1.0,
+                attack: experience::calc_weapon_attack(1),
                 defense: 0.0,
             },
             EquipSlot::Weapon,
@@ -288,7 +289,7 @@ fn spawn_wooden_shield(world: &World, pos: (i32, i32)) {
         (
             CombatBonus {
                 attack: 0.0,
-                defense: 1.0,
+                defense: experience::calc_armor_defense(1),
             },
             EquipSlot::Armor,
         ),
@@ -314,10 +315,10 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: C
             Monster {},
             BlocksTile {},
             CombatStats {
-                max_hp: 16,
-                hp: 16,
-                attack: 4.0,
-                defense: 1.0,
+                max_hp: experience::calc_monster_max_hp(1),
+                hp: experience::calc_monster_max_hp(1),
+                attack: experience::calc_monster_attack(1),
+                defense: experience::calc_monster_defense(1),
             },
             Coord(pos.into()),
             Experience {
