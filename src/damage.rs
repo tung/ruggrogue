@@ -9,8 +9,8 @@ use wyhash::WyHash;
 
 use crate::{
     components::{
-        BlocksTile, CombatBonus, CombatStats, Coord, Equipment, Experience, GivesExperience,
-        HurtBy, Name,
+        Asleep, BlocksTile, CombatBonus, CombatStats, Coord, Equipment, Experience,
+        GivesExperience, HurtBy, Name,
     },
     magicnum,
     map::Map,
@@ -22,6 +22,7 @@ use crate::{
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
     let entities = world.borrow::<EntitiesView>();
+    let asleeps = world.borrow::<View<Asleep>>();
     let combat_bonuses = world.borrow::<View<CombatBonus>>();
     let mut combat_stats = world.borrow::<ViewMut<CombatStats>>();
     let equipments = world.borrow::<View<Equipment>>();
@@ -45,7 +46,7 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
         Pcg32::seed_from_u64(hasher.finish())
     };
 
-    if rng.gen_range(0, 10) == 0 {
+    if !asleeps.contains(defender) && rng.gen_range(0, 10) == 0 {
         msgs.add(format!("{} misses {}.", att_name, def_name));
         return;
     }
