@@ -8,7 +8,7 @@ use crate::{
     components::{
         CombatStats, Coord, Equipment, FieldOfView, Inventory, Item, Monster, Name, Player,
     },
-    damage,
+    damage, experience,
     gamekey::{self, GameKey},
     hunger::{self, CanRegenResult},
     item,
@@ -750,7 +750,11 @@ pub fn player_do_descend(world: &World) {
     });
     world.run(map::generate_rooms_and_corridors);
     world.run(map::place_player_in_first_room);
+
+    world.run(experience::redeem_exp_for_next_depth);
+    world.run(experience::gain_levels);
     spawn::fill_rooms_with_spawns(world);
+    world.run(experience::calc_exp_for_next_depth);
 
     world.run(|mut fovs: ViewMut<FieldOfView>, players: View<Player>| {
         for (fov, _) in (&mut fovs, &players).iter() {

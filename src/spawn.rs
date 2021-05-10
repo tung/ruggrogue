@@ -12,13 +12,27 @@ use wyhash::WyHash;
 
 use crate::{
     components::*,
-    experience,
+    experience::{self, Difficulty},
     gamesym::GameSym,
     magicnum,
     map::{Map, Rect},
     player, GameSeed,
 };
 use ruggle::util::Color;
+
+/// Spawn an entity whose purpose is to track the total amount of experience points that could
+/// theoretically be gained in the game in order to increase difficulty over time.
+pub fn spawn_difficulty(mut entities: EntitiesViewMut, mut exps: ViewMut<Experience>) -> EntityId {
+    entities.add_entity(
+        (&mut exps,),
+        (Experience {
+            level: 1,
+            exp: 0,
+            next: 100,
+            base: 0,
+        },),
+    )
+}
 
 /// Spawn a player.
 ///
@@ -96,7 +110,7 @@ pub fn spawn_player(
     id
 }
 
-fn spawn_item(world: &World, pos: (i32, i32), name: &str, sym: GameSym, fg: Color) -> EntityId {
+fn spawn_item(world: &World, pos: (i32, i32), name: String, sym: GameSym, fg: Color) -> EntityId {
     world.run(
         |mut map: UniqueViewMut<Map>,
          mut entities: EntitiesViewMut,
@@ -116,7 +130,7 @@ fn spawn_item(world: &World, pos: (i32, i32), name: &str, sym: GameSym, fg: Colo
                 (
                     Item {},
                     Coord(pos.into()),
-                    Name(name.into()),
+                    Name(name),
                     RenderOnFloor {},
                     Renderable {
                         sym,
@@ -133,8 +147,8 @@ fn spawn_item(world: &World, pos: (i32, i32), name: &str, sym: GameSym, fg: Colo
     )
 }
 
-fn spawn_ration(world: &World, pos: (i32, i32)) {
-    let item_id = spawn_item(world, pos, "Ration", GameSym::Ration, Color::BROWN);
+fn spawn_ration(world: &World, pos: (i32, i32), _level: i32) {
+    let item_id = spawn_item(world, pos, "Ration".into(), GameSym::Ration, Color::BROWN);
     let (entities, mut consumables, mut nutritions) =
         world.borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<Nutrition>)>();
 
@@ -145,11 +159,11 @@ fn spawn_ration(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_health_potion(world: &World, pos: (i32, i32)) {
+fn spawn_health_potion(world: &World, pos: (i32, i32), _level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        "Health Potion",
+        "Health Potion".into(),
         GameSym::HealthPotion,
         Color::MAGENTA,
     );
@@ -163,11 +177,11 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
+fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32), _level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        "Magic Missile Scroll",
+        "Magic Missile Scroll".into(),
         GameSym::MagicMissileScroll,
         Color::CYAN,
     );
@@ -189,11 +203,11 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
+fn spawn_fireball_scroll(world: &World, pos: (i32, i32), _level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        "Fireball Scroll",
+        "Fireball Scroll".into(),
         GameSym::FireballScroll,
         Color::ORANGE,
     );
@@ -222,11 +236,11 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
+fn spawn_sleep_scroll(world: &World, pos: (i32, i32), _level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        "Sleep Scroll",
+        "Sleep Scroll".into(),
         GameSym::SleepScroll,
         Color::PINK,
     );
@@ -255,8 +269,14 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_knife(world: &World, pos: (i32, i32)) {
-    let item_id = spawn_item(world, pos, "Knife", GameSym::Knife, Color::GRAY);
+fn spawn_knife(world: &World, pos: (i32, i32), level: i32) {
+    let item_id = spawn_item(
+        world,
+        pos,
+        format!("Lv{} Knife", level),
+        GameSym::Knife,
+        Color::GRAY,
+    );
     let (entities, mut combat_bonuses, mut equip_slots) =
         world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
 
@@ -264,7 +284,7 @@ fn spawn_knife(world: &World, pos: (i32, i32)) {
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
-                attack: experience::calc_weapon_attack(1),
+                attack: experience::calc_weapon_attack(level),
                 defense: 0.0,
             },
             EquipSlot::Weapon,
@@ -273,11 +293,11 @@ fn spawn_knife(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_wooden_shield(world: &World, pos: (i32, i32)) {
+fn spawn_wooden_shield(world: &World, pos: (i32, i32), level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        "Wooden Shield",
+        format!("Lv{} Wooden Shield", level),
         GameSym::WoodenShield,
         Color::BROWN,
     );
@@ -289,7 +309,7 @@ fn spawn_wooden_shield(world: &World, pos: (i32, i32)) {
         (
             CombatBonus {
                 attack: 0.0,
-                defense: experience::calc_armor_defense(1),
+                defense: experience::calc_armor_defense(level),
             },
             EquipSlot::Armor,
         ),
@@ -297,7 +317,7 @@ fn spawn_wooden_shield(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: Color) {
+fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name: &str, fg: Color) {
     let monster_id = world.borrow::<EntitiesViewMut>().add_entity(
         (
             &mut world.borrow::<ViewMut<Monster>>(),
@@ -315,10 +335,10 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: C
             Monster {},
             BlocksTile {},
             CombatStats {
-                max_hp: experience::calc_monster_max_hp(1),
-                hp: experience::calc_monster_max_hp(1),
-                attack: experience::calc_monster_attack(1),
-                defense: experience::calc_monster_defense(1),
+                max_hp: experience::calc_monster_max_hp(level),
+                hp: experience::calc_monster_max_hp(level),
+                attack: experience::calc_monster_attack(level),
+                defense: experience::calc_monster_defense(level),
             },
             Coord(pos.into()),
             Experience {
@@ -328,8 +348,8 @@ fn spawn_monster(world: &World, pos: (i32, i32), sym: GameSym, name: &str, fg: C
                 base: 0,
             },
             FieldOfView::new(8),
-            GivesExperience(10),
-            Name(name.into()),
+            GivesExperience(experience::calc_monster_exp(level)),
+            Name(format!("Lv{} {}", level, name)),
             RenderOnMap {},
             Renderable {
                 sym,
@@ -368,12 +388,18 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
     .choose(rng);
 
     if let Some((sym, name, fg)) = choice {
-        spawn_monster(world, pos, *sym, name, *fg);
+        let level = {
+            let difficulty = world.borrow::<UniqueView<Difficulty>>();
+            let exps = world.borrow::<View<Experience>>();
+            difficulty.get_round_random(&exps, rng)
+        };
+
+        spawn_monster(world, pos, level, *sym, name, *fg);
     }
 }
 
 fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
-    type ItemFn = fn(&World, (i32, i32));
+    type ItemFn = fn(&World, (i32, i32), i32);
 
     let choice: Result<&(usize, ItemFn), _> = [
         (3, spawn_health_potion as _),
@@ -386,7 +412,13 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     .choose_weighted(rng, |&(weight, _)| weight);
 
     if let Ok((_, item_fn)) = choice {
-        item_fn(world, pos);
+        let level = {
+            let difficulty = world.borrow::<UniqueView<Difficulty>>();
+            let exps = world.borrow::<View<Experience>>();
+            difficulty.get_round_random(&exps, rng)
+        };
+
+        item_fn(world, pos, level);
     }
 }
 
@@ -433,8 +465,8 @@ pub fn fill_rooms_with_spawns(world: &World) {
 
         if num > 0 {
             start_equips[0..num].shuffle(&mut rng);
-            spawn_wooden_shield(world, start_equips[0]);
-            spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }]);
+            spawn_wooden_shield(world, start_equips[0], 1);
+            spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }], 1);
         }
     }
 
@@ -461,7 +493,7 @@ pub fn fill_rooms_with_spawns(world: &World) {
     };
 
     if let Some(ration_pos) = ration_pos {
-        spawn_ration(world, ration_pos);
+        spawn_ration(world, ration_pos, 1);
     }
 }
 

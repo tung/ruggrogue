@@ -1,10 +1,72 @@
-use shipyard::{Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut};
+use rand::Rng;
+use shipyard::{EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut};
 
 use crate::{
-    components::{CombatStats, Experience, Name, Player},
+    components::{CombatStats, Experience, GivesExperience, Monster, Name, Player},
     message::Messages,
     player::PlayerId,
 };
+
+/// Tracking state that counts total amount of experience points that could be gained at the time
+/// of entering a new dungeon depth, used to determine the approximate level that monsters and
+/// items on the current dungeon floor should be based around.
+pub struct Difficulty {
+    id: EntityId,
+    exp_for_next_depth: u64,
+}
+
+impl Difficulty {
+    /// Create a new instance of difficulty tracking state.
+    ///
+    /// `id` should be provisioned from [spawn::spawn_difficulty], which creates a component with
+    /// an [components::Experience] component that is used to help calculate difficulty.
+    pub fn new(id: EntityId) -> Self {
+        Self {
+            id,
+            exp_for_next_depth: 0,
+        }
+    }
+
+    /// Get the level tracked by difficulty, with a random chance of being the next level up based
+    /// on experience progress.
+    pub fn get_round_random<R: Rng>(&self, exps: &View<Experience>, rng: &mut R) -> i32 {
+        let difficulty_exp = exps.get(self.id);
+
+        if difficulty_exp.next > 0 && rng.gen_range(0, difficulty_exp.next) < difficulty_exp.exp {
+            difficulty_exp.level + 1
+        } else {
+            difficulty_exp.level
+        }
+    }
+}
+
+/// Count the experience provided by all monsters currently on the map, to be redeemed later.
+///
+/// This should run just after the map has been populated by monsters.
+pub fn calc_exp_for_next_depth(
+    mut difficulty: UniqueViewMut<Difficulty>,
+    monsters: View<Monster>,
+    gives_exps: View<GivesExperience>,
+) {
+    for (_, gives_exp) in (&monsters, &gives_exps).iter() {
+        difficulty.exp_for_next_depth += gives_exp.0;
+    }
+}
+
+/// Add the experience previously buffered by [calc_exp_for_next_depth] and reset the buffer.
+///
+/// Run [gain_levels] after this to properly calculate difficulty, then proceed with generating a
+/// new dungeon level afterwards to take advantage of difficulty tracking using
+/// [Difficulty::get_round_random].
+pub fn redeem_exp_for_next_depth(
+    mut difficulty: UniqueViewMut<Difficulty>,
+    mut exps: ViewMut<Experience>,
+) {
+    let difficulty_exp = (&mut exps).get(difficulty.id);
+
+    difficulty_exp.exp += difficulty.exp_for_next_depth;
+    difficulty.exp_for_next_depth = 0;
+}
 
 /// The factor around which all combat stats are scaled around.
 fn level_factor(level: i32) -> f32 {
@@ -33,6 +95,10 @@ pub fn calc_monster_attack(level: i32) -> f32 {
 
 pub fn calc_monster_defense(level: i32) -> f32 {
     level_factor(level)
+}
+
+pub fn calc_monster_exp(level: i32) -> u64 {
+    (level_factor(level) * 10.0).ceil() as u64
 }
 
 pub fn calc_weapon_attack(level: i32) -> f32 {
