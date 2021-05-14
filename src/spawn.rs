@@ -349,7 +349,7 @@ fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name:
             },
             FieldOfView::new(8),
             GivesExperience(experience::calc_monster_exp(level)),
-            Name(format!("Lv{} {}", level, name)),
+            Name(name.into()),
             RenderOnMap {},
             Renderable {
                 sym,
@@ -365,37 +365,26 @@ fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name:
 }
 
 fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
-    let choice = [
-        (
-            GameSym::Goblin,
-            "Goblin",
-            Color {
-                r: 128,
-                g: 230,
-                b: 51,
-            },
-        ),
-        (
-            GameSym::Orc,
-            "Orc",
-            Color {
-                r: 230,
-                g: 77,
-                b: 51,
-            },
-        ),
-    ]
-    .choose(rng);
-
-    if let Some((sym, name, fg)) = choice {
-        let level = {
-            let difficulty = world.borrow::<UniqueView<Difficulty>>();
-            let exps = world.borrow::<View<Experience>>();
-            difficulty.get_round_random(&exps, rng)
-        };
-
-        spawn_monster(world, pos, level, *sym, name, *fg);
+    let monsters = [
+        (GameSym::Goblin, "Goblin", (128, 239, 51)),
+        (GameSym::Orc, "Orc", (230, 77, 51)),
+    ];
+    let mut level = {
+        let difficulty = world.borrow::<UniqueView<Difficulty>>();
+        let exps = world.borrow::<View<Experience>>();
+        difficulty.get_round_random(&exps, rng)
+    };
+    if rng.gen_ratio(4, 5) {
+        level -= rng.gen_range(1, 4);
+        if level > 0 && rng.gen() {
+            level = rng.gen_range(0, level);
+        }
     }
+    let (sym, name, fg) = monsters[(level.max(0) as usize)
+        .min(monsters.len())
+        .saturating_sub(1)];
+
+    spawn_monster(world, pos, level, sym, name, fg.into());
 }
 
 fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
