@@ -156,7 +156,7 @@ fn spawn_ration(world: &World, pos: (i32, i32), _level: i32) {
 
     entities.add_component(
         (&mut consumables, &mut nutritions),
-        (Consumable {}, Nutrition(400)),
+        (Consumable {}, Nutrition(500)),
         item_id,
     );
 }
