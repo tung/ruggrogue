@@ -20,6 +20,8 @@ use crate::{
 };
 use ruggle::util::Color;
 
+const EQUIPMENT_SPAWN_PERIOD: u32 = 7;
+
 /// Spawn an entity whose purpose is to track the total amount of experience points that could
 /// theoretically be gained in the game in order to increase difficulty over time.
 pub fn spawn_difficulty(mut entities: EntitiesViewMut, mut exps: ViewMut<Experience>) -> EntityId {
@@ -273,7 +275,7 @@ fn spawn_knife(world: &World, pos: (i32, i32), level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        format!("Lv{} Knife", level),
+        format!("+{} Knife", level),
         GameSym::Knife,
         Color::GRAY,
     );
@@ -297,7 +299,7 @@ fn spawn_wooden_shield(world: &World, pos: (i32, i32), level: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        format!("Lv{} Wooden Shield", level),
+        format!("+{} Wooden Shield", level),
         GameSym::WoodenShield,
         Color::BROWN,
     );
@@ -391,10 +393,10 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     type ItemFn = fn(&World, (i32, i32), i32);
 
     let choice: Result<&(usize, ItemFn), _> = [
-        (3, spawn_health_potion as _),
-        (3, spawn_magic_missile_scroll as _),
-        (2, spawn_fireball_scroll as _),
-        (2, spawn_sleep_scroll as _),
+        (6, spawn_health_potion as _),
+        (6, spawn_magic_missile_scroll as _),
+        (4, spawn_fireball_scroll as _),
+        (4, spawn_sleep_scroll as _),
         (1, spawn_knife as _),
         (1, spawn_wooden_shield as _),
     ]
@@ -407,7 +409,8 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
             difficulty.get_round_random(&exps, rng)
         };
 
-        item_fn(world, pos, level);
+        // Spawn items (really equipment) at a slightly higher level than average.
+        item_fn(world, pos, level + 3);
     }
 }
 
@@ -432,9 +435,22 @@ fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
     }
 }
 
+fn pick_random_pos_in_room<R: Rng>(world: &World, rng: &mut R) -> Option<(i32, i32)> {
+    let map = world.borrow::<UniqueView<Map>>();
+    let items = world.borrow::<View<Item>>();
+
+    map.rooms.choose(rng).and_then(|room| {
+        room.iter_xy()
+            .filter(|&(x, y)| !map.iter_entities_at(x, y).any(|id| items.contains(id)))
+            .choose(rng)
+    })
+}
+
 fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
+    let depth = world.borrow::<UniqueView<Map>>().depth;
+
     // Spawn starting equipment in the first room of Depth 1.
-    if world.borrow::<UniqueView<Map>>().depth == 1 {
+    if depth == 1 {
         let mut start_equips = [(0, 0); 2];
         let num = world
             .borrow::<UniqueView<Map>>()
@@ -452,18 +468,64 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
             spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }], 1);
         }
     }
+
+    // Spawn a weapon and an armor once every so many levels, using separate RNGs for stable,
+    // isolated random numbers to decide the exact levels.
+    let depth_period_base = depth as u32 / EQUIPMENT_SPAWN_PERIOD * EQUIPMENT_SPAWN_PERIOD;
+    let game_seed = world.borrow::<UniqueView<GameSeed>>().0;
+
+    let mut periodic_weapon_rng = {
+        // Offset the weapon spawn period based on the low bytes of the game seed.
+        let offset = (game_seed & 0xffffffff) as u32 % EQUIPMENT_SPAWN_PERIOD;
+        let mut hasher = WyHash::with_seed(magicnum::SPAWN_GUARANTEED_WEAPON);
+        hasher.write_u64(game_seed);
+        hasher.write_u32((depth as u32 + offset) / EQUIPMENT_SPAWN_PERIOD);
+        Pcg32::seed_from_u64(hasher.finish())
+    };
+
+    // Pick a random number in a range one-short of the period to guarantee a "gap" level, to make
+    // the period less obvious.
+    if periodic_weapon_rng.gen_range(0, EQUIPMENT_SPAWN_PERIOD - 1)
+        == depth as u32 - depth_period_base
+    {
+        let weapon_pos = pick_random_pos_in_room(world, &mut periodic_weapon_rng);
+        if let Some(pos) = weapon_pos {
+            let level = {
+                let difficulty = world.borrow::<UniqueView<Difficulty>>();
+                let exps = world.borrow::<View<Experience>>();
+                difficulty.get_round_random(&exps, &mut periodic_weapon_rng)
+            };
+            spawn_knife(world, pos, level);
+        }
+    }
+
+    let mut periodic_armor_rng = {
+        // Offset the armor spawn period based on the high bytes of the game seed.
+        let offset = ((game_seed >> 32) & 0xffffffff) as u32 % EQUIPMENT_SPAWN_PERIOD;
+        let mut hasher = WyHash::with_seed(magicnum::SPAWN_GUARANTEED_ARMOR);
+        hasher.write_u64(game_seed);
+        hasher.write_u32((depth as u32 + offset) / EQUIPMENT_SPAWN_PERIOD);
+        Pcg32::seed_from_u64(hasher.finish())
+    };
+
+    // Random number one-short of the period, for the same reason as the weapon spawn.
+    if periodic_armor_rng.gen_range(0, EQUIPMENT_SPAWN_PERIOD - 1)
+        == depth as u32 - depth_period_base
+    {
+        let armor_pos = pick_random_pos_in_room(world, &mut periodic_armor_rng);
+        if let Some(pos) = armor_pos {
+            let level = {
+                let difficulty = world.borrow::<UniqueView<Difficulty>>();
+                let exps = world.borrow::<View<Experience>>();
+                difficulty.get_round_random(&exps, &mut periodic_armor_rng)
+            };
+            spawn_wooden_shield(world, pos, level);
+        }
+    }
 }
 
-fn spawn_guaranteed_ration<R: Rng>(world: &World, rng: &mut R, rooms: &[Rect]) {
-    let ration_pos = {
-        let (map, items) = world.borrow::<(UniqueView<Map>, View<Item>)>();
-        rooms.choose(rng).and_then(|ration_room| {
-            ration_room
-                .iter_xy()
-                .filter(|&(x, y)| !map.iter_entities_at(x, y).any(|id| items.contains(id)))
-                .choose(rng)
-        })
-    };
+fn spawn_guaranteed_ration<R: Rng>(world: &World, rng: &mut R) {
+    let ration_pos = pick_random_pos_in_room(world, rng);
 
     if let Some(ration_pos) = ration_pos {
         spawn_ration(world, ration_pos, 1);
@@ -492,7 +554,7 @@ pub fn fill_rooms_with_spawns(world: &World) {
         fill_room_with_spawns(world, &mut rng, room);
     }
 
-    spawn_guaranteed_ration(world, &mut rng, rooms.as_slice());
+    spawn_guaranteed_ration(world, &mut rng);
 }
 
 fn extend_despawn<T>(
