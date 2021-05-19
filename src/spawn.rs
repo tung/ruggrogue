@@ -432,14 +432,8 @@ fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
     }
 }
 
-pub fn fill_rooms_with_spawns(world: &World) {
-    let mut rng = {
-        let mut hasher = WyHash::with_seed(magicnum::FILL_ROOM_WITH_SPAWNS);
-        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
-        hasher.write_i32(world.borrow::<UniqueView<Map>>().depth);
-        Pcg32::seed_from_u64(hasher.finish())
-    };
-
+fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
+    // Spawn starting equipment in the first room of Depth 1.
     if world.borrow::<UniqueView<Map>>().depth == 1 {
         let mut start_equips = [(0, 0); 2];
         let num = world
@@ -448,16 +442,43 @@ pub fn fill_rooms_with_spawns(world: &World) {
             .first()
             .map(|room| {
                 room.iter_xy()
-                    .choose_multiple_fill(&mut rng, &mut start_equips[..])
+                    .choose_multiple_fill(rng, &mut start_equips[..])
             })
             .unwrap_or(0);
 
         if num > 0 {
-            start_equips[0..num].shuffle(&mut rng);
+            start_equips[0..num].shuffle(rng);
             spawn_wooden_shield(world, start_equips[0], 1);
             spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }], 1);
         }
     }
+}
+
+fn spawn_guaranteed_ration<R: Rng>(world: &World, rng: &mut R, rooms: &[Rect]) {
+    let ration_pos = {
+        let (map, items) = world.borrow::<(UniqueView<Map>, View<Item>)>();
+        rooms.choose(rng).and_then(|ration_room| {
+            ration_room
+                .iter_xy()
+                .filter(|&(x, y)| !map.iter_entities_at(x, y).any(|id| items.contains(id)))
+                .choose(rng)
+        })
+    };
+
+    if let Some(ration_pos) = ration_pos {
+        spawn_ration(world, ration_pos, 1);
+    }
+}
+
+pub fn fill_rooms_with_spawns(world: &World) {
+    let mut rng = {
+        let mut hasher = WyHash::with_seed(magicnum::FILL_ROOM_WITH_SPAWNS);
+        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
+        hasher.write_i32(world.borrow::<UniqueView<Map>>().depth);
+        Pcg32::seed_from_u64(hasher.finish())
+    };
+
+    spawn_guaranteed_equipment(world, &mut rng);
 
     let rooms = world
         .borrow::<UniqueViewMut<Map>>()
@@ -471,19 +492,7 @@ pub fn fill_rooms_with_spawns(world: &World) {
         fill_room_with_spawns(world, &mut rng, room);
     }
 
-    let ration_pos = {
-        let (map, items) = world.borrow::<(UniqueView<Map>, View<Item>)>();
-        rooms.choose(&mut rng).and_then(|ration_room| {
-            ration_room
-                .iter_xy()
-                .filter(|&(x, y)| !map.iter_entities_at(x, y).any(|id| items.contains(id)))
-                .choose(&mut rng)
-        })
-    };
-
-    if let Some(ration_pos) = ration_pos {
-        spawn_ration(world, ration_pos, 1);
-    }
+    spawn_guaranteed_ration(world, &mut rng, rooms.as_slice());
 }
 
 fn extend_despawn<T>(
