@@ -368,8 +368,8 @@ fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name:
 
 fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     let monsters = [
-        (GameSym::Goblin, "Goblin", (128, 239, 51)),
-        (GameSym::Orc, "Orc", (230, 77, 51)),
+        (GameSym::Goblin, "Goblin", (34, 187, 59)),
+        (GameSym::Orc, "Orc", (202, 100, 39)),
     ];
     let mut level = {
         let difficulty = world.borrow::<UniqueView<Difficulty>>();
