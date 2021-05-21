@@ -74,27 +74,27 @@ fn level_factor(level: i32) -> f32 {
 }
 
 pub fn calc_player_max_hp(level: i32) -> i32 {
-    (level_factor(level) * 30.0).round() as i32
+    (level_factor(level) * 60.0).round() as i32
 }
 
 pub fn calc_player_attack(level: i32) -> f32 {
-    level_factor(level) * 3.0
+    level_factor(level) * 4.8
 }
 
 pub fn calc_player_defense(level: i32) -> f32 {
-    level_factor(level) * 1.2
+    level_factor(level) * 2.4
 }
 
 pub fn calc_monster_max_hp(level: i32) -> i32 {
-    (level_factor(level) * 15.0).round() as i32
+    (level_factor(level) * 14.0).round() as i32
 }
 
 pub fn calc_monster_attack(level: i32) -> f32 {
-    level_factor(level) * 4.0
+    level_factor(level) * 8.0
 }
 
 pub fn calc_monster_defense(level: i32) -> f32 {
-    level_factor(level)
+    level_factor(level) * 4.0
 }
 
 pub fn calc_monster_exp(level: i32) -> u64 {
@@ -102,11 +102,11 @@ pub fn calc_monster_exp(level: i32) -> u64 {
 }
 
 pub fn calc_weapon_attack(level: i32) -> f32 {
-    level_factor(level) * 2.0
+    level_factor(level) * 3.2
 }
 
 pub fn calc_armor_defense(level: i32) -> f32 {
-    level_factor(level) * 0.8
+    level_factor(level) * 1.4
 }
 
 pub fn gain_levels(
