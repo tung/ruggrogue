@@ -181,7 +181,7 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
                             item_name, target_name, heal_amount,
                         ));
                     } else {
-                        let amount = 2;
+                        let amount = 5;
                         stats.hp += amount;
                         stats.max_hp += amount;
                         msgs.add(format!(

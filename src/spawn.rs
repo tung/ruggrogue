@@ -174,7 +174,7 @@ fn spawn_health_potion(world: &World, pos: (i32, i32), _level: i32) {
 
     entities.add_component(
         (&mut consumables, &mut provides_healings),
-        (Consumable {}, ProvidesHealing { heal_amount: 8 }),
+        (Consumable {}, ProvidesHealing { heal_amount: 15 }),
         item_id,
     );
 }
