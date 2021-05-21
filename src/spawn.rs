@@ -377,12 +377,12 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
         difficulty.get_round_random(&exps, rng)
     };
     if rng.gen_ratio(4, 5) {
-        level -= rng.gen_range(1, 4);
-        if level > 0 && rng.gen() {
-            level = rng.gen_range(0, level);
+        level = (level - rng.gen_range(1, 4)).max(1);
+        if level > 1 && rng.gen() {
+            level = rng.gen_range(1, level);
         }
     }
-    let (sym, name, fg) = monsters[(level.max(0) as usize)
+    let (sym, name, fg) = monsters[(level.max(1) as usize)
         .min(monsters.len())
         .saturating_sub(1)];
 
