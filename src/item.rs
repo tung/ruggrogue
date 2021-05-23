@@ -168,7 +168,7 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
 
             if let Ok(stomach) = (&mut stomachs).try_get(target_id) {
                 if let Ok(nutrition) = nutritions.try_get(item_id) {
-                    stomach.fullness = (stomach.fullness + nutrition.0).max(stomach.max_fullness);
+                    stomach.fullness = (stomach.fullness + nutrition.0).min(stomach.max_fullness);
                 }
             }
 
