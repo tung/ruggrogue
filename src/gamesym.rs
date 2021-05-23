@@ -31,8 +31,31 @@ pub enum GameSym {
     SleepScroll,
     Knife,
     WoodenShield,
+    Blob,
+    Bat,
+    Crab,
+    Snake,
     Goblin,
+    Kobold,
+    Gnome,
     Orc,
+    Unicorn,
+    Pirate,
+    Lizardon,
+    Ghost,
+    Skeleton,
+    Ogre,
+    Naga,
+    Warlock,
+    Demon,
+    Sentinel,
+    Robber,
+    SkateboardKid,
+    Jellybean,
+    Alien,
+    Dweller,
+    LittleHelper,
+    BigHelper,
 }
 
 impl Symbol for GameSym {
@@ -67,8 +90,31 @@ impl Symbol for GameSym {
             SleepScroll => '?',
             Knife => ')',
             WoodenShield => '[',
+            Blob => 'b',
+            Bat => 'B',
+            Crab => 'c',
+            Snake => 'S',
             Goblin => 'g',
+            Kobold => 'k',
+            Gnome => 'G',
             Orc => 'o',
+            Unicorn => 'u',
+            Pirate => 'P',
+            Lizardon => 'L',
+            Ghost => 'G',
+            Skeleton => 'Z',
+            Ogre => 'O',
+            Naga => 'N',
+            Warlock => 'W',
+            Demon => '&',
+            Sentinel => 'E',
+            Robber => 'R',
+            SkateboardKid => 'K',
+            Jellybean => 'J',
+            Alien => 'A',
+            Dweller => 'D',
+            LittleHelper => 'h',
+            BigHelper => 'H',
         }
     }
 }
@@ -163,8 +209,31 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(SleepScroll, (28, 25));
         symbol_map.insert(Knife, (43, 21));
         symbol_map.insert(WoodenShield, (27, 23));
+        symbol_map.insert(Blob, (39, 10));
+        symbol_map.insert(Bat, (8, 13));
+        symbol_map.insert(Crab, (7, 13));
+        symbol_map.insert(Snake, (2, 13));
         symbol_map.insert(Goblin, (41, 2));
+        symbol_map.insert(Kobold, (42, 4));
+        symbol_map.insert(Gnome, (28, 8));
         symbol_map.insert(Orc, (26, 4));
+        symbol_map.insert(Unicorn, (38, 10));
+        symbol_map.insert(Pirate, (25, 10));
+        symbol_map.insert(Lizardon, (33, 6));
+        symbol_map.insert(Ghost, (43, 10));
+        symbol_map.insert(Skeleton, (41, 5));
+        symbol_map.insert(Ogre, (33, 10));
+        symbol_map.insert(Naga, (41, 6));
+        symbol_map.insert(Warlock, (39, 6));
+        symbol_map.insert(Demon, (38, 2));
+        symbol_map.insert(Sentinel, (42, 10));
+        symbol_map.insert(Robber, (40, 39));
+        symbol_map.insert(SkateboardKid, (42, 39));
+        symbol_map.insert(Jellybean, (15, 37));
+        symbol_map.insert(Alien, (0, 37));
+        symbol_map.insert(Dweller, (1, 41));
+        symbol_map.insert(LittleHelper, (26, 30));
+        symbol_map.insert(BigHelper, (25, 30));
     }
 
     TilesetInfo::<GameSym> {

@@ -368,8 +368,31 @@ fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name:
 
 fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     let monsters = [
+        (GameSym::Blob, "Blob", (89, 162, 191)),
+        (GameSym::Bat, "Bat", (128, 128, 128)),
+        (GameSym::Crab, "Crab", (255, 0, 0)),
+        (GameSym::Snake, "Snake", (0, 153, 0)),
         (GameSym::Goblin, "Goblin", (34, 187, 59)),
+        (GameSym::Kobold, "Kobold", (122, 181, 73)),
+        (GameSym::Gnome, "Gnome", (134, 204, 199)),
         (GameSym::Orc, "Orc", (202, 100, 39)),
+        (GameSym::Unicorn, "Unicorn", (255, 150, 255)),
+        (GameSym::Pirate, "Pirate", (0, 134, 255)),
+        (GameSym::Lizardon, "Lizardon", (89, 153, 175)),
+        (GameSym::Ghost, "Ghost", (254, 255, 255)),
+        (GameSym::Skeleton, "Skeleton", (222, 211, 195)),
+        (GameSym::Ogre, "Ogre", (202, 101, 39)),
+        (GameSym::Naga, "Naga", (211, 205, 137)),
+        (GameSym::Warlock, "Warlock", (168, 44, 234)),
+        (GameSym::Demon, "Demon", (218, 0, 0)),
+        (GameSym::Sentinel, "Sentinel", (168, 44, 234)),
+        (GameSym::Robber, "Robber", (82, 84, 255)),
+        (GameSym::SkateboardKid, "Skateboard Kid", (255, 127, 0)),
+        (GameSym::Jellybean, "Jellybean", (192, 96, 192)),
+        (GameSym::Alien, "Alien", (65, 168, 58)),
+        (GameSym::Dweller, "Dweller", (58, 149, 140)),
+        (GameSym::LittleHelper, "Little Helper", (0, 153, 0)),
+        (GameSym::BigHelper, "Big Helper", (255, 99, 99)),
     ];
     let mut level = {
         let difficulty = world.borrow::<UniqueView<Difficulty>>();
