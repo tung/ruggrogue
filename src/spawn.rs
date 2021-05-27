@@ -149,7 +149,7 @@ fn spawn_item(world: &World, pos: (i32, i32), name: String, sym: GameSym, fg: Co
     )
 }
 
-fn spawn_ration(world: &World, pos: (i32, i32), _level: i32) {
+fn spawn_ration(world: &World, pos: (i32, i32)) {
     let item_id = spawn_item(world, pos, "Ration".into(), GameSym::Ration, Color::BROWN);
     let (entities, mut consumables, mut nutritions) =
         world.borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<Nutrition>)>();
@@ -161,7 +161,7 @@ fn spawn_ration(world: &World, pos: (i32, i32), _level: i32) {
     );
 }
 
-fn spawn_health_potion(world: &World, pos: (i32, i32), _level: i32) {
+fn spawn_health_potion(world: &World, pos: (i32, i32)) {
     let item_id = spawn_item(
         world,
         pos,
@@ -179,7 +179,7 @@ fn spawn_health_potion(world: &World, pos: (i32, i32), _level: i32) {
     );
 }
 
-fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32), _level: i32) {
+fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
     let item_id = spawn_item(
         world,
         pos,
@@ -205,7 +205,7 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32), _level: i32) {
     );
 }
 
-fn spawn_fireball_scroll(world: &World, pos: (i32, i32), _level: i32) {
+fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
     let item_id = spawn_item(
         world,
         pos,
@@ -238,7 +238,7 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32), _level: i32) {
     );
 }
 
-fn spawn_sleep_scroll(world: &World, pos: (i32, i32), _level: i32) {
+fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     let item_id = spawn_item(
         world,
         pos,
@@ -271,11 +271,11 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32), _level: i32) {
     );
 }
 
-fn spawn_knife(world: &World, pos: (i32, i32), level: i32) {
+fn spawn_knife(world: &World, pos: (i32, i32), level: i32, bonus: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        format!("+{} Knife", level),
+        format!("+{} Knife", level + bonus),
         GameSym::Knife,
         Color::GRAY,
     );
@@ -286,7 +286,7 @@ fn spawn_knife(world: &World, pos: (i32, i32), level: i32) {
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
-                attack: experience::calc_weapon_attack(level),
+                attack: experience::calc_weapon_attack(level + bonus),
                 defense: 0.0,
             },
             EquipSlot::Weapon,
@@ -295,11 +295,11 @@ fn spawn_knife(world: &World, pos: (i32, i32), level: i32) {
     );
 }
 
-fn spawn_wooden_shield(world: &World, pos: (i32, i32), level: i32) {
+fn spawn_wooden_shield(world: &World, pos: (i32, i32), level: i32, bonus: i32) {
     let item_id = spawn_item(
         world,
         pos,
-        format!("+{} Wooden Shield", level),
+        format!("+{} Wooden Shield", level + bonus),
         GameSym::WoodenShield,
         Color::BROWN,
     );
@@ -311,7 +311,7 @@ fn spawn_wooden_shield(world: &World, pos: (i32, i32), level: i32) {
         (
             CombatBonus {
                 attack: 0.0,
-                defense: experience::calc_armor_defense(level),
+                defense: experience::calc_armor_defense(level + bonus),
             },
             EquipSlot::Armor,
         ),
@@ -413,27 +413,35 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
 }
 
 fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
-    type ItemFn = fn(&World, (i32, i32), i32);
-
-    let choice: Result<&(usize, ItemFn), _> = [
-        (6, spawn_health_potion as _),
-        (6, spawn_magic_missile_scroll as _),
-        (4, spawn_fireball_scroll as _),
-        (4, spawn_sleep_scroll as _),
-        (1, spawn_knife as _),
-        (1, spawn_wooden_shield as _),
-    ]
-    .choose_weighted(rng, |&(weight, _)| weight);
-
-    if let Ok((_, item_fn)) = choice {
+    if rng.gen_ratio(1, 11) {
+        // Spawn weapon or armor.
         let level = {
             let difficulty = world.borrow::<UniqueView<Difficulty>>();
             let exps = world.borrow::<View<Experience>>();
             difficulty.get_round_random(&exps, rng)
         };
-
         // Spawn items (really equipment) at a slightly higher level than average.
-        item_fn(world, pos, level + 3);
+        let bonus = rng.gen_range(1, 4);
+
+        if rng.gen() {
+            spawn_knife(world, pos, level, bonus);
+        } else {
+            spawn_wooden_shield(world, pos, level, bonus);
+        }
+    } else {
+        // Spawn an item.
+        type ItemFn = fn(&World, (i32, i32));
+        let choice: Result<&(usize, ItemFn), _> = [
+            (3, spawn_health_potion as _),
+            (3, spawn_magic_missile_scroll as _),
+            (2, spawn_fireball_scroll as _),
+            (2, spawn_sleep_scroll as _),
+        ]
+        .choose_weighted(rng, |&(weight, _)| weight);
+
+        if let Ok((_, item_fn)) = choice {
+            item_fn(world, pos);
+        }
     }
 }
 
@@ -487,8 +495,8 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
 
         if num > 0 {
             start_equips[0..num].shuffle(rng);
-            spawn_wooden_shield(world, start_equips[0], 1);
-            spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }], 1);
+            spawn_wooden_shield(world, start_equips[0], 1, 0);
+            spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }], 1, 0);
         }
     }
 
@@ -518,7 +526,7 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
                 let exps = world.borrow::<View<Experience>>();
                 difficulty.get_round_random(&exps, &mut periodic_weapon_rng)
             };
-            spawn_knife(world, pos, level);
+            spawn_knife(world, pos, level, 0);
         }
     }
 
@@ -542,7 +550,7 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
                 let exps = world.borrow::<View<Experience>>();
                 difficulty.get_round_random(&exps, &mut periodic_armor_rng)
             };
-            spawn_wooden_shield(world, pos, level);
+            spawn_wooden_shield(world, pos, level, 0);
         }
     }
 }
@@ -551,7 +559,7 @@ fn spawn_guaranteed_ration<R: Rng>(world: &World, rng: &mut R) {
     let ration_pos = pick_random_pos_in_room(world, rng);
 
     if let Some(ration_pos) = ration_pos {
-        spawn_ration(world, ration_pos, 1);
+        spawn_ration(world, ration_pos);
     }
 }
 
