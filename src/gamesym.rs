@@ -30,7 +30,25 @@ pub enum GameSym {
     FireballScroll,
     SleepScroll,
     Knife,
+    Club,
+    Hatchet,
+    Spear,
+    Rapier,
+    Saber,
+    Longsword,
+    Crowbar,
+    Tonfa,
+    BeamSword,
+    Jerkin,
+    Coat,
     WoodenShield,
+    TowerShield,
+    KiteShield,
+    StuddedArmor,
+    Hauberk,
+    Platemail,
+    ArmyHelmet,
+    FlakJacket,
     Blob,
     Bat,
     Crab,
@@ -89,7 +107,25 @@ impl Symbol for GameSym {
             FireballScroll => '?',
             SleepScroll => '?',
             Knife => ')',
+            Club => ')',
+            Hatchet => ')',
+            Spear => ')',
+            Rapier => ')',
+            Saber => ')',
+            Longsword => ')',
+            Crowbar => ')',
+            Tonfa => ')',
+            BeamSword => ')',
+            Jerkin => '[',
+            Coat => '[',
             WoodenShield => '[',
+            TowerShield => '[',
+            KiteShield => '[',
+            StuddedArmor => '[',
+            Hauberk => '[',
+            Platemail => '[',
+            ArmyHelmet => '[',
+            FlakJacket => '[',
             Blob => 'b',
             Bat => 'B',
             Crab => 'c',
@@ -207,8 +243,26 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(MagicMissileScroll, (28, 25));
         symbol_map.insert(FireballScroll, (28, 25));
         symbol_map.insert(SleepScroll, (28, 25));
-        symbol_map.insert(Knife, (43, 21));
+        symbol_map.insert(Knife, (14, 23));
+        symbol_map.insert(Club, (37, 21));
+        symbol_map.insert(Hatchet, (42, 21));
+        symbol_map.insert(Spear, (38, 21));
+        symbol_map.insert(Rapier, (30, 21));
+        symbol_map.insert(Saber, (34, 21));
+        symbol_map.insert(Longsword, (26, 21));
+        symbol_map.insert(Crowbar, (33, 45));
+        symbol_map.insert(Tonfa, (43, 42));
+        symbol_map.insert(BeamSword, (6, 38));
+        symbol_map.insert(Jerkin, (12, 22));
+        symbol_map.insert(Coat, (0, 22));
         symbol_map.insert(WoodenShield, (27, 23));
+        symbol_map.insert(TowerShield, (26, 23));
+        symbol_map.insert(KiteShield, (25, 23));
+        symbol_map.insert(StuddedArmor, (33, 23));
+        symbol_map.insert(Hauberk, (32, 23));
+        symbol_map.insert(Platemail, (31, 23));
+        symbol_map.insert(ArmyHelmet, (33, 43));
+        symbol_map.insert(FlakJacket, (34, 43));
         symbol_map.insert(Blob, (39, 10));
         symbol_map.insert(Bat, (8, 13));
         symbol_map.insert(Crab, (7, 13));

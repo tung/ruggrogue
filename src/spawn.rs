@@ -22,6 +22,60 @@ use ruggle::util::Color;
 
 const EQUIPMENT_SPAWN_PERIOD: u32 = 7;
 
+const MONSTERS: [(GameSym, &str, (u8, u8, u8)); 25] = [
+    (GameSym::Blob, "Blob", (89, 162, 191)),
+    (GameSym::Bat, "Bat", (128, 128, 128)),
+    (GameSym::Crab, "Crab", (255, 0, 0)),
+    (GameSym::Snake, "Snake", (0, 153, 0)),
+    (GameSym::Goblin, "Goblin", (34, 187, 59)),
+    (GameSym::Kobold, "Kobold", (122, 181, 73)),
+    (GameSym::Gnome, "Gnome", (134, 204, 199)),
+    (GameSym::Orc, "Orc", (202, 100, 39)),
+    (GameSym::Unicorn, "Unicorn", (255, 150, 255)),
+    (GameSym::Pirate, "Pirate", (0, 134, 255)),
+    (GameSym::Lizardon, "Lizardon", (89, 153, 175)),
+    (GameSym::Ghost, "Ghost", (254, 255, 255)),
+    (GameSym::Skeleton, "Skeleton", (222, 211, 195)),
+    (GameSym::Ogre, "Ogre", (202, 101, 39)),
+    (GameSym::Naga, "Naga", (211, 205, 137)),
+    (GameSym::Warlock, "Warlock", (168, 44, 234)),
+    (GameSym::Demon, "Demon", (218, 0, 0)),
+    (GameSym::Sentinel, "Sentinel", (168, 44, 234)),
+    (GameSym::Robber, "Robber", (82, 84, 255)),
+    (GameSym::SkateboardKid, "Skateboard Kid", (255, 127, 0)),
+    (GameSym::Jellybean, "Jellybean", (192, 96, 192)),
+    (GameSym::Alien, "Alien", (65, 168, 58)),
+    (GameSym::Dweller, "Dweller", (58, 149, 140)),
+    (GameSym::LittleHelper, "Little Helper", (0, 153, 0)),
+    (GameSym::BigHelper, "Big Helper", (255, 99, 99)),
+];
+
+const WEAPONS: [(GameSym, &str, (u8, u8, u8)); 10] = [
+    (GameSym::Knife, "Knife", (165, 165, 165)),
+    (GameSym::Club, "Club", (137, 88, 38)),
+    (GameSym::Hatchet, "Hatchet", (165, 165, 165)),
+    (GameSym::Spear, "Spear", (137, 88, 38)),
+    (GameSym::Rapier, "Rapier", (198, 159, 39)),
+    (GameSym::Saber, "Saber", (165, 165, 165)),
+    (GameSym::Longsword, "Longsword", (165, 165, 165)),
+    (GameSym::Crowbar, "Crowbar", (255, 127, 0)),
+    (GameSym::Tonfa, "Tonfa", (82, 84, 255)),
+    (GameSym::BeamSword, "Beam Sword", (255, 255, 0)),
+];
+
+const ARMORS: [(GameSym, &str, (u8, u8, u8)); 10] = [
+    (GameSym::Jerkin, "Jerkin", (170, 97, 32)),
+    (GameSym::Coat, "Coat", (170, 97, 32)),
+    (GameSym::WoodenShield, "Wooden Shield", (191, 92, 0)),
+    (GameSym::TowerShield, "Tower Shield", (165, 165, 165)),
+    (GameSym::KiteShield, "Kite Shield", (165, 165, 165)),
+    (GameSym::StuddedArmor, "Studded Armor", (170, 97, 32)),
+    (GameSym::Hauberk, "Hauberk", (165, 165, 165)),
+    (GameSym::Platemail, "Platemail", (165, 165, 165)),
+    (GameSym::ArmyHelmet, "Army Helmet", (77, 120, 78)),
+    (GameSym::FlakJacket, "Flak Jacket", (77, 120, 78)),
+];
+
 /// Spawn an entity whose purpose is to track the total amount of experience points that could
 /// theoretically be gained in the game in order to increase difficulty over time.
 pub fn spawn_difficulty(mut entities: EntitiesViewMut, mut exps: ViewMut<Experience>) -> EntityId {
@@ -271,13 +325,22 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
     );
 }
 
-fn spawn_knife(world: &World, pos: (i32, i32), level: i32, bonus: i32) {
+fn rescale_level<R: Rng>(level: f32, scale: usize, rng: &mut R) -> usize {
+    let monsters_range = MONSTERS.len().saturating_sub(1).max(1) as f32;
+    let rescaled = ((level - 1.0) / monsters_range).clamp(0.0, 1.0) * scale as f32;
+
+    experience::f32_round_random(rescaled, rng) as usize
+}
+
+fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, bonus: i32) {
+    let (sym, name, rgb) = WEAPONS[rescale_level(level, WEAPONS.len().saturating_sub(1), rng)];
+    let level = experience::f32_round_random(level, rng);
     let item_id = spawn_item(
         world,
         pos,
-        format!("+{} Knife", level + bonus),
-        GameSym::Knife,
-        Color::GRAY,
+        format!("+{} {}", level + bonus, name),
+        sym,
+        rgb.into(),
     );
     let (entities, mut combat_bonuses, mut equip_slots) =
         world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
@@ -295,13 +358,15 @@ fn spawn_knife(world: &World, pos: (i32, i32), level: i32, bonus: i32) {
     );
 }
 
-fn spawn_wooden_shield(world: &World, pos: (i32, i32), level: i32, bonus: i32) {
+fn spawn_armor<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, bonus: i32) {
+    let (sym, name, rgb) = ARMORS[rescale_level(level, ARMORS.len().saturating_sub(1), rng)];
+    let level = experience::f32_round_random(level, rng);
     let item_id = spawn_item(
         world,
         pos,
-        format!("+{} Wooden Shield", level + bonus),
-        GameSym::WoodenShield,
-        Color::BROWN,
+        format!("+{} {}", level + bonus, name),
+        sym,
+        rgb.into(),
     );
     let (entities, mut combat_bonuses, mut equip_slots) =
         world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
@@ -367,33 +432,6 @@ fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name:
 }
 
 fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
-    let monsters = [
-        (GameSym::Blob, "Blob", (89, 162, 191)),
-        (GameSym::Bat, "Bat", (128, 128, 128)),
-        (GameSym::Crab, "Crab", (255, 0, 0)),
-        (GameSym::Snake, "Snake", (0, 153, 0)),
-        (GameSym::Goblin, "Goblin", (34, 187, 59)),
-        (GameSym::Kobold, "Kobold", (122, 181, 73)),
-        (GameSym::Gnome, "Gnome", (134, 204, 199)),
-        (GameSym::Orc, "Orc", (202, 100, 39)),
-        (GameSym::Unicorn, "Unicorn", (255, 150, 255)),
-        (GameSym::Pirate, "Pirate", (0, 134, 255)),
-        (GameSym::Lizardon, "Lizardon", (89, 153, 175)),
-        (GameSym::Ghost, "Ghost", (254, 255, 255)),
-        (GameSym::Skeleton, "Skeleton", (222, 211, 195)),
-        (GameSym::Ogre, "Ogre", (202, 101, 39)),
-        (GameSym::Naga, "Naga", (211, 205, 137)),
-        (GameSym::Warlock, "Warlock", (168, 44, 234)),
-        (GameSym::Demon, "Demon", (218, 0, 0)),
-        (GameSym::Sentinel, "Sentinel", (168, 44, 234)),
-        (GameSym::Robber, "Robber", (82, 84, 255)),
-        (GameSym::SkateboardKid, "Skateboard Kid", (255, 127, 0)),
-        (GameSym::Jellybean, "Jellybean", (192, 96, 192)),
-        (GameSym::Alien, "Alien", (65, 168, 58)),
-        (GameSym::Dweller, "Dweller", (58, 149, 140)),
-        (GameSym::LittleHelper, "Little Helper", (0, 153, 0)),
-        (GameSym::BigHelper, "Big Helper", (255, 99, 99)),
-    ];
     let mut level = {
         let difficulty = world.borrow::<UniqueView<Difficulty>>();
         let exps = world.borrow::<View<Experience>>();
@@ -405,8 +443,8 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
             level = rng.gen_range(1, level);
         }
     }
-    let (sym, name, fg) = monsters[(level.max(1) as usize)
-        .min(monsters.len())
+    let (sym, name, fg) = MONSTERS[(level.max(1) as usize)
+        .min(MONSTERS.len())
         .saturating_sub(1)];
 
     spawn_monster(world, pos, level, sym, name, fg.into());
@@ -418,15 +456,15 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
         let level = {
             let difficulty = world.borrow::<UniqueView<Difficulty>>();
             let exps = world.borrow::<View<Experience>>();
-            difficulty.get_round_random(&exps, rng)
+            difficulty.as_f32(&exps)
         };
         // Spawn items (really equipment) at a slightly higher level than average.
         let bonus = rng.gen_range(1, 4);
 
         if rng.gen() {
-            spawn_knife(world, pos, level, bonus);
+            spawn_weapon(world, rng, pos, level, bonus);
         } else {
-            spawn_wooden_shield(world, pos, level, bonus);
+            spawn_armor(world, rng, pos, level, bonus);
         }
     } else {
         // Spawn an item.
@@ -495,8 +533,14 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
 
         if num > 0 {
             start_equips[0..num].shuffle(rng);
-            spawn_wooden_shield(world, start_equips[0], 1, 0);
-            spawn_knife(world, start_equips[if num > 1 { 1 } else { 0 }], 1, 0);
+            spawn_armor(world, rng, start_equips[0], 1.0, 0);
+            spawn_weapon(
+                world,
+                rng,
+                start_equips[if num > 1 { 1 } else { 0 }],
+                1.0,
+                0,
+            );
         }
     }
 
@@ -524,9 +568,9 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
             let level = {
                 let difficulty = world.borrow::<UniqueView<Difficulty>>();
                 let exps = world.borrow::<View<Experience>>();
-                difficulty.get_round_random(&exps, &mut periodic_weapon_rng)
+                difficulty.as_f32(&exps)
             };
-            spawn_knife(world, pos, level, 0);
+            spawn_weapon(world, &mut periodic_weapon_rng, pos, level, 0);
         }
     }
 
@@ -548,9 +592,9 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
             let level = {
                 let difficulty = world.borrow::<UniqueView<Difficulty>>();
                 let exps = world.borrow::<View<Experience>>();
-                difficulty.get_round_random(&exps, &mut periodic_armor_rng)
+                difficulty.as_f32(&exps)
             };
-            spawn_wooden_shield(world, pos, level, 0);
+            spawn_armor(world, &mut periodic_armor_rng, pos, level, 0);
         }
     }
 }

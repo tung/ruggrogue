@@ -27,6 +27,12 @@ impl Difficulty {
         }
     }
 
+    /// Get the level tracked by difficulty with a fractional part based on experience.
+    pub fn as_f32(&self, exps: &View<Experience>) -> f32 {
+        let difficulty_exp = exps.get(self.id);
+        difficulty_exp.level as f32 + difficulty_exp.exp as f32 / difficulty_exp.next as f32
+    }
+
     /// Get the level tracked by difficulty, with a random chance of being the next level up based
     /// on experience progress.
     pub fn get_round_random<R: Rng>(&self, exps: &View<Experience>, rng: &mut R) -> i32 {
@@ -38,6 +44,16 @@ impl Difficulty {
             difficulty_exp.level
         }
     }
+}
+
+/// Round with a random chance of rounding upwards based on the fractional part of the value.
+pub fn f32_round_random<R: Rng>(value: f32, rng: &mut R) -> i32 {
+    value.trunc() as i32
+        + if rng.gen::<f32>() < value.fract() {
+            1
+        } else {
+            0
+        }
 }
 
 /// Count the experience provided by all monsters currently on the map, to be redeemed later.
@@ -57,7 +73,7 @@ pub fn calc_exp_for_next_depth(
 ///
 /// Run [gain_levels] after this to properly calculate difficulty, then proceed with generating a
 /// new dungeon level afterwards to take advantage of difficulty tracking using
-/// [Difficulty::get_round_random].
+/// [Difficulty::into_f32] and [Difficulty::get_round_random].
 pub fn redeem_exp_for_next_depth(
     mut difficulty: UniqueViewMut<Difficulty>,
     mut exps: ViewMut<Experience>,
