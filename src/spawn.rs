@@ -147,8 +147,8 @@ pub fn spawn_player(
                 bg: Color::BLACK,
             },
             Stomach {
-                fullness: 1000,
-                max_fullness: 1000,
+                fullness: 1500,
+                max_fullness: 1500,
                 sub_hp: 0,
             },
         ),
@@ -210,7 +210,7 @@ fn spawn_ration(world: &World, pos: (i32, i32)) {
 
     entities.add_component(
         (&mut consumables, &mut nutritions),
-        (Consumable {}, Nutrition(500)),
+        (Consumable {}, Nutrition(750)),
         item_id,
     );
 }

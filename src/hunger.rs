@@ -48,9 +48,9 @@ impl HungerState {
             HungerState::Starving => None,
             HungerState::Famished => None,
             HungerState::VeryHungry => None,
-            HungerState::Hungry => Some(200),
-            HungerState::Normal => Some(200),
-            HungerState::Full => Some(100),
+            HungerState::Hungry => Some(400),
+            HungerState::Normal => Some(400),
+            HungerState::Full => Some(400),
         }
     }
 
@@ -67,13 +67,13 @@ impl From<i32> for HungerState {
     fn from(fullness: i32) -> Self {
         if fullness <= 0 {
             Self::Starving
-        } else if fullness <= 100 {
+        } else if fullness <= 150 {
             Self::Famished
-        } else if fullness <= 200 {
+        } else if fullness <= 300 {
             Self::VeryHungry
-        } else if fullness <= 500 {
+        } else if fullness <= 750 {
             Self::Hungry
-        } else if fullness <= 800 {
+        } else if fullness <= 1200 {
             Self::Normal
         } else {
             Self::Full
