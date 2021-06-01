@@ -32,6 +32,8 @@ pub enum DungeonModeResult {
 
 pub struct DungeonMode {
     chunked_map_grid: ChunkedMapGrid,
+    old_msg_frame_size: Size,
+    redraw_msg_frame_grid: bool,
 }
 
 fn app_quit_dialog(inputs: &mut InputBuffer) -> (ModeControl, ModeUpdate) {
@@ -74,6 +76,8 @@ impl DungeonMode {
 
         Self {
             chunked_map_grid: ChunkedMapGrid::new(),
+            old_msg_frame_size: (0, 0).into(),
+            redraw_msg_frame_grid: true,
         }
     }
 
@@ -91,6 +95,12 @@ impl DungeonMode {
             tilesets,
             window_size,
         );
+
+        // Detect changes to message frame grid size and redraw the grid when it changes.
+        self.redraw_msg_frame_grid = grids[ui::MSG_FRAME_GRID].width() != self.old_msg_frame_size.w
+            || grids[ui::MSG_FRAME_GRID].height() != self.old_msg_frame_size.h;
+        self.old_msg_frame_size.w = grids[ui::MSG_FRAME_GRID].width();
+        self.old_msg_frame_size.h = grids[ui::MSG_FRAME_GRID].height();
     }
 
     pub fn update(
@@ -281,20 +291,33 @@ impl DungeonMode {
 
     pub fn draw(&mut self, world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (map_grid, grids) = grids.split_first_mut().unwrap(); // ui::MAP_GRID
-        let (ui_grid, _) = grids.split_first_mut().unwrap(); // ui::UI_GRID
+        let (status_grid, grids) = grids.split_first_mut().unwrap(); // ui::STATUS_GRID
+        let (item_grid, grids) = grids.split_first_mut().unwrap(); // ui::ITEM_GRID
+        let (msg_frame_grid, grids) = grids.split_first_mut().unwrap(); // ui::MSG_FRAME_GRID
+        let (msg_grid, _) = grids.split_first_mut().unwrap(); // ui::MSG_GRID
 
         if active {
             map_grid.view.color_mod = Color::WHITE;
-            ui_grid.view.color_mod = Color::WHITE;
+            status_grid.view.color_mod = Color::WHITE;
+            item_grid.view.color_mod = Color::WHITE;
+            msg_frame_grid.view.color_mod = Color::WHITE;
+            msg_grid.view.color_mod = Color::WHITE;
         } else {
             map_grid.view.color_mod = Color::GRAY;
-            ui_grid.view.color_mod = Color::GRAY;
+            status_grid.view.color_mod = Color::GRAY;
+            item_grid.view.color_mod = Color::GRAY;
+            msg_frame_grid.view.color_mod = Color::GRAY;
+            msg_grid.view.color_mod = Color::GRAY;
         }
 
         self.chunked_map_grid.draw(world, map_grid);
         render::draw_renderables(&self.chunked_map_grid, world, map_grid);
 
-        ui_grid.clear();
-        ui::draw_ui(world, ui_grid, None);
+        if self.redraw_msg_frame_grid {
+            ui::draw_msg_frame(msg_frame_grid);
+        }
+
+        msg_grid.clear();
+        ui::draw_ui(world, status_grid, item_grid, msg_grid, None);
     }
 }

@@ -28,9 +28,6 @@ enum HungerState {
     Full,
 }
 
-// "Very Hungry"
-pub const MAX_HUNGER_WIDTH: usize = 11;
-
 impl HungerState {
     fn reduced_to(&self) -> &'static str {
         match self {

@@ -65,7 +65,7 @@ fn main() {
 
     let settings = RunSettings {
         title: "Ruggle".into(),
-        window_size: (1000, 600).into(),
+        window_size: (896, 560).into(),
         min_window_size: (640, 192).into(),
         fps: 30,
         tileset_infos: vec![

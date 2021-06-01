@@ -17,6 +17,11 @@ impl Color {
         g: 128,
         b: 128,
     };
+    pub const LIGHT_GRAY: Color = Color {
+        r: 192,
+        g: 192,
+        b: 192,
+    };
     pub const RED: Color = Color { r: 255, g: 0, b: 0 };
     pub const GREEN: Color = Color { r: 0, g: 255, b: 0 };
     pub const BLUE: Color = Color { r: 0, g: 0, b: 255 };
