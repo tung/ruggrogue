@@ -439,8 +439,15 @@ impl<Y: Symbol> RawTileGrid<Y> {
 
     #[inline]
     fn index(&self, Position { x, y }: Position) -> usize {
-        let real_x = (x + self.draw_offset.x) % self.size.w as i32;
-        let real_y = (y + self.draw_offset.y) % self.size.h as i32;
+        let mut real_x = x + self.draw_offset.x;
+        let mut real_y = y + self.draw_offset.y;
+
+        if real_x >= self.size.w as i32 {
+            real_x -= self.size.w as i32;
+        }
+        if real_y >= self.size.h as i32 {
+            real_y -= self.size.h as i32;
+        }
 
         (real_y * self.size.w as i32 + real_x) as usize
     }
@@ -499,12 +506,10 @@ impl<Y: Symbol> RawTileGrid<Y> {
             && pos.x < self.size.w as i32
             && pos.x + s.len() as i32 > 0
         {
-            let skip_chars = if pos.x < 0 { -pos.x as usize } else { 0 };
-
             for (i, c) in s
                 .char_indices()
-                .skip(skip_chars)
-                .take(self.size.w as usize)
+                .skip(-pos.x.min(0) as usize)
+                .take(self.size.w.saturating_sub(pos.x.max(0) as u32) as usize)
                 .filter(|(_, c)| draw_space || *c != ' ')
             {
                 self.put_color_raw(
