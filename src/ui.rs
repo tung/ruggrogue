@@ -228,13 +228,20 @@ fn draw_messages<Y>(world: &World, grid: &mut TileGrid<Y>, active: bool, min_y: 
 where
     Y: Symbol,
 {
-    world.run(|messages: UniqueView<Messages>| {
-        let fg = if active { Color::WHITE } else { Color::GRAY };
-        for (y, message) in (min_y..=max_y).zip(messages.rev_iter()) {
-            grid.put_char_color((0, y), '>', fg, None);
-            grid.print_color((2, y), message, true, fg, None);
+    let messages = world.borrow::<UniqueView<Messages>>();
+    let mut y = min_y;
+    let fg = if active { Color::WHITE } else { Color::GRAY };
+
+    for message in messages.rev_iter() {
+        if y > max_y {
+            break;
         }
-    });
+        grid.put_char_color((0, y), '>', fg, None);
+        for line in ruggle::word_wrap(message, 32) {
+            grid.print_color((2, y), line, true, fg, None);
+            y += 1;
+        }
+    }
 }
 
 pub fn draw_ui<Y: Symbol>(
@@ -248,8 +255,10 @@ pub fn draw_ui<Y: Symbol>(
     draw_item_info(world, item_grid);
 
     if let Some(prompt) = prompt {
-        msg_grid.print_color((0, 0), prompt, true, Color::WHITE, None);
-        draw_messages(world, msg_grid, false, 1, msg_grid.height() as i32 - 1);
+        for (y, prompt_line) in ruggle::word_wrap(prompt, 32).enumerate() {
+            msg_grid.print_color((2, y as i32), prompt_line, true, Color::WHITE, None);
+        }
+        draw_messages(world, msg_grid, false, 2, msg_grid.height() as i32 - 2);
     } else {
         draw_messages(world, msg_grid, true, 0, msg_grid.height() as i32);
     }
@@ -285,11 +294,11 @@ pub fn prepare_main_grids<Y: Symbol>(
         w: sidebar_w,
         h: (window_size.h / (ui_tileset.tile_height() * text_zoom))
             .saturating_sub(new_status_size.h + new_item_size.h)
-            .max(3),
+            .max(4),
     };
     let new_msg_size = Size {
         w: new_msg_frame_size.w.saturating_sub(2).max(1),
-        h: new_msg_frame_size.h.saturating_sub(2).max(1).min(4),
+        h: new_msg_frame_size.h.saturating_sub(2).max(1).min(100),
     };
 
     if !grids.is_empty() {

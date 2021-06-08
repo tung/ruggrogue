@@ -55,7 +55,7 @@ fn main() {
     world.add_unique(GameSeed(game_seed));
     world.add_unique(TurnCount(0));
     world.add_unique(Difficulty::new(world.run(spawn::spawn_difficulty)));
-    world.add_unique(Messages::new(4));
+    world.add_unique(Messages::new(100));
     world.add_unique(Map::new(80, 50));
     world.add_unique(PlayerId(world.run(spawn::spawn_player)));
     world.add_unique(PlayerAlive(true));
