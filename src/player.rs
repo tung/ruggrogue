@@ -815,7 +815,14 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
         if let Some(InputEvent::AppQuit) = inputs.get_input() {
             PlayerInputResult::AppQuit
         } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
+            let shift = inputs.get_mods(KeyMods::SHIFT);
+            let key = gamekey::from_keycode(keycode, shift);
+
+            if !matches!(key, GameKey::Unmapped) {
+                world.borrow::<UniqueViewMut<Messages>>().reset_highlight();
+            }
+
+            match key {
                 GameKey::Cancel => PlayerInputResult::ShowOptionsMenu,
                 _ => {
                     world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
@@ -870,8 +877,13 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
         PlayerInputResult::AppQuit
     } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
         let shift = inputs.get_mods(KeyMods::SHIFT);
+        let key = gamekey::from_keycode(keycode, shift);
 
-        match gamekey::from_keycode(keycode, shift) {
+        if !matches!(key, GameKey::Unmapped) {
+            world.borrow::<UniqueViewMut<Messages>>().reset_highlight();
+        }
+
+        match key {
             GameKey::Left => try_move_player(world, -1, 0, shift),
             GameKey::Down => try_move_player(world, 0, 1, shift),
             GameKey::Up => try_move_player(world, 0, -1, shift),

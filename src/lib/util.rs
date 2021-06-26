@@ -17,6 +17,11 @@ impl Color {
         g: 128,
         b: 128,
     };
+    pub const DARK_GRAY: Color = Color {
+        r: 64,
+        g: 64,
+        b: 64,
+    };
     pub const LIGHT_GRAY: Color = Color {
         r: 192,
         g: 192,

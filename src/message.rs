@@ -1,20 +1,40 @@
 use std::collections::VecDeque;
 
-pub struct Messages(VecDeque<String>);
+pub struct Messages {
+    msg_queue: VecDeque<String>,
+    num_highlighted: usize,
+}
 
 impl Messages {
     pub fn new(capacity: usize) -> Self {
-        Self(VecDeque::with_capacity(capacity))
+        assert!(capacity > 0);
+
+        Self {
+            msg_queue: VecDeque::with_capacity(capacity),
+            num_highlighted: 0,
+        }
     }
 
     pub fn add(&mut self, msg: String) {
-        if self.0.len() == self.0.capacity() {
-            self.0.pop_front();
+        if self.msg_queue.len() >= self.msg_queue.capacity() {
+            self.msg_queue.pop_front();
+            self.num_highlighted = self.num_highlighted.min(self.msg_queue.len());
         }
-        self.0.push_back(msg);
+
+        self.msg_queue.push_back(msg);
+        self.num_highlighted = self.num_highlighted.saturating_add(1);
     }
 
-    pub fn rev_iter(&self) -> impl Iterator<Item = &String> {
-        self.0.iter().rev()
+    /// Returns an iterator over messages in reverse order, each with a highlight flag.
+    pub fn rev_iter(&self) -> impl Iterator<Item = (&str, bool)> {
+        self.msg_queue
+            .iter()
+            .rev()
+            .enumerate()
+            .map(move |(i, s)| (s.as_str(), i < self.num_highlighted))
+    }
+
+    pub fn reset_highlight(&mut self) {
+        self.num_highlighted = 0;
     }
 }

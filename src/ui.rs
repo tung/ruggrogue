@@ -230,15 +230,22 @@ where
 {
     let messages = world.borrow::<UniqueView<Messages>>();
     let mut y = min_y;
-    let fg = if active { Color::WHITE } else { Color::GRAY };
+    let (fg, highlight_fg) = if active {
+        (Color::GRAY, Color::WHITE)
+    } else {
+        (Color::DARK_GRAY, Color::GRAY)
+    };
 
-    for message in messages.rev_iter() {
+    for (message, highlighted) in messages.rev_iter() {
         if y > max_y {
             break;
         }
-        grid.put_char_color((0, y), '>', fg, None);
+
+        let msg_fg = if highlighted { highlight_fg } else { fg };
+
+        grid.put_char_color((0, y), '>', msg_fg, None);
         for line in ruggle::word_wrap(message, 32) {
-            grid.print_color((2, y), line, true, fg, None);
+            grid.print_color((2, y), line, true, msg_fg, None);
             y += 1;
         }
     }
