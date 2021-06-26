@@ -258,9 +258,9 @@ pub fn draw_ui<Y: Symbol>(
         for (y, prompt_line) in ruggle::word_wrap(prompt, 32).enumerate() {
             msg_grid.print_color((2, y as i32), prompt_line, true, Color::WHITE, None);
         }
-        draw_messages(world, msg_grid, false, 2, msg_grid.height() as i32 - 2);
+        draw_messages(world, msg_grid, false, 2, msg_grid.height() as i32 - 1);
     } else {
-        draw_messages(world, msg_grid, true, 0, msg_grid.height() as i32);
+        draw_messages(world, msg_grid, true, 0, msg_grid.height() as i32 - 1);
     }
 }
 
