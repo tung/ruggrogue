@@ -66,6 +66,11 @@ impl InventoryMode {
         }
     }
 
+    /// The height of the item list in the inventory grid as an i32 for convenience.
+    fn inv_item_list_height(grid: &TileGrid<GameSym>) -> i32 {
+        grid.height().saturating_sub(6).max(1).min(i32::MAX as u32) as i32
+    }
+
     pub fn prepare_grids(
         &self,
         world: &World,
@@ -156,6 +161,7 @@ impl InventoryMode {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
+        grids: &[TileGrid<GameSym>],
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if let Some(result) = pop_result {
@@ -282,6 +288,30 @@ impl InventoryMode {
                         self.subsection = SubSection::EquipWeapon;
                     }
                 }
+                (SubSection::Inventory, GameKey::PageUp) => {
+                    if let Some(inv_grid) = grids.get(INV_GRID) {
+                        self.inv_selection = self
+                            .inv_selection
+                            .saturating_sub(Self::inv_item_list_height(inv_grid))
+                            .max(0);
+                    }
+                }
+                (SubSection::Inventory, GameKey::PageDown) => {
+                    if let Some(inv_grid) = grids.get(INV_GRID) {
+                        let max_selection = (player_inv.items.len() as i32 - 1).max(0);
+
+                        self.inv_selection = self
+                            .inv_selection
+                            .saturating_add(Self::inv_item_list_height(inv_grid))
+                            .min(max_selection);
+                    }
+                }
+                (SubSection::Inventory, GameKey::Home) => {
+                    self.inv_selection = 0;
+                }
+                (SubSection::Inventory, GameKey::End) => {
+                    self.inv_selection = (player_inv.items.len() as i32 - 1).max(0);
+                }
                 (SubSection::Inventory, GameKey::Confirm) => {
                     if !player_inv.items.is_empty() {
                         inputs.clear_input();
@@ -406,7 +436,7 @@ impl InventoryMode {
                         },
                     );
                 } else {
-                    let item_height = (grid.height() as i32 - 6).max(1);
+                    let item_height = Self::inv_item_list_height(grid);
                     let item_offset = std::cmp::max(
                         0,
                         std::cmp::min(

@@ -10,6 +10,10 @@ pub enum GameKey {
     UpRight,
     DownLeft,
     DownRight,
+    PageUp,
+    PageDown,
+    Home,
+    End,
     Wait,
     Descend,
     Cancel,
@@ -28,6 +32,10 @@ pub fn from_keycode(key: Keycode, shift: bool) -> GameKey {
         Keycode::U | Keycode::Kp9 => GameKey::UpRight,
         Keycode::B | Keycode::Kp1 => GameKey::DownLeft,
         Keycode::N | Keycode::Kp3 => GameKey::DownRight,
+        Keycode::PageUp => GameKey::PageUp,
+        Keycode::PageDown => GameKey::PageDown,
+        Keycode::Home => GameKey::Home,
+        Keycode::End => GameKey::End,
         Keycode::Kp5 | Keycode::Space => GameKey::Wait,
         Keycode::Period => {
             if shift {

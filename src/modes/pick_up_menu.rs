@@ -102,10 +102,16 @@ impl PickUpMenuMode {
         grids[0].view.zoom = text_zoom;
     }
 
+    /// The height of the item list as an i32 for convenience.
+    fn item_list_height(grid: &TileGrid<GameSym>) -> i32 {
+        grid.height().saturating_sub(8).max(1).min(i32::MAX as u32) as i32
+    }
+
     pub fn update(
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
+        grids: &[TileGrid<GameSym>],
         _pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if self.items.is_empty() {
@@ -153,6 +159,38 @@ impl PickUpMenuMode {
                             self.selection = self.items.len() as i32 - 1;
                         }
                     },
+                    GameKey::PageUp => {
+                        if matches!(self.subsection, SubSection::Items) {
+                            if let Some(grid) = grids.get(0) {
+                                self.selection = self
+                                    .selection
+                                    .saturating_sub(Self::item_list_height(grid))
+                                    .max(0);
+                            }
+                        }
+                    }
+                    GameKey::PageDown => {
+                        if matches!(self.subsection, SubSection::Items) {
+                            if let Some(grid) = grids.get(0) {
+                                let max_selection = (self.items.len() as i32 - 1).max(0);
+
+                                self.selection = self
+                                    .selection
+                                    .saturating_add(Self::item_list_height(grid))
+                                    .min(max_selection);
+                            }
+                        }
+                    }
+                    GameKey::Home => {
+                        if matches!(self.subsection, SubSection::Items) {
+                            self.selection = 0;
+                        }
+                    }
+                    GameKey::End => {
+                        if matches!(self.subsection, SubSection::Items) {
+                            self.selection = (self.items.len() as i32 - 1).max(0);
+                        }
+                    }
                     GameKey::Cancel => {
                         return (
                             ModeControl::Pop(PickUpMenuModeResult::Cancelled.into()),
@@ -191,14 +229,10 @@ impl PickUpMenuMode {
         grid.print_color((2, 0), TITLE, true, Color::YELLOW, bg);
         grid.print((2, 2), PROMPT);
 
-        let list_height = height as i32 - 8;
-        let list_offset = std::cmp::max(
-            0,
-            std::cmp::min(
-                self.items.len() as i32 - list_height,
-                self.selection - (list_height - 1) / 2,
-            ),
-        );
+        let list_height = Self::item_list_height(grid);
+        let list_offset = (self.selection - (list_height - 1) / 2)
+            .min(self.items.len() as i32 - list_height)
+            .max(0);
 
         if self.items.len() as i32 > list_height {
             grid.draw_bar(

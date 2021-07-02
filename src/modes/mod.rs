@@ -242,18 +242,19 @@ impl Mode {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
+        grids: &[TileGrid<GameSym>],
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         match self {
-            Mode::AppQuitDialogMode(x) => x.update(world, inputs, pop_result),
-            Mode::DungeonMode(x) => x.update(world, inputs, pop_result),
-            Mode::EquipmentActionMode(x) => x.update(world, inputs, pop_result),
-            Mode::InventoryMode(x) => x.update(world, inputs, pop_result),
-            Mode::InventoryActionMode(x) => x.update(world, inputs, pop_result),
-            Mode::OptionsMenuMode(x) => x.update(world, inputs, pop_result),
-            Mode::PickUpMenuMode(x) => x.update(world, inputs, pop_result),
-            Mode::TargetMode(x) => x.update(world, inputs, pop_result),
-            Mode::YesNoDialogMode(x) => x.update(world, inputs, pop_result),
+            Mode::AppQuitDialogMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::DungeonMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::EquipmentActionMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::InventoryMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::InventoryActionMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::OptionsMenuMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::PickUpMenuMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::TargetMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::YesNoDialogMode(x) => x.update(world, inputs, grids, pop_result),
         }
     }
 
@@ -342,11 +343,11 @@ impl ModeStack {
             }
 
             // Update the top mode.
-            let (mode_control, mode_update) =
-                self.stack
-                    .last_mut()
-                    .unwrap()
-                    .update(world, inputs, &self.pop_result);
+            let (mode_control, mode_update) = {
+                let top_mode = self.stack.last_mut().unwrap();
+                let top_layer = layers.last().unwrap();
+                top_mode.update(world, inputs, top_layer.grids.as_slice(), &self.pop_result)
+            };
 
             self.pop_result = None;
 

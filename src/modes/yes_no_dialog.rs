@@ -76,6 +76,7 @@ impl YesNoDialogMode {
         &mut self,
         _world: &World,
         inputs: &mut InputBuffer,
+        _grids: &[TileGrid<GameSym>],
         _pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         inputs.prepare_input();

@@ -38,9 +38,10 @@ impl AppQuitDialogMode {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
+        grids: &[TileGrid<GameSym>],
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
-        match self.0.update(world, inputs, pop_result) {
+        match self.0.update(world, inputs, grids, pop_result) {
             (ModeControl::Pop(ModeResult::YesNoDialogModeResult(result)), mode_update) => {
                 match result {
                     YesNoDialogModeResult::AppQuit => (ModeControl::Stay, ModeUpdate::WaitForEvent),

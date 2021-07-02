@@ -107,6 +107,7 @@ impl DungeonMode {
         &mut self,
         world: &World,
         inputs: &mut InputBuffer,
+        _grids: &[TileGrid<GameSym>],
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if world.run(player::player_is_alive) {
