@@ -13,8 +13,6 @@ use ruggle::{
 
 use super::{ModeControl, ModeResult, ModeUpdate};
 
-const REMOVE: &str = "[ Remove ]";
-const DROP: &str = "[ Drop ]";
 const CANCEL: &str = "[ Cancel ]";
 
 pub enum EquipmentActionModeResult {
@@ -24,30 +22,61 @@ pub enum EquipmentActionModeResult {
     DropEquipment(EntityId),
 }
 
-enum Selection {
+enum SubSection {
+    Actions,
+    Cancel,
+}
+
+#[allow(clippy::enum_variant_names)]
+#[derive(Copy, Clone)]
+enum EquipmentAction {
     RemoveEquipment,
     DropEquipment,
-    Cancel,
+}
+
+impl EquipmentAction {
+    fn name(&self) -> &'static str {
+        match self {
+            EquipmentAction::RemoveEquipment => "[ Remove ]",
+            EquipmentAction::DropEquipment => "[ Drop ]",
+        }
+    }
 }
 
 pub struct EquipmentActionMode {
     item_id: EntityId,
     inner_width: i32,
-    selection: Selection,
+    actions: Vec<EquipmentAction>,
+    subsection: SubSection,
+    selection: i32,
 }
 
 /// Show a menu of actions for an item currently equipped by the player.
 impl EquipmentActionMode {
     pub fn new(world: &World, item_id: EntityId) -> Self {
+        let actions = [
+            EquipmentAction::RemoveEquipment,
+            EquipmentAction::DropEquipment,
+        ]
+        .iter()
+        .copied()
+        .collect::<Vec<_>>();
+        let subsection = if actions.is_empty() {
+            SubSection::Cancel
+        } else {
+            SubSection::Actions
+        };
         let item_width = world.borrow::<View<Name>>().get(item_id).0.len();
+        let inner_width = 2 + item_width
+            .max(CANCEL.len())
+            .max(actions.iter().map(|a| a.name().len()).max().unwrap_or(0));
 
         Self {
             item_id,
-            inner_width: 2 + item_width
-                .max(REMOVE.len())
-                .max(DROP.len())
-                .max(CANCEL.len()) as i32,
-            selection: Selection::RemoveEquipment,
+            inner_width: inner_width as i32,
+            actions,
+            subsection,
+            selection: 0,
         }
     }
 
@@ -63,7 +92,7 @@ impl EquipmentActionMode {
         } = *world.borrow::<UniqueView<Options>>();
         let new_grid_size = Size {
             w: 4 + self.inner_width as u32,
-            h: 10,
+            h: 8 + self.actions.len() as u32,
         };
 
         if !grids.is_empty() {
@@ -76,6 +105,22 @@ impl EquipmentActionMode {
         grids[0].set_tileset(tilesets, font as usize);
         grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
         grids[0].view.zoom = text_zoom;
+    }
+
+    fn confirm_action(&self) -> (ModeControl, ModeUpdate) {
+        let result = match self.subsection {
+            SubSection::Actions => match self.actions[self.selection as usize] {
+                EquipmentAction::RemoveEquipment => {
+                    EquipmentActionModeResult::RemoveEquipment(self.item_id)
+                }
+                EquipmentAction::DropEquipment => {
+                    EquipmentActionModeResult::DropEquipment(self.item_id)
+                }
+            },
+            SubSection::Cancel => EquipmentActionModeResult::Cancelled,
+        };
+
+        (ModeControl::Pop(result.into()), ModeUpdate::Immediate)
     }
 
     pub fn update(
@@ -93,52 +138,44 @@ impl EquipmentActionMode {
                 ModeUpdate::Immediate,
             );
         } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            let shift = inputs.get_mods(KeyMods::SHIFT);
-
-            match (&self.selection, gamekey::from_keycode(keycode, shift)) {
-                (Selection::RemoveEquipment, GameKey::Up) => {
-                    self.selection = Selection::Cancel;
-                }
-                (Selection::RemoveEquipment, GameKey::Down) => {
-                    self.selection = Selection::DropEquipment;
-                }
-                (Selection::RemoveEquipment, GameKey::Confirm) => {
-                    return (
-                        ModeControl::Pop(
-                            EquipmentActionModeResult::RemoveEquipment(self.item_id).into(),
-                        ),
-                        ModeUpdate::Immediate,
-                    )
-                }
-
-                (Selection::DropEquipment, GameKey::Up) => {
-                    self.selection = Selection::RemoveEquipment;
-                }
-                (Selection::DropEquipment, GameKey::Down) => {
-                    self.selection = Selection::Cancel;
-                }
-                (Selection::DropEquipment, GameKey::Confirm) => {
-                    return (
-                        ModeControl::Pop(
-                            EquipmentActionModeResult::DropEquipment(self.item_id).into(),
-                        ),
-                        ModeUpdate::Immediate,
-                    )
-                }
-
-                (Selection::Cancel, GameKey::Up) => {
-                    self.selection = Selection::DropEquipment;
-                }
-                (Selection::Cancel, GameKey::Down) => {
-                    self.selection = Selection::RemoveEquipment;
-                }
-                (Selection::Cancel, GameKey::Confirm) | (_, GameKey::Cancel) => {
+            match gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT)) {
+                GameKey::Up => match self.subsection {
+                    SubSection::Actions => {
+                        if self.selection > 0 {
+                            self.selection -= 1;
+                        } else {
+                            self.subsection = SubSection::Cancel;
+                        }
+                    }
+                    SubSection::Cancel => {
+                        if !self.actions.is_empty() {
+                            self.subsection = SubSection::Actions;
+                            self.selection = self.actions.len() as i32 - 1;
+                        }
+                    }
+                },
+                GameKey::Down => match self.subsection {
+                    SubSection::Actions => {
+                        if self.selection < self.actions.len() as i32 - 1 {
+                            self.selection += 1;
+                        } else {
+                            self.subsection = SubSection::Cancel;
+                        }
+                    }
+                    SubSection::Cancel => {
+                        if !self.actions.is_empty() {
+                            self.subsection = SubSection::Actions;
+                            self.selection = 0;
+                        }
+                    }
+                },
+                GameKey::Cancel => {
                     return (
                         ModeControl::Pop(EquipmentActionModeResult::Cancelled.into()),
                         ModeUpdate::Immediate,
                     )
                 }
-
+                GameKey::Confirm => return self.confirm_action(),
                 _ => {}
             }
         }
@@ -165,35 +202,26 @@ impl EquipmentActionMode {
             grid.print_color((4, 2), &names.get(self.item_id).0, true, fg, bg);
         }
 
-        grid.print_color(
-            (4, 4),
-            REMOVE,
-            true,
-            fg,
-            if matches!(self.selection, Selection::RemoveEquipment) {
-                selected_bg
-            } else {
-                bg
-            },
-        );
-        grid.print_color(
-            (4, 5),
-            DROP,
-            true,
-            fg,
-            if matches!(self.selection, Selection::DropEquipment) {
-                selected_bg
-            } else {
-                bg
-            },
-        );
+        for (i, action) in self.actions.iter().enumerate() {
+            grid.print_color(
+                (4, 4 + i as i32),
+                action.name(),
+                true,
+                fg,
+                if matches!(self.subsection, SubSection::Actions) && i as i32 == self.selection {
+                    selected_bg
+                } else {
+                    bg
+                },
+            );
+        }
 
         grid.print_color(
-            (4, 7),
+            (4, grid.height() as i32 - 3),
             CANCEL,
             true,
             fg,
-            if matches!(self.selection, Selection::Cancel) {
+            if matches!(self.subsection, SubSection::Cancel) {
                 selected_bg
             } else {
                 bg
