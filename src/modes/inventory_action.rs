@@ -32,18 +32,36 @@ enum SubSection {
 }
 
 #[allow(clippy::enum_variant_names)]
-enum Action {
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum InventoryAction {
     EquipItem,
     UseItem,
     DropItem,
 }
 
-impl Action {
+impl InventoryAction {
+    pub fn from_key(key: GameKey) -> Option<Self> {
+        match key {
+            GameKey::EquipItem => Some(InventoryAction::EquipItem),
+            GameKey::UseItem => Some(InventoryAction::UseItem),
+            GameKey::DropItem => Some(InventoryAction::DropItem),
+            _ => None,
+        }
+    }
+
+    pub fn item_supports_action(world: &World, item_id: EntityId, action: InventoryAction) -> bool {
+        match action {
+            InventoryAction::EquipItem => world.borrow::<View<EquipSlot>>().contains(item_id),
+            InventoryAction::UseItem => world.borrow::<View<Consumable>>().contains(item_id),
+            InventoryAction::DropItem => true,
+        }
+    }
+
     fn name(&self) -> &'static str {
         match self {
-            Action::EquipItem => "[ Equip ]",
-            Action::UseItem => "[ Apply ]",
-            Action::DropItem => "[ Drop ]",
+            InventoryAction::EquipItem => "[ Equip ]",
+            InventoryAction::UseItem => "[ Apply ]",
+            InventoryAction::DropItem => "[ Drop ]",
         }
     }
 }
@@ -51,31 +69,32 @@ impl Action {
 pub struct InventoryActionMode {
     item_id: EntityId,
     inner_width: i32,
-    actions: Vec<Action>,
+    actions: Vec<InventoryAction>,
     subsection: SubSection,
     selection: i32,
 }
 
 /// Show a menu of actions for a single item in the player's inventory.
 impl InventoryActionMode {
-    pub fn new(world: &World, item_id: EntityId) -> Self {
-        let mut actions = Vec::new();
-
-        if world.borrow::<View<EquipSlot>>().contains(item_id) {
-            actions.push(Action::EquipItem);
-        }
-        if world.borrow::<View<Consumable>>().contains(item_id) {
-            actions.push(Action::UseItem);
-        }
-        actions.push(Action::DropItem);
-
+    pub fn new(world: &World, item_id: EntityId, default_action: Option<InventoryAction>) -> Self {
+        let actions = [
+            InventoryAction::EquipItem,
+            InventoryAction::UseItem,
+            InventoryAction::DropItem,
+        ]
+        .iter()
+        .filter(|action| InventoryAction::item_supports_action(world, item_id, **action))
+        .copied()
+        .collect::<Vec<_>>();
         let subsection = if actions.is_empty() {
             SubSection::Cancel
         } else {
             SubSection::Actions
         };
-
-        let item_width = world.run(|names: View<Name>| names.get(item_id).0.len());
+        let selection = default_action
+            .and_then(|d_act| actions.iter().position(|a| *a == d_act))
+            .unwrap_or(0);
+        let item_width = world.borrow::<View<Name>>().get(item_id).0.len();
         let inner_width = 2 + item_width
             .max(CANCEL.len())
             .max(actions.iter().map(|a| a.name().len()).max().unwrap_or(0));
@@ -85,7 +104,7 @@ impl InventoryActionMode {
             inner_width: inner_width as i32,
             actions,
             subsection,
-            selection: 0,
+            selection: selection as i32,
         }
     }
 
@@ -114,6 +133,39 @@ impl InventoryActionMode {
         grids[0].set_tileset(tilesets, font as usize);
         grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
         grids[0].view.zoom = text_zoom;
+    }
+
+    fn confirm_action(&self, world: &World, inputs: &mut InputBuffer) -> (ModeControl, ModeUpdate) {
+        let result = match self.subsection {
+            SubSection::Actions => match self.actions[self.selection as usize] {
+                InventoryAction::EquipItem => InventoryActionModeResult::EquipItem(self.item_id),
+                InventoryAction::UseItem => {
+                    if let Some(Ranged { range }) =
+                        &world.borrow::<View<Ranged>>().try_get(self.item_id).ok()
+                    {
+                        let item_name = world.borrow::<View<Name>>().get(self.item_id).0.clone();
+                        let radius = world
+                            .borrow::<View<AreaOfEffect>>()
+                            .try_get(self.item_id)
+                            .map_or(0, |aoe| aoe.radius);
+
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(
+                                TargetMode::new(world, item_name, *range, radius, true).into(),
+                            ),
+                            ModeUpdate::Immediate,
+                        );
+                    } else {
+                        InventoryActionModeResult::UseItem(self.item_id, None)
+                    }
+                }
+                InventoryAction::DropItem => InventoryActionModeResult::DropItem(self.item_id),
+            },
+            SubSection::Cancel => InventoryActionModeResult::Cancelled,
+        };
+
+        (ModeControl::Pop(result.into()), ModeUpdate::Immediate)
     }
 
     pub fn update(
@@ -187,39 +239,21 @@ impl InventoryActionMode {
                         ModeUpdate::Immediate,
                     )
                 }
-                GameKey::Confirm => {
-                    let result = match self.subsection {
-                        SubSection::Actions => match self.actions[self.selection as usize] {
-                            Action::EquipItem => InventoryActionModeResult::EquipItem(self.item_id),
-                            Action::UseItem => {
-                                if let Some(Ranged { range }) =
-                                    &world.borrow::<View<Ranged>>().try_get(self.item_id).ok()
-                                {
-                                    let item_name =
-                                        world.borrow::<View<Name>>().get(self.item_id).0.clone();
-                                    let radius = world
-                                        .borrow::<View<AreaOfEffect>>()
-                                        .try_get(self.item_id)
-                                        .map_or(0, |aoe| aoe.radius);
-
-                                    inputs.clear_input();
-                                    return (
-                                        ModeControl::Push(
-                                            TargetMode::new(world, item_name, *range, radius, true)
-                                                .into(),
-                                        ),
-                                        ModeUpdate::Immediate,
-                                    );
-                                } else {
-                                    InventoryActionModeResult::UseItem(self.item_id, None)
-                                }
+                GameKey::Confirm => return self.confirm_action(world, inputs),
+                key @ GameKey::EquipItem | key @ GameKey::UseItem | key @ GameKey::DropItem => {
+                    if let Some(inv_action) = InventoryAction::from_key(key) {
+                        if let Some(action_pos) = self.actions.iter().position(|a| *a == inv_action)
+                        {
+                            if matches!(self.subsection, SubSection::Actions)
+                                && self.selection == action_pos as i32
+                            {
+                                return self.confirm_action(world, inputs);
+                            } else {
+                                self.subsection = SubSection::Actions;
+                                self.selection = action_pos as i32;
                             }
-                            Action::DropItem => InventoryActionModeResult::DropItem(self.item_id),
-                        },
-                        SubSection::Cancel => InventoryActionModeResult::Cancelled,
-                    };
-
-                    return (ModeControl::Pop(result.into()), ModeUpdate::Immediate);
+                        }
+                    }
                 }
                 _ => {}
             }

@@ -14,7 +14,7 @@ use ruggle::{
 
 use super::{
     equipment_action::{EquipmentActionMode, EquipmentActionModeResult},
-    inventory_action::{InventoryActionMode, InventoryActionModeResult},
+    inventory_action::{InventoryAction, InventoryActionMode, InventoryActionModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
 
@@ -320,11 +320,33 @@ impl InventoryMode {
                                 InventoryActionMode::new(
                                     world,
                                     player_inv.items[self.inv_selection as usize],
+                                    None,
                                 )
                                 .into(),
                             ),
                             ModeUpdate::Immediate,
                         );
+                    }
+                }
+                (SubSection::Inventory, key)
+                    if matches!(
+                        key,
+                        GameKey::EquipItem | GameKey::UseItem | GameKey::DropItem
+                    ) =>
+                {
+                    if let Some(item_id) = player_inv.items.get(self.inv_selection as usize) {
+                        if let Some(inv_action) = InventoryAction::from_key(key) {
+                            if InventoryAction::item_supports_action(world, *item_id, inv_action) {
+                                inputs.clear_input();
+                                return (
+                                    ModeControl::Push(
+                                        InventoryActionMode::new(world, *item_id, Some(inv_action))
+                                            .into(),
+                                    ),
+                                    ModeUpdate::Immediate,
+                                );
+                            }
+                        }
                     }
                 }
 
