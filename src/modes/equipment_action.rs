@@ -28,13 +28,21 @@ enum SubSection {
 }
 
 #[allow(clippy::enum_variant_names)]
-#[derive(Copy, Clone)]
-enum EquipmentAction {
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum EquipmentAction {
     RemoveEquipment,
     DropEquipment,
 }
 
 impl EquipmentAction {
+    pub fn from_key(key: GameKey) -> Option<Self> {
+        match key {
+            GameKey::RemoveItem => Some(EquipmentAction::RemoveEquipment),
+            GameKey::DropItem => Some(EquipmentAction::DropEquipment),
+            _ => None,
+        }
+    }
+
     fn name(&self) -> &'static str {
         match self {
             EquipmentAction::RemoveEquipment => "[ Remove ]",
@@ -53,7 +61,7 @@ pub struct EquipmentActionMode {
 
 /// Show a menu of actions for an item currently equipped by the player.
 impl EquipmentActionMode {
-    pub fn new(world: &World, item_id: EntityId) -> Self {
+    pub fn new(world: &World, item_id: EntityId, default_action: Option<EquipmentAction>) -> Self {
         let actions = [
             EquipmentAction::RemoveEquipment,
             EquipmentAction::DropEquipment,
@@ -66,6 +74,9 @@ impl EquipmentActionMode {
         } else {
             SubSection::Actions
         };
+        let selection = default_action
+            .and_then(|d_act| actions.iter().position(|a| *a == d_act))
+            .unwrap_or(0);
         let item_width = world.borrow::<View<Name>>().get(item_id).0.len();
         let inner_width = 2 + item_width
             .max(CANCEL.len())
@@ -76,7 +87,7 @@ impl EquipmentActionMode {
             inner_width: inner_width as i32,
             actions,
             subsection,
-            selection: 0,
+            selection: selection as i32,
         }
     }
 
@@ -176,6 +187,22 @@ impl EquipmentActionMode {
                     )
                 }
                 GameKey::Confirm => return self.confirm_action(),
+                key @ GameKey::RemoveItem | key @ GameKey::DropItem => {
+                    if let Some(equip_action) = EquipmentAction::from_key(key) {
+                        if let Some(action_pos) =
+                            self.actions.iter().position(|a| *a == equip_action)
+                        {
+                            if matches!(self.subsection, SubSection::Actions)
+                                && self.selection == action_pos as i32
+                            {
+                                return self.confirm_action();
+                            } else {
+                                self.subsection = SubSection::Actions;
+                                self.selection = action_pos as i32;
+                            }
+                        }
+                    }
+                }
                 _ => {}
             }
         }

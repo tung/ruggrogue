@@ -13,7 +13,7 @@ use ruggle::{
 };
 
 use super::{
-    equipment_action::{EquipmentActionMode, EquipmentActionModeResult},
+    equipment_action::{EquipmentAction, EquipmentActionMode, EquipmentActionModeResult},
     inventory_action::{InventoryAction, InventoryActionMode, InventoryActionModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
@@ -241,9 +241,25 @@ impl InventoryMode {
                     if let Some(weapon) = player_equipment.weapon {
                         inputs.clear_input();
                         return (
-                            ModeControl::Push(EquipmentActionMode::new(world, weapon).into()),
+                            ModeControl::Push(EquipmentActionMode::new(world, weapon, None).into()),
                             ModeUpdate::Immediate,
                         );
+                    }
+                }
+                (SubSection::EquipWeapon, key)
+                    if matches!(key, GameKey::RemoveItem | GameKey::DropItem) =>
+                {
+                    if let Some(weapon) = player_equipment.weapon {
+                        if let Some(equip_action) = EquipmentAction::from_key(key) {
+                            inputs.clear_input();
+                            return (
+                                ModeControl::Push(
+                                    EquipmentActionMode::new(world, weapon, Some(equip_action))
+                                        .into(),
+                                ),
+                                ModeUpdate::Immediate,
+                            );
+                        }
                     }
                 }
 
@@ -257,9 +273,25 @@ impl InventoryMode {
                     if let Some(armor) = player_equipment.armor {
                         inputs.clear_input();
                         return (
-                            ModeControl::Push(EquipmentActionMode::new(world, armor).into()),
+                            ModeControl::Push(EquipmentActionMode::new(world, armor, None).into()),
                             ModeUpdate::Immediate,
                         );
+                    }
+                }
+                (SubSection::EquipArmor, key)
+                    if matches!(key, GameKey::RemoveItem | GameKey::DropItem) =>
+                {
+                    if let Some(armor) = player_equipment.armor {
+                        if let Some(equip_action) = EquipmentAction::from_key(key) {
+                            inputs.clear_input();
+                            return (
+                                ModeControl::Push(
+                                    EquipmentActionMode::new(world, armor, Some(equip_action))
+                                        .into(),
+                                ),
+                                ModeUpdate::Immediate,
+                            );
+                        }
                     }
                 }
 

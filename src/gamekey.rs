@@ -21,6 +21,7 @@ pub enum GameKey {
     PickUp,
     Inventory,
     EquipItem,
+    RemoveItem,
     UseItem,
     DropItem,
 }
@@ -53,6 +54,7 @@ pub fn from_keycode(key: Keycode, shift: bool) -> GameKey {
         Keycode::Comma | Keycode::G => GameKey::PickUp,
         Keycode::I => GameKey::Inventory,
         Keycode::E | Keycode::W => GameKey::EquipItem,
+        Keycode::R => GameKey::RemoveItem,
         Keycode::A => GameKey::UseItem,
         Keycode::D => GameKey::DropItem,
         _ => GameKey::Unmapped,
