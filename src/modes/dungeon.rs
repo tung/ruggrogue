@@ -20,6 +20,8 @@ use ruggle::{
 use super::{
     app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult},
     inventory::{InventoryMode, InventoryModeResult},
+    inventory_action::InventoryAction,
+    inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult},
     options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -183,6 +185,27 @@ impl DungeonMode {
                         }
                     }
 
+                    ModeResult::InventoryShortcutModeResult(result) => {
+                        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
+
+                        match result {
+                            InventoryShortcutModeResult::AppQuit => return app_quit_dialog(inputs),
+                            InventoryShortcutModeResult::Cancelled => false,
+                            InventoryShortcutModeResult::EquipItem(item_id) => {
+                                item::equip_item(world, player_id, *item_id);
+                                true
+                            }
+                            InventoryShortcutModeResult::UseItem(item_id, target) => {
+                                item::use_item(world, player_id, *item_id, *target);
+                                true
+                            }
+                            InventoryShortcutModeResult::DropItem(item_id) => {
+                                player::player_drop_item(world, *item_id);
+                                true
+                            }
+                        }
+                    }
+
                     _ => unreachable!(),
                 }
             } else {
@@ -227,6 +250,17 @@ impl DungeonMode {
                             ModeControl::Push(InventoryMode::new(world).into()),
                             ModeUpdate::Immediate,
                         );
+                    }
+                    PlayerInputResult::ShowInventoryShortcut(key) => {
+                        if let Some(action) = InventoryAction::from_key(key) {
+                            inputs.clear_input();
+                            return (
+                                ModeControl::Push(InventoryShortcutMode::new(world, action).into()),
+                                ModeUpdate::Immediate,
+                            );
+                        } else {
+                            false
+                        }
                     }
                 }
             };

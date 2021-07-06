@@ -28,6 +28,7 @@ pub mod dungeon;
 pub mod equipment_action;
 pub mod inventory;
 pub mod inventory_action;
+pub mod inventory_shortcut;
 pub mod options_menu;
 pub mod pick_up_menu;
 pub mod target;
@@ -43,6 +44,7 @@ use dungeon::{DungeonMode, DungeonModeResult};
 use equipment_action::{EquipmentActionMode, EquipmentActionModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
+use inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult};
 use options_menu::{OptionsMenuMode, OptionsMenuModeResult};
 use pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult};
 use target::{TargetMode, TargetModeResult};
@@ -57,6 +59,7 @@ pub enum Mode {
     EquipmentActionMode(EquipmentActionMode),
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
+    InventoryShortcutMode(InventoryShortcutMode),
     OptionsMenuMode(OptionsMenuMode),
     PickUpMenuMode(PickUpMenuMode),
     TargetMode(TargetMode),
@@ -90,6 +93,12 @@ impl From<InventoryMode> for Mode {
 impl From<InventoryActionMode> for Mode {
     fn from(mode: InventoryActionMode) -> Self {
         Self::InventoryActionMode(mode)
+    }
+}
+
+impl From<InventoryShortcutMode> for Mode {
+    fn from(mode: InventoryShortcutMode) -> Self {
+        Self::InventoryShortcutMode(mode)
     }
 }
 
@@ -127,6 +136,7 @@ pub enum ModeResult {
     EquipmentActionModeResult(EquipmentActionModeResult),
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
+    InventoryShortcutModeResult(InventoryShortcutModeResult),
     OptionsMenuModeResult(OptionsMenuModeResult),
     PickUpMenuModeResult(PickUpMenuModeResult),
     TargetModeResult(TargetModeResult),
@@ -160,6 +170,12 @@ impl From<InventoryModeResult> for ModeResult {
 impl From<InventoryActionModeResult> for ModeResult {
     fn from(result: InventoryActionModeResult) -> Self {
         Self::InventoryActionModeResult(result)
+    }
+}
+
+impl From<InventoryShortcutModeResult> for ModeResult {
+    fn from(result: InventoryShortcutModeResult) -> Self {
+        Self::InventoryShortcutModeResult(result)
     }
 }
 
@@ -231,6 +247,7 @@ impl Mode {
             Mode::EquipmentActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::InventoryShortcutMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::TargetMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
@@ -251,6 +268,7 @@ impl Mode {
             Mode::EquipmentActionMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::InventoryShortcutMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::OptionsMenuMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::PickUpMenuMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::TargetMode(x) => x.update(world, inputs, grids, pop_result),
@@ -265,6 +283,7 @@ impl Mode {
             Mode::EquipmentActionMode(x) => x.draw(world, grids, active),
             Mode::InventoryMode(x) => x.draw(world, grids, active),
             Mode::InventoryActionMode(x) => x.draw(world, grids, active),
+            Mode::InventoryShortcutMode(x) => x.draw(world, grids, active),
             Mode::OptionsMenuMode(x) => x.draw(world, grids, active),
             Mode::PickUpMenuMode(x) => x.draw(world, grids, active),
             Mode::TargetMode(x) => x.draw(world, grids, active),
@@ -280,6 +299,7 @@ impl Mode {
             Mode::EquipmentActionMode(_) => true,
             Mode::InventoryMode(_) => true,
             Mode::InventoryActionMode(_) => true,
+            Mode::InventoryShortcutMode(_) => true,
             Mode::OptionsMenuMode(_) => true,
             Mode::PickUpMenuMode(_) => true,
             Mode::TargetMode(_) => false,

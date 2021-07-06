@@ -50,6 +50,7 @@ pub enum PlayerInputResult {
     ShowOptionsMenu,
     ShowPickUpMenu,
     ShowInventory,
+    ShowInventoryShortcut(GameKey),
 }
 
 pub fn player_is_auto_running(player_id: UniqueView<PlayerId>, players: View<Player>) -> bool {
@@ -897,6 +898,9 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             GameKey::Descend | GameKey::Confirm => PlayerInputResult::TryDescend,
             GameKey::PickUp => PlayerInputResult::ShowPickUpMenu,
             GameKey::Inventory => PlayerInputResult::ShowInventory,
+            key @ GameKey::UseItem | key @ GameKey::EquipItem | key @ GameKey::DropItem => {
+                PlayerInputResult::ShowInventoryShortcut(key)
+            }
             _ => PlayerInputResult::NoResult,
         }
     } else {
