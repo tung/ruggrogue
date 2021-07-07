@@ -43,7 +43,14 @@ impl EquipmentAction {
         }
     }
 
-    fn name(&self) -> &'static str {
+    pub fn name(&self) -> &'static str {
+        match self {
+            EquipmentAction::RemoveEquipment => "Remove",
+            EquipmentAction::DropEquipment => "Drop",
+        }
+    }
+
+    fn label(&self) -> &'static str {
         match self {
             EquipmentAction::RemoveEquipment => "[ Remove ]",
             EquipmentAction::DropEquipment => "[ Drop ]",
@@ -80,7 +87,7 @@ impl EquipmentActionMode {
         let item_width = world.borrow::<View<Name>>().get(item_id).0.len();
         let inner_width = 2 + item_width
             .max(CANCEL.len())
-            .max(actions.iter().map(|a| a.name().len()).max().unwrap_or(0));
+            .max(actions.iter().map(|a| a.label().len()).max().unwrap_or(0));
 
         Self {
             item_id,
@@ -232,7 +239,7 @@ impl EquipmentActionMode {
         for (i, action) in self.actions.iter().enumerate() {
             grid.print_color(
                 (4, 4 + i as i32),
-                action.name(),
+                action.label(),
                 true,
                 fg,
                 if matches!(self.subsection, SubSection::Actions) && i as i32 == self.selection {

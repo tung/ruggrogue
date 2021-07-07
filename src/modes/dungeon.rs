@@ -19,6 +19,8 @@ use ruggle::{
 
 use super::{
     app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult},
+    equipment_action::EquipmentAction,
+    equipment_shortcut::{EquipmentShortcutMode, EquipmentShortcutModeResult},
     inventory::{InventoryMode, InventoryModeResult},
     inventory_action::InventoryAction,
     inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult},
@@ -206,6 +208,23 @@ impl DungeonMode {
                         }
                     }
 
+                    ModeResult::EquipmentShortcutModeResult(result) => {
+                        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
+
+                        match result {
+                            EquipmentShortcutModeResult::AppQuit => return app_quit_dialog(inputs),
+                            EquipmentShortcutModeResult::Cancelled => false,
+                            EquipmentShortcutModeResult::RemoveEquipment(item_id) => {
+                                item::remove_equipment(world, player_id, *item_id);
+                                true
+                            }
+                            EquipmentShortcutModeResult::DropEquipment(item_id) => {
+                                item::drop_equipment(world, player_id, *item_id);
+                                true
+                            }
+                        }
+                    }
+
                     _ => unreachable!(),
                 }
             } else {
@@ -256,6 +275,17 @@ impl DungeonMode {
                             inputs.clear_input();
                             return (
                                 ModeControl::Push(InventoryShortcutMode::new(world, action).into()),
+                                ModeUpdate::Immediate,
+                            );
+                        } else {
+                            false
+                        }
+                    }
+                    PlayerInputResult::ShowEquipmentShortcut(key) => {
+                        if let Some(action) = EquipmentAction::from_key(key) {
+                            inputs.clear_input();
+                            return (
+                                ModeControl::Push(EquipmentShortcutMode::new(world, action).into()),
                                 ModeUpdate::Immediate,
                             );
                         } else {
