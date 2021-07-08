@@ -4,6 +4,7 @@ use crate::{
     components::{Equipment, Name, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
+    menu_memory::MenuMemory,
     message::Messages,
     player::PlayerId,
     ui::{self, Options},
@@ -43,29 +44,31 @@ pub struct EquipmentShortcutMode {
 /// equipment action modes.
 impl EquipmentShortcutMode {
     pub fn new(world: &World, action: EquipmentAction) -> Self {
-        let items = {
-            let player_id = world.borrow::<UniqueView<PlayerId>>();
-            let equipments = world.borrow::<View<Equipment>>();
-            let player_equipment = equipments.get(player_id.0);
-            player_equipment
-                .weapon
-                .iter()
-                .copied()
-                .chain(player_equipment.armor)
-                .collect::<Vec<EntityId>>()
-        };
+        let menu_memory = world.borrow::<UniqueView<MenuMemory>>();
+        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let equipments = world.borrow::<View<Equipment>>();
+        let names = world.borrow::<View<Name>>();
+        let player_equipment = equipments.get(player_id.0);
+        let items = player_equipment
+            .weapon
+            .iter()
+            .copied()
+            .chain(player_equipment.armor)
+            .collect::<Vec<EntityId>>();
         let title = format!("< {} Equipment >", action.name());
         let prompt = format!("{} which equipment?", action.name());
-        let inner_width = {
-            let names = world.borrow::<View<Name>>();
-            title.len().max(prompt.len()).max(CANCEL.len()).max(
-                items
-                    .iter()
-                    .map(|it| names.get(*it).0.len() + 2)
-                    .max()
-                    .unwrap_or(2),
-            )
+        let inner_width = title.len().max(prompt.len()).max(CANCEL.len()).max(
+            items
+                .iter()
+                .map(|it| names.get(*it).0.len() + 2)
+                .max()
+                .unwrap_or(2),
+        );
+        let selection = match action {
+            EquipmentAction::RemoveEquipment => menu_memory[MenuMemory::EQUIPMENT_SHORTCUT_REMOVE],
+            EquipmentAction::DropEquipment => menu_memory[MenuMemory::EQUIPMENT_SHORTCUT_DROP],
         };
+        let selection = selection.min(items.len().saturating_sub(1) as i32);
 
         Self {
             action,
@@ -74,7 +77,7 @@ impl EquipmentShortcutMode {
             items,
             inner_width: inner_width as i32,
             subsection: SubSection::Items,
-            selection: 0,
+            selection,
         }
     }
 
@@ -230,6 +233,21 @@ impl EquipmentShortcutMode {
                             }
                         }
                     }
+                }
+
+                // Update equipment shortcut menu memory for the matching action.
+                {
+                    let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
+                    let menu_memory = match self.action {
+                        EquipmentAction::RemoveEquipment => {
+                            &mut menu_memory[MenuMemory::EQUIPMENT_SHORTCUT_REMOVE]
+                        }
+                        EquipmentAction::DropEquipment => {
+                            &mut menu_memory[MenuMemory::EQUIPMENT_SHORTCUT_DROP]
+                        }
+                    };
+
+                    *menu_memory = self.selection;
                 }
             }
 

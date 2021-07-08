@@ -1,9 +1,10 @@
-use shipyard::{EntityId, Get, UniqueView, View, World};
+use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
     components::{Equipment, Inventory, Name, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
+    menu_memory::MenuMemory,
     player::PlayerId,
     ui::{self, Options},
 };
@@ -47,22 +48,23 @@ pub struct InventoryMode {
 /// Show a screen with items carried by the player, and allow them to be manipulated.
 impl InventoryMode {
     pub fn new(world: &World) -> Self {
-        let inv_min_width = world.run(
-            |player_id: UniqueView<PlayerId>, inventories: View<Inventory>, names: View<Name>| {
-                inventories
-                    .get(player_id.0)
-                    .items
-                    .iter()
-                    .map(|it| names.get(*it).0.len() + 2)
-                    .max()
-                    .unwrap_or(0)
-            },
-        );
+        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let inventories = world.borrow::<View<Inventory>>();
+        let names = world.borrow::<View<Name>>();
+        let player_inventory = inventories.get(player_id.0);
+        let inv_min_width = player_inventory
+            .items
+            .iter()
+            .map(|it| names.get(*it).0.len() + 2)
+            .max()
+            .unwrap_or(0);
+        let inv_selection = world.borrow::<UniqueView<MenuMemory>>()[MenuMemory::INVENTORY]
+            .min(player_inventory.items.len().saturating_sub(1) as i32);
 
         Self {
             main_width: std::cmp::max(30, inv_min_width as i32),
             subsection: SubSection::Inventory,
-            inv_selection: 0,
+            inv_selection,
         }
     }
 
@@ -390,6 +392,8 @@ impl InventoryMode {
                 }
                 _ => {}
             }
+
+            world.borrow::<UniqueViewMut<MenuMemory>>()[MenuMemory::INVENTORY] = self.inv_selection;
 
             (ModeControl::Stay, ModeUpdate::WaitForEvent)
         } else {

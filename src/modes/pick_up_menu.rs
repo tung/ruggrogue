@@ -5,6 +5,7 @@ use crate::{
     gamekey::{self, GameKey},
     gamesym::GameSym,
     map::Map,
+    menu_memory::MenuMemory,
     message::Messages,
     player::PlayerId,
     ui::{self, Options},
@@ -41,34 +42,39 @@ pub struct PickUpMenuMode {
 /// Show a list of items that player is on top of and let them choose one to pick up.
 impl PickUpMenuMode {
     pub fn new(world: &World) -> Self {
-        let (items, width) = world.run(
-            |map: UniqueView<Map>,
-             player_id: UniqueView<PlayerId>,
-             coords: View<Coord>,
-             items: View<Item>,
-             names: View<Name>| {
-                let player_coord = coords.get(player_id.0);
-                let items = map
-                    .iter_entities_at(player_coord.0.x, player_coord.0.y)
-                    .filter(|id| items.contains(*id))
-                    .collect::<Vec<_>>();
-                let width = TITLE.len().max(PROMPT.len()).max(CANCEL.len()).max(
-                    items
-                        .iter()
-                        .map(|it| names.get(*it).0.len() + 2)
-                        .max()
-                        .unwrap_or(2),
-                );
-
-                (items, width)
-            },
+        let map = world.borrow::<UniqueView<Map>>();
+        let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
+        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let coords = world.borrow::<View<Coord>>();
+        let items = world.borrow::<View<Item>>();
+        let names = world.borrow::<View<Name>>();
+        let player_coord = coords.get(player_id.0);
+        let items = map
+            .iter_entities_at(player_coord.0.x, player_coord.0.y)
+            .filter(|id| items.contains(*id))
+            .collect::<Vec<_>>();
+        let width = TITLE.len().max(PROMPT.len()).max(CANCEL.len()).max(
+            items
+                .iter()
+                .map(|it| names.get(*it).0.len() + 2)
+                .max()
+                .unwrap_or(2),
         );
+        let selection = if items.is_empty() {
+            0
+        } else if player_coord.0 != menu_memory.pick_up_pos {
+            menu_memory[MenuMemory::PICK_UP] = 0;
+            menu_memory.pick_up_pos = player_coord.0;
+            0
+        } else {
+            menu_memory[MenuMemory::PICK_UP].min(items.len().saturating_sub(1) as i32)
+        };
 
         Self {
             items,
             width: width as i32,
             subsection: SubSection::Items,
-            selection: 0,
+            selection,
         }
     }
 
@@ -209,6 +215,8 @@ impl PickUpMenuMode {
                     }
                     _ => {}
                 }
+
+                world.borrow::<UniqueViewMut<MenuMemory>>()[MenuMemory::PICK_UP] = self.selection;
             }
 
             (ModeControl::Stay, ModeUpdate::WaitForEvent)

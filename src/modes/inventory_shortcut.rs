@@ -4,6 +4,7 @@ use crate::{
     components::{AreaOfEffect, Inventory, Name, Ranged, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
+    menu_memory::MenuMemory,
     message::Messages,
     player::PlayerId,
     ui::{self, Options},
@@ -48,29 +49,32 @@ pub struct InventoryShortcutMode {
 /// inventory action modes.
 impl InventoryShortcutMode {
     pub fn new(world: &World, action: InventoryAction) -> Self {
-        let items = {
-            let player_id = world.borrow::<UniqueView<PlayerId>>();
-            let inventories = world.borrow::<View<Inventory>>();
-            let player_inv = inventories.get(player_id.0);
-            player_inv
-                .items
-                .iter()
-                .filter(|it| InventoryAction::item_supports_action(world, **it, action))
-                .copied()
-                .collect::<Vec<EntityId>>()
-        };
+        let menu_memory = world.borrow::<UniqueView<MenuMemory>>();
+        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let inventories = world.borrow::<View<Inventory>>();
+        let names = world.borrow::<View<Name>>();
+        let player_inv = inventories.get(player_id.0);
+        let items = player_inv
+            .items
+            .iter()
+            .filter(|it| InventoryAction::item_supports_action(world, **it, action))
+            .copied()
+            .collect::<Vec<EntityId>>();
         let title = format!("< {} Item >", action.name());
         let prompt = format!("{} which item?", action.name());
-        let inner_width = {
-            let names = world.borrow::<View<Name>>();
-            title.len().max(prompt.len()).max(CANCEL.len()).max(
-                items
-                    .iter()
-                    .map(|it| names.get(*it).0.len() + 2)
-                    .max()
-                    .unwrap_or(2),
-            )
+        let inner_width = title.len().max(prompt.len()).max(CANCEL.len()).max(
+            items
+                .iter()
+                .map(|it| names.get(*it).0.len() + 2)
+                .max()
+                .unwrap_or(2),
+        );
+        let selection = match action {
+            InventoryAction::EquipItem => menu_memory[MenuMemory::INVENTORY_SHORTCUT_EQUIP],
+            InventoryAction::UseItem => menu_memory[MenuMemory::INVENTORY_SHORTCUT_USE],
+            InventoryAction::DropItem => menu_memory[MenuMemory::INVENTORY_SHORTCUT_DROP],
         };
+        let selection = selection.min(items.len().saturating_sub(1) as i32);
 
         Self {
             action,
@@ -79,7 +83,7 @@ impl InventoryShortcutMode {
             items,
             inner_width: inner_width as i32,
             subsection: SubSection::Items,
-            selection: 0,
+            selection,
         }
     }
 
@@ -273,6 +277,24 @@ impl InventoryShortcutMode {
                             }
                         }
                     }
+                }
+
+                // Update inventory shortcut menu memory for the matching action.
+                {
+                    let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
+                    let menu_memory = match self.action {
+                        InventoryAction::EquipItem => {
+                            &mut menu_memory[MenuMemory::INVENTORY_SHORTCUT_EQUIP]
+                        }
+                        InventoryAction::UseItem => {
+                            &mut menu_memory[MenuMemory::INVENTORY_SHORTCUT_USE]
+                        }
+                        InventoryAction::DropItem => {
+                            &mut menu_memory[MenuMemory::INVENTORY_SHORTCUT_DROP]
+                        }
+                    };
+
+                    *menu_memory = self.selection;
                 }
             }
 

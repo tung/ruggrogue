@@ -9,6 +9,7 @@ mod hunger;
 mod item;
 mod magicnum;
 mod map;
+mod menu_memory;
 mod message;
 mod modes;
 mod monster;
@@ -25,6 +26,7 @@ use crate::{
     experience::Difficulty,
     gamesym::GameSym,
     map::Map,
+    menu_memory::MenuMemory,
     message::Messages,
     modes::{dungeon::DungeonMode, ModeStack},
     monster::MonsterTurns,
@@ -55,6 +57,7 @@ fn main() {
     world.add_unique(GameSeed(game_seed));
     world.add_unique(TurnCount(0));
     world.add_unique(Difficulty::new(world.run(spawn::spawn_difficulty)));
+    world.add_unique(MenuMemory::new());
     world.add_unique(Messages::new(100));
     world.add_unique(Map::new(80, 50));
     world.add_unique(PlayerId(world.run(spawn::spawn_player)));
