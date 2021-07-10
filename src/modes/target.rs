@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use crate::{
     chunked::ChunkedMapGrid,
-    components::{Coord, FieldOfView, Item, Monster, Name, Player},
+    components::{Coord, FieldOfView, Monster},
     gamekey::{self, GameKey},
     gamesym::GameSym,
     map::Map,
@@ -317,38 +317,10 @@ impl TargetMode {
 
         // Describe the location that the cursor is positioned at.
         let cursor_desc = if self.valid.contains(&self.cursor) {
-            let (map, items, monsters, names, players) = world.borrow::<(
-                UniqueView<Map>,
-                View<Item>,
-                View<Monster>,
-                View<Name>,
-                View<Player>,
-            )>();
-            let entities_at = || map.iter_entities_at(self.cursor.0, self.cursor.1);
-            let monster_id = entities_at().find(|id| monsters.contains(*id));
-
-            if let Some(monster_id) = monster_id {
-                names.get(monster_id).0.clone()
-            } else {
-                let player_id = entities_at().find(|id| players.contains(*id));
-
-                if let Some(player_id) = player_id {
-                    names.get(player_id).0.clone()
-                } else {
-                    let item_count = entities_at().filter(|id| items.contains(*id)).count();
-
-                    #[allow(clippy::comparison_chain)]
-                    if item_count == 1 {
-                        let item_id = entities_at().find(|id| items.contains(*id));
-
-                        names.get(item_id.unwrap()).0.clone()
-                    } else if item_count > 1 {
-                        format!("{} items", item_count)
-                    } else {
-                        map.get_tile(self.cursor.0, self.cursor.1).to_string()
-                    }
-                }
-            }
+            world
+                .borrow::<UniqueView<Map>>()
+                .describe_pos(world, self.cursor.0, self.cursor.1, true)
+                .0
         } else {
             "Out of range".to_string()
         };

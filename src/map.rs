@@ -1,11 +1,16 @@
 use rand::{seq::IteratorRandom, Rng, SeedableRng};
 use rand_pcg::Pcg32;
-use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, ViewMut};
+use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 use std::{collections::HashMap, hash::Hasher};
 use wyhash::WyHash;
 
 use crate::{
-    bitgrid::BitGrid, chunked, components::Coord, gamesym::GameSym, magicnum, player::PlayerId,
+    bitgrid::BitGrid,
+    chunked,
+    components::{Coord, FieldOfView, Item, Monster, Name, Player},
+    gamesym::GameSym,
+    magicnum,
+    player::PlayerId,
     GameSeed,
 };
 use ruggle::util::Color;
@@ -354,6 +359,69 @@ impl Map {
             .map(|(_, es)| es.iter().copied())
             .into_iter()
             .flatten()
+    }
+
+    /// Describe a position on the map from the perspective of the player.
+    ///
+    /// Returns a description string and a bool that is true if the position is being recalled from
+    /// the seen memory of the player.
+    pub fn describe_pos(
+        &self,
+        world: &World,
+        x: i32,
+        y: i32,
+        is_targeting: bool,
+    ) -> (String, bool) {
+        if self.seen.get_bit(x, y) {
+            let in_player_fov = {
+                let player_id = world.borrow::<UniqueView<PlayerId>>();
+                let fovs = world.borrow::<View<FieldOfView>>();
+                fovs.get(player_id.0).get((x, y))
+            };
+
+            if in_player_fov {
+                let names = world.borrow::<View<Name>>();
+                let mut desc_vec = Vec::new();
+
+                if let Some(monster) = self
+                    .iter_entities_at(x, y)
+                    .find(|id| world.borrow::<View<Monster>>().contains(*id))
+                {
+                    desc_vec.push(names.get(monster).0.clone());
+                }
+
+                if let Some(player) = self
+                    .iter_entities_at(x, y)
+                    .find(|id| world.borrow::<View<Player>>().contains(*id))
+                {
+                    desc_vec.push(names.get(player).0.clone());
+                }
+
+                if desc_vec.is_empty() || !is_targeting {
+                    let mut items_at_pos = self
+                        .iter_entities_at(x, y)
+                        .filter(|id| world.borrow::<View<Item>>().contains(*id));
+
+                    if let Some(item) = items_at_pos.next() {
+                        let more_items_count = items_at_pos.count();
+
+                        if more_items_count > 0 {
+                            desc_vec.push(format!("{} items", more_items_count + 1));
+                        } else {
+                            desc_vec.push(names.get(item).0.clone());
+                        }
+                    }
+
+                    desc_vec.push(self.get_tile(x, y).to_string());
+                }
+
+                (desc_vec.join(", "), false)
+            } else {
+                (self.get_tile(x, y).to_string(), true)
+            }
+        } else {
+            ("nothing".to_string(), true)
+        }
     }
 }
 
