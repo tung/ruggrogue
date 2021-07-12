@@ -319,7 +319,7 @@ impl TargetMode {
         let cursor_desc = if self.valid.contains(&self.cursor) {
             world
                 .borrow::<UniqueView<Map>>()
-                .describe_pos(world, self.cursor.0, self.cursor.1, true)
+                .describe_pos(world, self.cursor.0, self.cursor.1, true, false, false)
                 .0
         } else {
             "Out of range".to_string()

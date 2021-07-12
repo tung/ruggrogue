@@ -2,11 +2,11 @@ use shipyard::{Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
     chunked::ChunkedMapGrid,
-    components::FieldOfView,
+    components::{Coord, FieldOfView},
     damage, experience,
     gamesym::GameSym,
     hunger, item,
-    map::{self, Map},
+    map::{self, Map, Tile},
     message::Messages,
     monster,
     player::{self, PlayerAlive, PlayerId, PlayerInputResult},
@@ -63,6 +63,10 @@ fn get_player_fov(player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>) -> (
     )
 }
 
+fn get_player_pos(player_id: UniqueView<PlayerId>, coords: View<Coord>) -> Position {
+    coords.get(player_id.0).0
+}
+
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
 /// perform other actions while alive, directly or indirectly.
 impl DungeonMode {
@@ -116,6 +120,7 @@ impl DungeonMode {
     ) -> (ModeControl, ModeUpdate) {
         if world.run(player::player_is_alive) {
             let old_player_fov = world.run(get_player_fov);
+            let old_player_pos = world.run(get_player_pos);
             let old_depth = world.borrow::<UniqueView<Map>>().depth;
             let time_passed = if let Some(result) = pop_result {
                 match result {
@@ -331,9 +336,32 @@ impl DungeonMode {
                     .mark_dirty(new_player_fov.0, new_player_fov.1);
             }
 
-            // Redraw all map chunks when changing levels.
-            if world.borrow::<UniqueView<Map>>().depth != old_depth {
-                self.chunked_map_grid.mark_all_dirty();
+            {
+                let new_depth = world.borrow::<UniqueView<Map>>().depth;
+                let new_player_pos = world.run(get_player_pos);
+
+                // Redraw all map chunks when changing levels.
+                if new_depth != old_depth {
+                    self.chunked_map_grid.mark_all_dirty();
+                }
+
+                // Describe tile contents when player moves onto a non-empty or interesting tile.
+                if new_depth != old_depth || new_player_pos != old_player_pos {
+                    let Position { x, y } = new_player_pos;
+                    let map = world.borrow::<UniqueView<Map>>();
+                    let more_than_player = map.iter_entities_at(x, y).nth(1).is_some();
+                    let interesting_tile = !matches!(map.get_tile(x, y), Tile::Floor | Tile::Wall);
+
+                    if more_than_player || interesting_tile {
+                        let (desc, recalled) = map.describe_pos(world, x, y, false, true, true);
+
+                        world.borrow::<UniqueViewMut<Messages>>().add(format!(
+                            "You {} {} here.",
+                            if recalled { "recall" } else { "see" },
+                            desc,
+                        ));
+                    }
+                }
             }
 
             (

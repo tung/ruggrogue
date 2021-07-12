@@ -370,7 +370,9 @@ impl Map {
         world: &World,
         x: i32,
         y: i32,
-        is_targeting: bool,
+        focus_on_target: bool,
+        omit_player: bool,
+        omit_boring_tiles: bool,
     ) -> (String, bool) {
         if self.seen.get_bit(x, y) {
             let in_player_fov = {
@@ -390,14 +392,16 @@ impl Map {
                     desc_vec.push(names.get(monster).0.clone());
                 }
 
-                if let Some(player) = self
-                    .iter_entities_at(x, y)
-                    .find(|id| world.borrow::<View<Player>>().contains(*id))
-                {
-                    desc_vec.push(names.get(player).0.clone());
+                if !omit_player {
+                    if let Some(player) = self
+                        .iter_entities_at(x, y)
+                        .find(|id| world.borrow::<View<Player>>().contains(*id))
+                    {
+                        desc_vec.push(names.get(player).0.clone());
+                    }
                 }
 
-                if desc_vec.is_empty() || !is_targeting {
+                if desc_vec.is_empty() || !focus_on_target {
                     let mut items_at_pos = self
                         .iter_entities_at(x, y)
                         .filter(|id| world.borrow::<View<Item>>().contains(*id));
@@ -412,7 +416,14 @@ impl Map {
                         }
                     }
 
-                    desc_vec.push(self.get_tile(x, y).to_string());
+                    let tile = self.get_tile(x, y);
+
+                    if desc_vec.is_empty()
+                        || !omit_boring_tiles
+                        || !matches!(tile, Tile::Floor | Tile::Wall)
+                    {
+                        desc_vec.push(tile.to_string());
+                    }
                 }
 
                 (desc_vec.join(", "), false)
