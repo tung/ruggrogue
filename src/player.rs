@@ -103,7 +103,8 @@ fn rotate_view(dx: i32, dy: i32) -> (i32, i32, i32, i32) {
     }
 }
 
-/// Check newly-adjacent tiles to the player for things worth stopping for during auto run.
+/// Check current and newly-adjacent tiles to the player for things worth stopping for during auto
+/// run.
 fn player_check_frontier(
     map: UniqueView<Map>,
     player_id: UniqueView<PlayerId>,
@@ -149,10 +150,15 @@ fn player_check_frontier(
 
     if auto_run_dx != 0 && auto_run_dy != 0 {
         // There are five newly-adjacent tiles after a diagonal move.
-        stop_for(-1, 1) || stop_for(0, 1) || stop_for(1, 1) || stop_for(1, 0) || stop_for(1, -1)
+        stop_for(0, 0)
+            || stop_for(-1, 1)
+            || stop_for(0, 1)
+            || stop_for(1, 1)
+            || stop_for(1, 0)
+            || stop_for(1, -1)
     } else {
         // There are three newly-adjacent tiles after a cardinal move.
-        stop_for(1, 1) || stop_for(1, 0) || stop_for(1, -1)
+        stop_for(0, 0) || stop_for(1, 1) || stop_for(1, 0) || stop_for(1, -1)
     }
 }
 
