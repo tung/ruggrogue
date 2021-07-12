@@ -1,7 +1,7 @@
 use shipyard::{Get, UniqueView, UniqueViewMut, View, World};
 
 use crate::{
-    chunked::ChunkedMapGrid,
+    chunked::{Camera, ChunkedMapGrid},
     components::{Coord, FieldOfView},
     damage, experience,
     gamesym::GameSym,
@@ -361,6 +361,12 @@ impl DungeonMode {
                             desc,
                         ));
                     }
+                }
+
+                // Make the camera follow the player.
+                {
+                    let mut camera = world.borrow::<UniqueViewMut<Camera>>();
+                    camera.0 = new_player_pos;
                 }
             }
 

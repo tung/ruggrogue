@@ -1,12 +1,6 @@
 use shipyard::{Get, UniqueView, View, World};
 
-use crate::{
-    components::{Coord, FieldOfView},
-    gamesym::GameSym,
-    map::Map,
-    player::PlayerId,
-    ui::Options,
-};
+use crate::{components::FieldOfView, gamesym::GameSym, map::Map, player::PlayerId, ui::Options};
 use ruggle::{
     util::{Color, Position, Size},
     Symbol, TileGrid, Tileset,
@@ -14,6 +8,14 @@ use ruggle::{
 
 pub const CHUNK_TILE_WIDTH: i32 = 8;
 pub const CHUNK_TILE_HEIGHT: i32 = 8;
+
+pub struct Camera(pub Position);
+
+impl Camera {
+    pub fn new() -> Self {
+        Self(Position { x: 40, y: 25 })
+    }
+}
 
 #[derive(Copy, Clone)]
 struct ScreenChunk {
@@ -32,7 +34,7 @@ struct ScreenChunk {
 /// positioned, mark parts of the map as dirty so that they can be redrawn, and draw onto the
 /// TileGrid.
 ///
-/// A ChunkedMapGrid is assumed to be centered about the map position of the player.
+/// A ChunkedMapGrid is centered on the map position of the camera.
 pub struct ChunkedMapGrid {
     screen_chunks: Vec<ScreenChunk>,
     chunks_across: i32,
@@ -56,10 +58,9 @@ impl ChunkedMapGrid {
     }
 
     /// Get the map chunk that should be at the top-left of the screen based on the position of the
-    /// player.
+    /// camera.
     fn screen_top_left_map_chunk(&self, world: &World) -> Position {
-        let player_pos = world
-            .run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| coords.get(player_id.0).0);
+        let camera_pos = world.borrow::<UniqueView<Camera>>().0;
         let tile_px_w = self.tile_size.w as i32;
         let tile_px_h = self.tile_size.h as i32;
         let screen_px_w = self.screen_size.w as i32;
@@ -68,12 +69,12 @@ impl ChunkedMapGrid {
         let chunk_px_h = CHUNK_TILE_HEIGHT * tile_px_h;
 
         Position {
-            x: (tile_px_w * (2 * player_pos.x + 1) - screen_px_w) / (2 * chunk_px_w),
-            y: (tile_px_h * (2 * player_pos.y + 1) - screen_px_h) / (2 * chunk_px_h),
+            x: (tile_px_w * (2 * camera_pos.x + 1) - screen_px_w) / (2 * chunk_px_w),
+            y: (tile_px_h * (2 * camera_pos.y + 1) - screen_px_h) / (2 * chunk_px_h),
         }
     }
 
-    /// Set up the grid to show chunks of the map centered about the player at the given position
+    /// Set up the grid to show chunks of the map centered about the camera at the given position
     /// and size on screen.
     pub fn prepare_grid<Y: Symbol>(
         &mut self,
@@ -176,34 +177,27 @@ impl ChunkedMapGrid {
     /// Draw all screen chunks flagged dirty to their destination on the grid with their matching
     /// map chunk and clear their dirty flags.
     pub fn draw(&mut self, world: &World, grid: &mut TileGrid<GameSym>) {
-        let (map, player_id, fovs, coords) = world.borrow::<(
-            UniqueView<Map>,
-            UniqueView<PlayerId>,
-            View<FieldOfView>,
-            View<Coord>,
-        )>();
-        let player_fov = fovs.get(player_id.0);
-        let player_pos = coords.get(player_id.0).0;
-        let player_chunk_x = player_pos.x / CHUNK_TILE_WIDTH;
-        let player_chunk_y = player_pos.y / CHUNK_TILE_HEIGHT;
+        let camera_pos = world.borrow::<UniqueView<Camera>>().0;
+        let camera_chunk_x = camera_pos.x / CHUNK_TILE_WIDTH;
+        let camera_chunk_y = camera_pos.y / CHUNK_TILE_HEIGHT;
         let tile_px_w = self.tile_size.w as i32;
         let tile_px_h = self.tile_size.h as i32;
         let chunk_px_w = tile_px_w * CHUNK_TILE_WIDTH;
         let chunk_px_h = tile_px_h * CHUNK_TILE_HEIGHT;
         let screen_px_w = self.screen_size.w as i32;
         let screen_px_h = self.screen_size.h as i32;
-        // Center pixel of the player position inside the map chunk that it exists within.
-        let player_in_chunk_x = (player_pos.x % CHUNK_TILE_WIDTH * 2 + 1) * tile_px_w / 2;
-        let player_in_chunk_y = (player_pos.y % CHUNK_TILE_HEIGHT * 2 + 1) * tile_px_h / 2;
+        // Center pixel of the camera position inside the map chunk that it exists within.
+        let camera_in_chunk_x = (camera_pos.x % CHUNK_TILE_WIDTH * 2 + 1) * tile_px_w / 2;
+        let camera_in_chunk_y = (camera_pos.y % CHUNK_TILE_HEIGHT * 2 + 1) * tile_px_h / 2;
         let top_left_chunk = self.screen_top_left_map_chunk(world);
         let top_left_tile_x = top_left_chunk.x * CHUNK_TILE_WIDTH;
         let top_left_tile_y = top_left_chunk.y * CHUNK_TILE_HEIGHT;
 
         // Calculate where the top-left pixel of the top-left grid should be relative to pos.
         grid.view.dx =
-            screen_px_w / 2 - (player_chunk_x - top_left_chunk.x) * chunk_px_w - player_in_chunk_x;
+            screen_px_w / 2 - (camera_chunk_x - top_left_chunk.x) * chunk_px_w - camera_in_chunk_x;
         grid.view.dy =
-            screen_px_h / 2 - (player_chunk_y - top_left_chunk.y) * chunk_px_h - player_in_chunk_y;
+            screen_px_h / 2 - (camera_chunk_y - top_left_chunk.y) * chunk_px_h - camera_in_chunk_y;
 
         // Arrange for the top-left chunk to be drawn at the top left of its designated rectangle.
         grid.set_draw_offset(Position {
@@ -266,6 +260,13 @@ impl ChunkedMapGrid {
                 }
             }
         }
+
+        let map = world.borrow::<UniqueView<Map>>();
+        let fovs = world.borrow::<View<FieldOfView>>();
+        let player_fov = {
+            let player_id = world.borrow::<UniqueView<PlayerId>>();
+            fovs.get(player_id.0)
+        };
 
         // Draw dirty grids and unflag them.
         for screen_chunk in self.screen_chunks.iter_mut() {

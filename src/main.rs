@@ -23,6 +23,7 @@ use shipyard::World;
 use std::{collections::HashMap, path::PathBuf};
 
 use crate::{
+    chunked::Camera,
     experience::Difficulty,
     gamesym::GameSym,
     map::Map,
@@ -56,6 +57,7 @@ fn main() {
     });
     world.add_unique(GameSeed(game_seed));
     world.add_unique(TurnCount(0));
+    world.add_unique(Camera::new());
     world.add_unique(Difficulty::new(world.run(spawn::spawn_difficulty)));
     world.add_unique(MenuMemory::new());
     world.add_unique(Messages::new(100));
