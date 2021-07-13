@@ -69,8 +69,8 @@ impl ChunkedMapGrid {
         let chunk_px_h = CHUNK_TILE_HEIGHT * tile_px_h;
 
         Position {
-            x: (tile_px_w * (2 * camera_pos.x + 1) - screen_px_w) / (2 * chunk_px_w),
-            y: (tile_px_h * (2 * camera_pos.y + 1) - screen_px_h) / (2 * chunk_px_h),
+            x: (tile_px_w * (2 * camera_pos.x + 1) - screen_px_w).div_euclid(2 * chunk_px_w),
+            y: (tile_px_h * (2 * camera_pos.y + 1) - screen_px_h).div_euclid(2 * chunk_px_h),
         }
     }
 
@@ -209,15 +209,19 @@ impl ChunkedMapGrid {
         // chunk.
         for chunk_y in 0..self.chunks_down {
             for chunk_x in 0..self.chunks_across {
-                let screen_chunk_x = if top_left_chunk.x + chunk_x < 0 {
-                    self.chunks_across - (-(top_left_chunk.x + chunk_x) % self.chunks_across)
-                } else {
-                    (top_left_chunk.x + chunk_x) % self.chunks_across
+                let screen_chunk_x = {
+                    let tmp_x = top_left_chunk.x + chunk_x;
+                    (tmp_x
+                        + (tmp_x.abs() + self.chunks_across - 1) / self.chunks_across
+                            * self.chunks_across)
+                        % self.chunks_across
                 };
-                let screen_chunk_y = if top_left_chunk.y + chunk_y < 0 {
-                    self.chunks_down - (-(top_left_chunk.y + chunk_y) % self.chunks_down)
-                } else {
-                    (top_left_chunk.y + chunk_y) % self.chunks_down
+                let screen_chunk_y = {
+                    let tmp_y = top_left_chunk.y + chunk_y;
+                    (tmp_y
+                        + (tmp_y.abs() + self.chunks_down - 1) / self.chunks_down
+                            * self.chunks_down)
+                        % self.chunks_down
                 };
                 let index = (screen_chunk_y * self.chunks_across + screen_chunk_x) as usize;
                 let screen_chunk = &mut self.screen_chunks[index];
@@ -235,25 +239,21 @@ impl ChunkedMapGrid {
 
         // Mark dirty rectangles too.
         for (dirty_pos, dirty_size) in self.dirty_rects.drain(..) {
-            let start_chunk_x = (dirty_pos.x / CHUNK_TILE_WIDTH).max(top_left_chunk.x);
-            let start_chunk_y = (dirty_pos.y / CHUNK_TILE_HEIGHT).max(top_left_chunk.y);
-            let end_chunk_x = ((dirty_pos.x + dirty_size.w as i32 - 1) / CHUNK_TILE_WIDTH)
-                .min(top_left_chunk.x + self.chunks_across - 1);
-            let end_chunk_y = ((dirty_pos.y + dirty_size.h as i32 - 1) / CHUNK_TILE_HEIGHT)
-                .min(top_left_chunk.y + self.chunks_down - 1);
+            let start_chunk_x = dirty_pos.x.div_euclid(CHUNK_TILE_WIDTH);
+            let start_chunk_y = dirty_pos.y.div_euclid(CHUNK_TILE_HEIGHT);
+            let end_chunk_x = (dirty_pos.x + dirty_size.w as i32 - 1).div_euclid(CHUNK_TILE_WIDTH);
+            let end_chunk_y = (dirty_pos.y + dirty_size.h as i32 - 1).div_euclid(CHUNK_TILE_HEIGHT);
 
             for dirty_chunk_y in start_chunk_y..=end_chunk_y {
                 for dirty_chunk_x in start_chunk_x..=end_chunk_x {
-                    let dirty_chunk_x = if dirty_chunk_x < 0 {
-                        self.chunks_across - (-dirty_chunk_x % self.chunks_across)
-                    } else {
-                        dirty_chunk_x % self.chunks_across
-                    };
-                    let dirty_chunk_y = if dirty_chunk_y < 0 {
-                        self.chunks_down - (-dirty_chunk_y % self.chunks_down)
-                    } else {
-                        dirty_chunk_y % self.chunks_down
-                    };
+                    let dirty_chunk_x = (dirty_chunk_x
+                        + (dirty_chunk_x.abs() + self.chunks_across - 1) / self.chunks_across
+                            * self.chunks_across)
+                        % self.chunks_across;
+                    let dirty_chunk_y = (dirty_chunk_y
+                        + (dirty_chunk_y.abs() + self.chunks_down - 1) / self.chunks_down
+                            * self.chunks_down)
+                        % self.chunks_down;
                     let index = (dirty_chunk_y * self.chunks_across + dirty_chunk_x) as usize;
 
                     self.screen_chunks[index].dirty = true;
