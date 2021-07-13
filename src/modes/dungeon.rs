@@ -26,6 +26,7 @@ use super::{
     inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult},
     options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult},
+    view_map::{ViewMapMode, ViewMapModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
@@ -230,6 +231,11 @@ impl DungeonMode {
                         }
                     }
 
+                    ModeResult::ViewMapModeResult(result) => match result {
+                        ViewMapModeResult::AppQuit => return app_quit_dialog(inputs),
+                        ViewMapModeResult::Done => false,
+                    },
+
                     _ => unreachable!(),
                 }
             } else {
@@ -241,6 +247,13 @@ impl DungeonMode {
                         inputs.clear_input();
                         return (
                             ModeControl::Push(OptionsMenuMode::new().into()),
+                            ModeUpdate::Immediate,
+                        );
+                    }
+                    PlayerInputResult::ViewMap => {
+                        inputs.clear_input();
+                        return (
+                            ModeControl::Push(ViewMapMode::new(world).into()),
                             ModeUpdate::Immediate,
                         );
                     }
