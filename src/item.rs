@@ -2,6 +2,7 @@ use shipyard::{
     AllStoragesViewMut, EntitiesView, EntityId, Get, Remove, UniqueView, UniqueViewMut, View,
     ViewMut, World,
 };
+use std::cmp::Ordering;
 
 use crate::{
     components::*,
@@ -131,6 +132,141 @@ pub fn equip_item(world: &World, equipper_id: EntityId, item_id: EntityId) {
         &names.get(equipper_id).0,
         &names.get(item_id).0
     ));
+}
+
+pub fn sort_inventory(world: &World, holder: EntityId) {
+    let aoes = world.borrow::<View<AreaOfEffect>>();
+    let combat_bonuses = world.borrow::<View<CombatBonus>>();
+    let inflicts_damages = world.borrow::<View<InflictsDamage>>();
+    let inflicts_sleeps = world.borrow::<View<InflictsSleep>>();
+    let names = world.borrow::<View<Name>>();
+    let provides_healings = world.borrow::<View<ProvidesHealing>>();
+    let nutritions = world.borrow::<View<Nutrition>>();
+    let rangeds = world.borrow::<View<Ranged>>();
+    let item_order = |&a: &EntityId, &b: &EntityId| -> Ordering {
+        // Ration
+        {
+            let a_is_ration = nutritions.contains(a);
+            let b_is_ration = nutritions.contains(b);
+
+            if a_is_ration && b_is_ration {
+                return Ordering::Equal;
+            } else if a_is_ration {
+                return Ordering::Less;
+            } else if b_is_ration {
+                return Ordering::Greater;
+            }
+        }
+
+        // Health Potion
+        {
+            let a_is_heal = provides_healings.contains(a);
+            let b_is_heal = provides_healings.contains(b);
+
+            if a_is_heal && b_is_heal {
+                return Ordering::Equal;
+            } else if a_is_heal {
+                return Ordering::Less;
+            } else if b_is_heal {
+                return Ordering::Greater;
+            }
+        }
+
+        // Magic Missile Scroll
+        {
+            let a_is_mms = rangeds.contains(a) && !aoes.contains(a) && inflicts_damages.contains(a);
+            let b_is_mms = rangeds.contains(b) && !aoes.contains(b) && inflicts_damages.contains(b);
+
+            if a_is_mms && b_is_mms {
+                return Ordering::Equal;
+            } else if a_is_mms {
+                return Ordering::Less;
+            } else if b_is_mms {
+                return Ordering::Greater;
+            }
+        }
+
+        // Sleep Scroll
+        {
+            let a_is_sleep = inflicts_sleeps.contains(a);
+            let b_is_sleep = inflicts_sleeps.contains(b);
+
+            if a_is_sleep && b_is_sleep {
+                return Ordering::Equal;
+            } else if a_is_sleep {
+                return Ordering::Less;
+            } else if b_is_sleep {
+                return Ordering::Greater;
+            }
+        }
+
+        // Fireball Scroll
+        {
+            let a_is_fs = rangeds.contains(a) && aoes.contains(a) && inflicts_damages.contains(a);
+            let b_is_fs = rangeds.contains(b) && aoes.contains(b) && inflicts_damages.contains(b);
+
+            if a_is_fs && b_is_fs {
+                return Ordering::Equal;
+            } else if a_is_fs {
+                return Ordering::Less;
+            } else if b_is_fs {
+                return Ordering::Greater;
+            }
+        }
+
+        // Equipment
+        {
+            let a_cb = combat_bonuses.try_get(a);
+            let b_cb = combat_bonuses.try_get(b);
+
+            if let (Ok(a_cb), Ok(b_cb)) = (a_cb, b_cb) {
+                let a_is_weapon = a_cb.attack > a_cb.defense;
+                let b_is_weapon = b_cb.attack > b_cb.defense;
+
+                // Weapon
+                if a_is_weapon && b_is_weapon {
+                    return a_cb
+                        .attack
+                        .partial_cmp(&b_cb.attack)
+                        .unwrap_or(Ordering::Equal)
+                        .then(
+                            a_cb.defense
+                                .partial_cmp(&b_cb.defense)
+                                .unwrap_or(Ordering::Equal),
+                        )
+                        .reverse();
+                } else if a_is_weapon {
+                    return Ordering::Less;
+                } else if b_is_weapon {
+                    return Ordering::Greater;
+                }
+
+                // Armor
+                return a_cb
+                    .defense
+                    .partial_cmp(&b_cb.defense)
+                    .unwrap_or(Ordering::Equal)
+                    .then(
+                        a_cb.attack
+                            .partial_cmp(&b_cb.attack)
+                            .unwrap_or(Ordering::Equal),
+                    )
+                    .reverse();
+            } else if a_cb.is_ok() {
+                return Ordering::Less;
+            } else if b_cb.is_ok() {
+                return Ordering::Greater;
+            }
+        }
+
+        // Fall back to name comparison.
+        names.get(a).0.cmp(&names.get(b).0)
+    };
+
+    let mut inventories = world.borrow::<ViewMut<Inventory>>();
+    let holder_inv = (&mut inventories).get(holder);
+
+    holder_inv.items.sort_unstable_by(item_order);
 }
 
 pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {

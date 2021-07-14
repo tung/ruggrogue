@@ -4,6 +4,7 @@ use crate::{
     components::{Equipment, Inventory, Name, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
+    item,
     menu_memory::MenuMemory,
     player::PlayerId,
     ui::{self, Options},
@@ -16,6 +17,7 @@ use ruggle::{
 use super::{
     equipment_action::{EquipmentAction, EquipmentActionMode, EquipmentActionModeResult},
     inventory_action::{InventoryAction, InventoryActionMode, InventoryActionModeResult},
+    yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
 
@@ -208,6 +210,26 @@ impl InventoryMode {
                     ),
                 },
 
+                ModeResult::YesNoDialogModeResult(result) => match result {
+                    YesNoDialogModeResult::AppQuit => (
+                        ModeControl::Pop(InventoryModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    YesNoDialogModeResult::Yes => {
+                        let player_id = world.borrow::<UniqueView<PlayerId>>();
+                        item::sort_inventory(world, player_id.0);
+
+                        // Reset menu memory for inventory-related shortcut menus.
+                        let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
+                        menu_memory[MenuMemory::INVENTORY_SHORTCUT_EQUIP] = 0;
+                        menu_memory[MenuMemory::INVENTORY_SHORTCUT_USE] = 0;
+                        menu_memory[MenuMemory::INVENTORY_SHORTCUT_DROP] = 0;
+
+                        (ModeControl::Stay, ModeUpdate::WaitForEvent)
+                    }
+                    YesNoDialogModeResult::No => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                },
+
                 _ => unreachable!(),
             };
         }
@@ -304,7 +326,16 @@ impl InventoryMode {
                     self.subsection = SubSection::Inventory;
                     self.inv_selection = 0;
                 }
-                (SubSection::SortAll, GameKey::Confirm) => {} // TODO
+                (SubSection::SortAll, GameKey::Confirm) => {
+                    inputs.clear_input();
+                    return (
+                        ModeControl::Push(
+                            YesNoDialogMode::new("Sort all inventory items?".to_string(), true)
+                                .into(),
+                        ),
+                        ModeUpdate::Immediate,
+                    );
+                }
 
                 (SubSection::Inventory, GameKey::Up) => {
                     if self.inv_selection > 0 {
