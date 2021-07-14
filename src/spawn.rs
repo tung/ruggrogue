@@ -338,7 +338,7 @@ fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32,
     let item_id = spawn_item(
         world,
         pos,
-        format!("+{} {}", level + bonus, name),
+        format!("{:+} {}", level + bonus, name),
         sym,
         rgb.into(),
     );
@@ -364,7 +364,7 @@ fn spawn_armor<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, 
     let item_id = spawn_item(
         world,
         pos,
-        format!("+{} {}", level + bonus, name),
+        format!("{:+} {}", level + bonus, name),
         sym,
         rgb.into(),
     );

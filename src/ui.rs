@@ -119,10 +119,10 @@ fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
         );
 
         grid.print_color((2, 4), "Attack:", true, Color::LIGHT_GRAY, None);
-        grid.print((14, 4), &format!("{:.0}", player_stats.attack.round()));
+        grid.print((14, 4), &format!("{:+.0}", player_stats.attack.round()));
 
         grid.print_color((2, 5), "Defense:", true, Color::LIGHT_GRAY, None);
-        grid.print((14, 5), &format!("{:.0}", player_stats.defense.round()));
+        grid.print((14, 5), &format!("{:+.0}", player_stats.defense.round()));
     }
 
     // Hunger
