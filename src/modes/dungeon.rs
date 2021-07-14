@@ -351,6 +351,7 @@ impl DungeonMode {
 
             {
                 let new_depth = world.borrow::<UniqueView<Map>>().depth;
+                let turn_count = world.borrow::<UniqueView<TurnCount>>().0;
                 let new_player_pos = world.run(get_player_pos);
 
                 // Redraw all map chunks when changing levels.
@@ -358,8 +359,9 @@ impl DungeonMode {
                     self.chunked_map_grid.mark_all_dirty();
                 }
 
-                // Describe tile contents when player moves onto a non-empty or interesting tile.
-                if new_depth != old_depth || new_player_pos != old_player_pos {
+                // Describe tile contents when player moves onto a non-empty or interesting tile,
+                // or it's the first turn and the player happened to spawn on top of an item.
+                if new_depth != old_depth || new_player_pos != old_player_pos || turn_count == 1 {
                     let Position { x, y } = new_player_pos;
                     let map = world.borrow::<UniqueView<Map>>();
                     let more_than_player = map.iter_entities_at(x, y).nth(1).is_some();
