@@ -35,42 +35,6 @@ pub struct RunSettings<Y: Symbol> {
     pub tileset_infos: Vec<TilesetInfo<Y>>,
 }
 
-fn handle_event<Y: Symbol>(
-    event: &Event,
-    layers: &mut [TileGridLayer<Y>],
-    window_size: &mut (u32, u32),
-    new_mouse_shown: &mut Option<bool>,
-) {
-    match event {
-        Event::Window {
-            win_event: WindowEvent::Resized(w, h),
-            ..
-        } => {
-            *window_size = (*w as u32, *h as u32);
-        }
-        Event::KeyDown { .. } | Event::KeyUp { .. } => *new_mouse_shown = Some(false),
-        Event::MouseMotion { .. }
-        | Event::MouseButtonDown { .. }
-        | Event::MouseButtonUp { .. }
-        | Event::MouseWheel { .. } => *new_mouse_shown = Some(true),
-        Event::RenderTargetsReset { .. } => {
-            for layer in layers.iter_mut() {
-                for grid in &mut layer.grids {
-                    grid.flag_texture_reset();
-                }
-            }
-        }
-        Event::RenderDeviceReset { .. } => {
-            for layer in layers.iter_mut() {
-                for grid in &mut layer.grids {
-                    grid.flag_texture_recreate();
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
 /// Create a window and run a main event loop that calls `update` repeatedly.
 ///
 /// `update` should return a [RunControl] enum variant to control the loop behavior.
@@ -142,25 +106,43 @@ where
         let mut new_mouse_shown = None;
 
         // Wait for an event if waiting is requested.
-        if !active_update && !inputs.more_inputs() {
-            let event = event_pump.wait_event();
-            handle_event(
-                &event,
-                &mut layers[..],
-                &mut window_size,
-                &mut new_mouse_shown,
-            );
-            inputs.handle_event(&event);
-        }
+        let waited_event = if !active_update && !inputs.more_inputs() {
+            Some(event_pump.wait_event())
+        } else {
+            None
+        };
 
-        // Poll for additional events.
-        for event in event_pump.poll_iter() {
-            handle_event(
-                &event,
-                &mut layers[..],
-                &mut window_size,
-                &mut new_mouse_shown,
-            );
+        // Poll for additional events and handle all events.
+        for event in waited_event.into_iter().chain(event_pump.poll_iter()) {
+            match event {
+                Event::Window {
+                    win_event: WindowEvent::Resized(w, h),
+                    ..
+                } => {
+                    window_size = (w as u32, h as u32);
+                }
+                Event::KeyDown { .. } | Event::KeyUp { .. } => new_mouse_shown = Some(false),
+                Event::MouseMotion { .. }
+                | Event::MouseButtonDown { .. }
+                | Event::MouseButtonUp { .. }
+                | Event::MouseWheel { .. } => new_mouse_shown = Some(true),
+                Event::RenderTargetsReset { .. } => {
+                    for layer in layers.iter_mut() {
+                        for grid in &mut layer.grids {
+                            grid.flag_texture_reset();
+                        }
+                    }
+                }
+                Event::RenderDeviceReset { .. } => {
+                    for layer in layers.iter_mut() {
+                        for grid in &mut layer.grids {
+                            grid.flag_texture_recreate();
+                        }
+                    }
+                }
+                _ => {}
+            }
+
             inputs.handle_event(&event);
         }
 
