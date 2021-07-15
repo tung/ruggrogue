@@ -27,6 +27,7 @@ pub mod app_quit_dialog;
 pub mod dungeon;
 pub mod equipment_action;
 pub mod equipment_shortcut;
+pub mod game_over;
 pub mod inventory;
 pub mod inventory_action;
 pub mod inventory_shortcut;
@@ -45,6 +46,7 @@ use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
 use dungeon::{DungeonMode, DungeonModeResult};
 use equipment_action::{EquipmentActionMode, EquipmentActionModeResult};
 use equipment_shortcut::{EquipmentShortcutMode, EquipmentShortcutModeResult};
+use game_over::{GameOverMode, GameOverModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
 use inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult};
@@ -62,6 +64,7 @@ pub enum Mode {
     DungeonMode(DungeonMode),
     EquipmentActionMode(EquipmentActionMode),
     EquipmentShortcutMode(EquipmentShortcutMode),
+    GameOverMode(GameOverMode),
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
     InventoryShortcutMode(InventoryShortcutMode),
@@ -93,6 +96,12 @@ impl From<EquipmentActionMode> for Mode {
 impl From<EquipmentShortcutMode> for Mode {
     fn from(mode: EquipmentShortcutMode) -> Self {
         Self::EquipmentShortcutMode(mode)
+    }
+}
+
+impl From<GameOverMode> for Mode {
+    fn from(mode: GameOverMode) -> Self {
+        Self::GameOverMode(mode)
     }
 }
 
@@ -153,6 +162,7 @@ pub enum ModeResult {
     DungeonModeResult(DungeonModeResult),
     EquipmentActionModeResult(EquipmentActionModeResult),
     EquipmentShortcutModeResult(EquipmentShortcutModeResult),
+    GameOverModeResult(GameOverModeResult),
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
     InventoryShortcutModeResult(InventoryShortcutModeResult),
@@ -184,6 +194,12 @@ impl From<EquipmentActionModeResult> for ModeResult {
 impl From<EquipmentShortcutModeResult> for ModeResult {
     fn from(result: EquipmentShortcutModeResult) -> Self {
         Self::EquipmentShortcutModeResult(result)
+    }
+}
+
+impl From<GameOverModeResult> for ModeResult {
+    fn from(result: GameOverModeResult) -> Self {
+        Self::GameOverModeResult(result)
     }
 }
 
@@ -278,6 +294,7 @@ impl Mode {
             Mode::DungeonMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::EquipmentActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::EquipmentShortcutMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::GameOverMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryShortcutMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
@@ -301,6 +318,7 @@ impl Mode {
             Mode::DungeonMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::EquipmentActionMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::EquipmentShortcutMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::GameOverMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryShortcutMode(x) => x.update(world, inputs, grids, pop_result),
@@ -318,6 +336,7 @@ impl Mode {
             Mode::DungeonMode(x) => x.draw(world, grids, active),
             Mode::EquipmentActionMode(x) => x.draw(world, grids, active),
             Mode::EquipmentShortcutMode(x) => x.draw(world, grids, active),
+            Mode::GameOverMode(x) => x.draw(world, grids, active),
             Mode::InventoryMode(x) => x.draw(world, grids, active),
             Mode::InventoryActionMode(x) => x.draw(world, grids, active),
             Mode::InventoryShortcutMode(x) => x.draw(world, grids, active),
@@ -336,6 +355,7 @@ impl Mode {
             Mode::DungeonMode(_) => false,
             Mode::EquipmentActionMode(_) => true,
             Mode::EquipmentShortcutMode(_) => true,
+            Mode::GameOverMode(_) => false,
             Mode::InventoryMode(_) => true,
             Mode::InventoryActionMode(_) => true,
             Mode::InventoryShortcutMode(_) => true,

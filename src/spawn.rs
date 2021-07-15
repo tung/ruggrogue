@@ -103,10 +103,11 @@ pub fn spawn_player(
     mut inventories: ViewMut<Inventory>,
     mut names: ViewMut<Name>,
     mut players: ViewMut<Player>,
-    (mut render_on_maps, mut renderables, mut stomachs): (
+    (mut render_on_maps, mut renderables, mut stomachs, mut tallies): (
         ViewMut<RenderOnMap>,
         ViewMut<Renderable>,
         ViewMut<Stomach>,
+        ViewMut<Tally>,
     ),
 ) -> EntityId {
     let id = entities.add_entity(
@@ -155,11 +156,18 @@ pub fn spawn_player(
     );
 
     entities.add_component(
-        (&mut equipments,),
-        (Equipment {
-            weapon: None,
-            armor: None,
-        },),
+        (&mut equipments, &mut tallies),
+        (
+            Equipment {
+                weapon: None,
+                armor: None,
+            },
+            Tally {
+                damage_dealt: 0,
+                damage_taken: 0,
+                kills: 0,
+            },
+        ),
         id,
     );
 

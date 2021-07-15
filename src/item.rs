@@ -287,6 +287,7 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
         let players = world.borrow::<View<Player>>();
         let provides_healings = world.borrow::<View<ProvidesHealing>>();
         let mut stomachs = world.borrow::<ViewMut<Stomach>>();
+        let mut tallies = world.borrow::<ViewMut<Tally>>();
 
         let center = target.unwrap_or_else(|| coords.get(user_id).0.into());
         let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
@@ -330,6 +331,12 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
                 if let Ok(InflictsDamage { damage }) = inflicts_damages.try_get(item_id) {
                     stats.hp -= damage;
                     entities.add_component(&mut hurt_bys, HurtBy::Someone(user_id), target_id);
+                    if let Ok(user_tally) = (&mut tallies).try_get(user_id) {
+                        user_tally.damage_dealt += *damage.max(&0) as u64;
+                    }
+                    if let Ok(target_tally) = (&mut tallies).try_get(target_id) {
+                        target_tally.damage_taken += *damage.max(&0) as u64;
+                    }
                     msgs.add(format!(
                         "{} hits {} for {} hp.",
                         item_name, target_name, damage,

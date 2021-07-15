@@ -4,7 +4,7 @@ use shipyard::{
 };
 
 use crate::{
-    components::{CombatStats, HurtBy, Name, Player, Stomach},
+    components::{CombatStats, HurtBy, Name, Player, Stomach, Tally},
     message::Messages,
     player::PlayerId,
 };
@@ -136,6 +136,7 @@ pub fn tick_hunger(
     names: View<Name>,
     mut players: ViewMut<Player>,
     mut stomachs: ViewMut<Stomach>,
+    mut tallies: ViewMut<Tally>,
 ) {
     for (id, stomach) in (&mut stomachs).iter().with_id() {
         let name = names.get(id);
@@ -192,9 +193,12 @@ pub fn tick_hunger(
                     stomach.sub_hp -= stats.max_hp;
                     if -stomach.sub_hp >= starve_turns && starve_turns > 0 {
                         let amount = -stomach.sub_hp / starve_turns;
-                        stats.hp = (stats.hp - amount).max(0);
+                        stats.hp -= amount;
                         stomach.sub_hp += starve_turns * amount;
                         entities.add_component(&mut hurt_bys, HurtBy::Starvation, id);
+                        if let Ok(tally) = (&mut tallies).try_get(id) {
+                            tally.damage_taken += amount.max(0) as u64;
+                        }
 
                         // Stop auto-run when taking damage from starvation.
                         if let Ok(player) = (&mut players).try_get(id) {

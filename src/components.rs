@@ -166,3 +166,9 @@ pub struct Stomach {
     pub max_fullness: i32,
     pub sub_hp: i32,
 }
+
+pub struct Tally {
+    pub damage_dealt: u64,
+    pub damage_taken: u64,
+    pub kills: u64,
+}

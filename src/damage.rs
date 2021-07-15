@@ -10,7 +10,7 @@ use wyhash::WyHash;
 use crate::{
     components::{
         Asleep, BlocksTile, CombatBonus, CombatStats, Coord, Equipment, Experience,
-        GivesExperience, HurtBy, Name,
+        GivesExperience, HurtBy, Name, Tally,
     },
     magicnum,
     map::Map,
@@ -92,9 +92,17 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
         };
 
     if damage > 0 {
-        msgs.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
+        let mut tallies = world.borrow::<ViewMut<Tally>>();
+
         (&mut combat_stats).get(defender).hp -= damage;
         entities.add_component(&mut hurt_bys, HurtBy::Someone(attacker), defender);
+        if let Ok(att_tally) = (&mut tallies).try_get(attacker) {
+            att_tally.damage_dealt += damage.max(0) as u64;
+        }
+        if let Ok(def_tally) = (&mut tallies).try_get(defender) {
+            def_tally.damage_taken += damage.max(0) as u64;
+        }
+        msgs.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
     } else {
         msgs.add(format!(
             "{} hits {}, but does no damage.",
@@ -128,12 +136,18 @@ pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
                 msgs.add(format!("{} dies!", &names.get(entity).0));
             });
 
-            // Give experience to whoever last hurt this entity, if applicable.
             all_storages.run(
                 |mut exps: ViewMut<Experience>,
                  gives_exps: View<GivesExperience>,
-                 hurt_bys: View<HurtBy>| {
+                 hurt_bys: View<HurtBy>,
+                 mut tallies: ViewMut<Tally>| {
                     if let Ok(&HurtBy::Someone(receiver)) = hurt_bys.try_get(entity) {
+                        // Credit kill to whoever last hurt this entity.
+                        if let Ok(receiver_tally) = (&mut tallies).try_get(receiver) {
+                            receiver_tally.kills += 1;
+                        }
+
+                        // Give experience to whoever last hurt this entity.
                         if let Ok(receiver_exp) = (&mut exps).try_get(receiver) {
                             if let Ok(gives_exp) = gives_exps.try_get(entity) {
                                 receiver_exp.exp += gives_exp.0;
@@ -155,6 +169,7 @@ pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
 
                 // Don't handle any more dead entities.
                 num_entities = 0;
+                break;
             } else {
                 // Remove dead entity from the map.
                 all_storages.run(
