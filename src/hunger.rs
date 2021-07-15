@@ -168,7 +168,7 @@ pub fn tick_hunger(
             }
 
             let new_hunger = HungerState::from(stomach.fullness);
-            if new_hunger != old_hunger {
+            if new_hunger != old_hunger && !matches!(new_hunger, HungerState::Normal) {
                 // Stop auto-run when hunger state changes.
                 if let Ok(player) = (&mut players).try_get(id) {
                     player.auto_run = None;
