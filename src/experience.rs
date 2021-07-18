@@ -1,5 +1,5 @@
 use rand::Rng;
-use shipyard::{EntityId, Get, IntoIter, IntoWithId, UniqueView, UniqueViewMut, View, ViewMut};
+use shipyard::{EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut};
 
 use crate::{
     components::{CombatStats, Experience, GivesExperience, Monster, Name, Player},
@@ -29,14 +29,14 @@ impl Difficulty {
 
     /// Get the level tracked by difficulty with a fractional part based on experience.
     pub fn as_f32(&self, exps: &View<Experience>) -> f32 {
-        let difficulty_exp = exps.get(self.id).unwrap();
+        let difficulty_exp = exps.get(self.id);
         difficulty_exp.level as f32 + difficulty_exp.exp as f32 / difficulty_exp.next as f32
     }
 
     /// Get the level tracked by difficulty, with a random chance of being the next level up based
     /// on experience progress.
     pub fn get_round_random<R: Rng>(&self, exps: &View<Experience>, rng: &mut R) -> i32 {
-        let difficulty_exp = exps.get(self.id).unwrap();
+        let difficulty_exp = exps.get(self.id);
 
         if difficulty_exp.next > 0 && rng.gen_range(0, difficulty_exp.next) < difficulty_exp.exp {
             difficulty_exp.level + 1
@@ -78,7 +78,7 @@ pub fn redeem_exp_for_next_depth(
     mut difficulty: UniqueViewMut<Difficulty>,
     mut exps: ViewMut<Experience>,
 ) {
-    let mut difficulty_exp = (&mut exps).get(difficulty.id).unwrap();
+    let difficulty_exp = (&mut exps).get(difficulty.id);
 
     difficulty_exp.exp += difficulty.exp_for_next_depth;
     difficulty.exp_for_next_depth = 0;
@@ -133,7 +133,7 @@ pub fn gain_levels(
     names: View<Name>,
     players: View<Player>,
 ) {
-    for (id, mut exp) in (&mut exps).iter().with_id() {
+    for (id, exp) in (&mut exps).iter().with_id() {
         if exp.next > 0 {
             while exp.exp >= exp.next {
                 exp.level += 1;
@@ -141,7 +141,7 @@ pub fn gain_levels(
                 exp.base += exp.next;
                 exp.next = exp.next * 6 / 5;
 
-                if let Ok(mut stats) = (&mut combat_stats).get(id) {
+                if let Ok(stats) = (&mut combat_stats).try_get(id) {
                     let hp_gain;
                     let new_attack;
                     let new_defense;
@@ -163,11 +163,7 @@ pub fn gain_levels(
                     stats.defense = new_defense;
 
                     if id == player_id.0 {
-                        msgs.add(format!(
-                            "{} is now level {}!",
-                            &names.get(id).unwrap().0,
-                            exp.level
-                        ));
+                        msgs.add(format!("{} is now level {}!", &names.get(id).0, exp.level));
                     }
                 }
             }

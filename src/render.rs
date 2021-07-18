@@ -13,18 +13,16 @@ pub fn draw_renderables(
     world: &World,
     grid: &mut TileGrid<GameSym>,
 ) {
-    let (player_id, coords, fovs, render_on_floors, render_on_maps, renderables) = world
-        .borrow::<(
-            UniqueView<PlayerId>,
-            View<Coord>,
-            View<FieldOfView>,
-            View<RenderOnFloor>,
-            View<RenderOnMap>,
-            View<Renderable>,
-        )>()
-        .unwrap();
+    let (player_id, coords, fovs, render_on_floors, render_on_maps, renderables) = world.borrow::<(
+        UniqueView<PlayerId>,
+        View<Coord>,
+        View<FieldOfView>,
+        View<RenderOnFloor>,
+        View<RenderOnMap>,
+        View<Renderable>,
+    )>();
 
-    let fov = fovs.get(player_id.0).unwrap();
+    let fov = fovs.get(player_id.0);
 
     // Draw floor entities first.
     for (coord, render, _) in (&coords, &renderables, &render_on_floors).iter() {

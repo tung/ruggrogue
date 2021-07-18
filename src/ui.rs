@@ -35,7 +35,7 @@ pub const MSG_FRAME_GRID: usize = 3;
 pub const MSG_GRID: usize = 4;
 
 fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
-    let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+    let player_id = world.borrow::<UniqueView<PlayerId>>();
 
     // Draw the box one tile higher than the grid so it runs off the bottom.
     grid.draw_box(
@@ -47,8 +47,8 @@ fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
 
     // Show the player name in the top of the frame border.
     {
-        let names = world.borrow::<View<Name>>().unwrap();
-        let player_name = &names.get(player_id.0).unwrap().0;
+        let names = world.borrow::<View<Name>>();
+        let player_name = &names.get(player_id.0).0;
 
         grid.put_char((2, 0), ' ');
         grid.print((3, 0), player_name);
@@ -68,8 +68,8 @@ fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
 
     // Level and experience.
     {
-        let exps = world.borrow::<View<Experience>>().unwrap();
-        let player_exp = exps.get(player_id.0).unwrap();
+        let exps = world.borrow::<View<Experience>>();
+        let player_exp = exps.get(player_id.0);
 
         grid.print_color((2, 1), "Level:", true, Color::LIGHT_GRAY, None);
         grid.print((14, 1), &format!("{}", player_exp.level));
@@ -96,8 +96,8 @@ fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
 
     // Combat stats.
     {
-        let combat_stats = world.borrow::<View<CombatStats>>().unwrap();
-        let player_stats = combat_stats.get(player_id.0).unwrap();
+        let combat_stats = world.borrow::<View<CombatStats>>();
+        let player_stats = combat_stats.get(player_id.0);
 
         grid.print_color((2, 3), "Health:", true, Color::LIGHT_GRAY, None);
         grid.draw_bar(
@@ -127,7 +127,7 @@ fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
 
     // Hunger
     {
-        let (hunger_label, hunger_fg, hunger_bg) = world.run(hunger::player_hunger_label).unwrap();
+        let (hunger_label, hunger_fg, hunger_bg) = world.run(hunger::player_hunger_label);
 
         grid.print_color((2, 6), "Hunger:", true, Color::LIGHT_GRAY, None);
         grid.print_color((14, 6), hunger_label, true, hunger_fg, hunger_bg);
@@ -137,19 +137,19 @@ fn draw_status<Y: Symbol>(world: &World, grid: &mut TileGrid<Y>) {
     grid.print_color((2, 7), "Depth:", true, Color::LIGHT_GRAY, None);
     grid.print(
         (14, 7),
-        &format!("{}", world.borrow::<UniqueView<Map>>().unwrap().depth),
+        &format!("{}", world.borrow::<UniqueView<Map>>().depth),
     );
 
     // Turn
     grid.print_color((2, 8), "Turn:", true, Color::LIGHT_GRAY, None);
     grid.print(
         (14, 8),
-        &format!("{}", world.borrow::<UniqueView<TurnCount>>().unwrap().0),
+        &format!("{}", world.borrow::<UniqueView<TurnCount>>().0),
     );
 }
 
 fn draw_item_info(world: &World, grid: &mut TileGrid<GameSym>) {
-    let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+    let player_id = world.borrow::<UniqueView<PlayerId>>();
 
     // Draw the box one tile higher than the grid so it runs off the bottom.
     grid.draw_box(
@@ -163,8 +163,8 @@ fn draw_item_info(world: &World, grid: &mut TileGrid<GameSym>) {
 
     // Show box title and item count in the top of the frame border.
     {
-        let inventories = world.borrow::<View<Inventory>>().unwrap();
-        let item_count = inventories.get(player_id.0).unwrap().items.len();
+        let inventories = world.borrow::<View<Inventory>>();
+        let item_count = inventories.get(player_id.0).items.len();
 
         grid.print(
             (2, 0),
@@ -179,33 +179,33 @@ fn draw_item_info(world: &World, grid: &mut TileGrid<GameSym>) {
 
     // Weapon and armor
     {
-        let equipments = world.borrow::<View<Equipment>>().unwrap();
-        let names = world.borrow::<View<Name>>().unwrap();
-        let renderables = world.borrow::<View<Renderable>>().unwrap();
-        let player_equipment = equipments.get(player_id.0).unwrap();
+        let equipments = world.borrow::<View<Equipment>>();
+        let names = world.borrow::<View<Name>>();
+        let renderables = world.borrow::<View<Renderable>>();
+        let player_equipment = equipments.get(player_id.0);
 
         grid.print_color((2, 1), "Weapon:", true, Color::LIGHT_GRAY, None);
         if let Some(weapon) = player_equipment.weapon {
-            let x = if let Ok(render) = renderables.get(weapon) {
+            let x = if let Ok(render) = renderables.try_get(weapon) {
                 grid.put_sym_color((10, 1), render.sym, render.fg, render.bg);
                 12
             } else {
                 10
             };
-            grid.print((x, 1), &names.get(weapon).unwrap().0);
+            grid.print((x, 1), &names.get(weapon).0);
         } else {
             grid.print_color((10, 1), "-- nothing --", true, Color::GRAY, None);
         }
 
         grid.print_color((2, 2), "Armor:", true, Color::LIGHT_GRAY, None);
         if let Some(armor) = player_equipment.armor {
-            let x = if let Ok(render) = renderables.get(armor) {
+            let x = if let Ok(render) = renderables.try_get(armor) {
                 grid.put_sym_color((10, 2), render.sym, render.fg, render.bg);
                 12
             } else {
                 10
             };
-            grid.print((x, 2), &names.get(armor).unwrap().0);
+            grid.print((x, 2), &names.get(armor).0);
         } else {
             grid.print_color((10, 2), "-- nothing --", true, Color::GRAY, None);
         }
@@ -228,7 +228,7 @@ fn draw_messages<Y>(world: &World, grid: &mut TileGrid<Y>, active: bool, min_y: 
 where
     Y: Symbol,
 {
-    let messages = world.borrow::<UniqueView<Messages>>().unwrap();
+    let messages = world.borrow::<UniqueView<Messages>>();
     let mut y = min_y;
     let (fg, highlight_fg) = if active {
         (Color::GRAY, Color::WHITE)
@@ -284,7 +284,7 @@ pub fn prepare_main_grids<Y: Symbol>(
         font: ui_tileset_index,
         text_zoom,
         ..
-    } = *world.borrow::<UniqueView<Options>>().unwrap();
+    } = *world.borrow::<UniqueView<Options>>();
     let ui_tileset = &tilesets
         .get(ui_tileset_index as usize)
         .unwrap_or(&tilesets[0]);

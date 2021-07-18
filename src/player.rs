@@ -1,6 +1,6 @@
 use sdl2::keyboard::Keycode;
 use shipyard::{
-    EntityId, Get, IntoIter, IntoWithId, UniqueView, UniqueViewMut, View, ViewMut, World,
+    EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut, World,
 };
 use std::collections::HashSet;
 
@@ -56,11 +56,11 @@ pub enum PlayerInputResult {
 }
 
 pub fn player_is_auto_running(player_id: UniqueView<PlayerId>, players: View<Player>) -> bool {
-    players.get(player_id.0).unwrap().auto_run.is_some()
+    players.get(player_id.0).auto_run.is_some()
 }
 
 pub fn player_stop_auto_run(player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>) {
-    (&mut players).get(player_id.0).unwrap().auto_run = None;
+    (&mut players).get(player_id.0).auto_run = None;
 }
 
 pub fn player_sees_foes(
@@ -70,18 +70,16 @@ pub fn player_sees_foes(
     monsters: View<Monster>,
 ) -> bool {
     fovs.get(player_id.0)
-        .unwrap()
         .iter()
         .any(|(x, y)| map.iter_entities_at(x, y).any(|id| monsters.contains(id)))
 }
 
 pub fn can_see_player(world: &World, who: EntityId) -> bool {
-    let (player_id, coords, fovs) = world
-        .borrow::<(UniqueView<PlayerId>, View<Coord>, View<FieldOfView>)>()
-        .unwrap();
+    let (player_id, coords, fovs) =
+        world.borrow::<(UniqueView<PlayerId>, View<Coord>, View<FieldOfView>)>();
 
-    if let Ok(fov) = fovs.get(who) {
-        let player_coord = coords.get(player_id.0).unwrap();
+    if let Ok(fov) = fovs.try_get(who) {
+        let player_coord = coords.get(player_id.0);
 
         fov.get(player_coord.0.into())
     } else {
@@ -115,7 +113,7 @@ fn player_check_frontier(
     items: View<Item>,
     players: View<Player>,
 ) -> bool {
-    let player = players.get(player_id.0).unwrap();
+    let player = players.get(player_id.0);
     let AutoRun {
         dir: (auto_run_dx, auto_run_dy),
         run_type,
@@ -127,7 +125,7 @@ fn player_check_frontier(
         return false;
     }
 
-    let player_coord = coords.get(player_id.0).unwrap();
+    let player_coord = coords.get(player_id.0);
     let (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y) =
         rotate_view(auto_run_dx, auto_run_dy);
     let real_x = |dx, dy| player_coord.0.x + dx * real_x_from_x + dy * real_x_from_y;
@@ -170,17 +168,16 @@ fn player_check_frontier(
 ///
 /// Returns the new direction, or `None` if the corridor seems to have ended.
 fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i32, i32)> {
-    let (player_x, player_y): (i32, i32) = world
-        .run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
-            coords.get(player_id.0).unwrap().0.into()
-        })
-        .unwrap();
+    let (player_x, player_y): (i32, i32) =
+        world.run(|player_id: UniqueView<PlayerId>, coords: View<Coord>| {
+            coords.get(player_id.0).0.into()
+        });
     let (real_x_from_x, real_x_from_y, real_y_from_x, real_y_from_y) = rotate_view(run_dx, run_dy);
     let real_x = |dx, dy| player_x + dx * real_x_from_x + dy * real_x_from_y;
     let real_y = |dx, dy| player_y + dx * real_y_from_x + dy * real_y_from_y;
 
-    let (down_left, down, down_right, left, right, up_left, up, up_right) = world
-        .run(|map: UniqueView<Map>| {
+    let (down_left, down, down_right, left, right, up_left, up, up_right) =
+        world.run(|map: UniqueView<Map>| {
             let check_wall = |dx, dy| map.wall_or_oob(real_x(dx, dy), real_y(dx, dy));
             (
                 check_wall(-1, -1),
@@ -192,8 +189,7 @@ fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i
                 check_wall(0, 1),
                 check_wall(1, 1),
             )
-        })
-        .unwrap();
+        });
 
     // These are needed to decide if we should auto run into the corner of a corridor.
     let (
@@ -206,28 +202,26 @@ fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i
         down_down_left,
         down_down,
         down_down_right,
-    ) = world
-        .run(
-            |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>| {
-                let player_fov = fovs.get(player_id.0).unwrap();
-                let check_unknown_or_wall = |dx, dy| {
-                    !player_fov.get((real_x(dx, dy), real_y(dx, dy)))
-                        || map.wall_or_oob(real_x(dx, dy), real_y(dx, dy))
-                };
-                (
-                    check_unknown_or_wall(-1, 2),
-                    check_unknown_or_wall(0, 2),
-                    check_unknown_or_wall(1, 2),
-                    check_unknown_or_wall(2, 1),
-                    check_unknown_or_wall(2, 0),
-                    check_unknown_or_wall(2, -1),
-                    check_unknown_or_wall(-1, -2),
-                    check_unknown_or_wall(0, -2),
-                    check_unknown_or_wall(1, -2),
-                )
-            },
-        )
-        .unwrap();
+    ) = world.run(
+        |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>| {
+            let player_fov = fovs.get(player_id.0);
+            let check_unknown_or_wall = |dx, dy| {
+                !player_fov.get((real_x(dx, dy), real_y(dx, dy)))
+                    || map.wall_or_oob(real_x(dx, dy), real_y(dx, dy))
+            };
+            (
+                check_unknown_or_wall(-1, 2),
+                check_unknown_or_wall(0, 2),
+                check_unknown_or_wall(1, 2),
+                check_unknown_or_wall(2, 1),
+                check_unknown_or_wall(2, 0),
+                check_unknown_or_wall(2, -1),
+                check_unknown_or_wall(-1, -2),
+                check_unknown_or_wall(0, -2),
+                check_unknown_or_wall(1, -2),
+            )
+        },
+    );
 
     if run_dx != 0 && run_dy != 0 {
         // Arrived here diagonally (moved up-right post-transform).
@@ -439,18 +433,16 @@ fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i
 /// Returns the detected wall side or open space, or `None` if walls are on both sides or are
 /// partially present.
 fn auto_run_straight_check(world: &World, run_dx: i32, run_dy: i32) -> Option<AutoRunWallSide> {
-    let (player_x, player_y, forward_blocked) = world
-        .run(
-            |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, coords: View<Coord>| {
-                let coord = coords.get(player_id.0).unwrap();
-                (
-                    coord.0.x,
-                    coord.0.y,
-                    map.wall_or_oob(coord.0.x + run_dx, coord.0.y + run_dy),
-                )
-            },
-        )
-        .unwrap();
+    let (player_x, player_y, forward_blocked) = world.run(
+        |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, coords: View<Coord>| {
+            let coord = coords.get(player_id.0);
+            (
+                coord.0.x,
+                coord.0.y,
+                map.wall_or_oob(coord.0.x + run_dx, coord.0.y + run_dy),
+            )
+        },
+    );
 
     if forward_blocked {
         None
@@ -460,19 +452,17 @@ fn auto_run_straight_check(world: &World, run_dx: i32, run_dy: i32) -> Option<Au
         let real_x = |dx, dy| player_x + dx * real_x_from_x + dy * real_x_from_y;
         let real_y = |dx, dy| player_y + dx * real_y_from_x + dy * real_y_from_y;
 
-        let (up_left, up, up_right, right, down_right, down) = world
-            .run(|map: UniqueView<Map>| {
-                let check_wall = |dx, dy| map.wall_or_oob(real_x(dx, dy), real_y(dx, dy));
-                (
-                    check_wall(-1, 1),
-                    check_wall(0, 1),
-                    check_wall(1, 1),
-                    check_wall(1, 0),
-                    check_wall(1, -1),
-                    check_wall(0, -1),
-                )
-            })
-            .unwrap();
+        let (up_left, up, up_right, right, down_right, down) = world.run(|map: UniqueView<Map>| {
+            let check_wall = |dx, dy| map.wall_or_oob(real_x(dx, dy), real_y(dx, dy));
+            (
+                check_wall(-1, 1),
+                check_wall(0, 1),
+                check_wall(1, 1),
+                check_wall(1, 0),
+                check_wall(1, -1),
+                check_wall(0, -1),
+            )
+        });
 
         if run_dx != 0 && run_dy != 0 {
             // Check the walls on either side, i.e. moving up-right, 1 and 2 below:
@@ -545,23 +535,20 @@ fn auto_run_straight_check(world: &World, run_dx: i32, run_dy: i32) -> Option<Au
 /// If the player is currently auto running, calculate and return the direction that auto running
 /// should continue in, or `None` to stop auto running.
 fn auto_run_next_step(world: &World) -> Option<(i32, i32)> {
-    let auto_run = world
-        .run(|player_id: UniqueView<PlayerId>, players: View<Player>| {
-            let player = players.get(player_id.0).unwrap();
-            player
-                .auto_run
-                .as_ref()
-                .map(|ar| (ar.run_type, ar.dir.0, ar.dir.1))
-        })
-        .unwrap();
+    let auto_run = world.run(|player_id: UniqueView<PlayerId>, players: View<Player>| {
+        let player = players.get(player_id.0);
+        player
+            .auto_run
+            .as_ref()
+            .map(|ar| (ar.run_type, ar.dir.0, ar.dir.1))
+    });
 
     if let Some((run_type, dx, dy)) = auto_run {
         match run_type {
             AutoRunType::RestInPlace => {
-                let (player_id, combat_stats) = world
-                    .borrow::<(UniqueView<PlayerId>, View<CombatStats>)>()
-                    .unwrap();
-                let CombatStats { hp, max_hp, .. } = combat_stats.get(player_id.0).unwrap();
+                let (player_id, combat_stats) =
+                    world.borrow::<(UniqueView<PlayerId>, View<CombatStats>)>();
+                let CombatStats { hp, max_hp, .. } = combat_stats.get(player_id.0);
 
                 // Rest until player is healed.
                 if hp < max_hp {
@@ -573,16 +560,14 @@ fn auto_run_next_step(world: &World) -> Option<(i32, i32)> {
             AutoRunType::Corridor => {
                 if let Some(new_dir) = auto_run_corridor_check(world, dx, dy) {
                     // Adjust facing to follow the corridor.
-                    world
-                        .run(
-                            |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
-                                let mut player = (&mut players).get(player_id.0).unwrap();
-                                if let Some(ar) = &mut player.auto_run {
-                                    ar.dir = new_dir;
-                                }
-                            },
-                        )
-                        .unwrap();
+                    world.run(
+                        |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
+                            let player = (&mut players).get(player_id.0);
+                            if let Some(ar) = &mut player.auto_run {
+                                ar.dir = new_dir;
+                            }
+                        },
+                    );
                     Some(new_dir)
                 } else {
                     None
@@ -607,54 +592,48 @@ fn auto_run_next_step(world: &World) -> Option<(i32, i32)> {
 }
 
 pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> PlayerInputResult {
-    if start_run && world.run(player_sees_foes).unwrap() {
-        world
-            .run(|mut msgs: UniqueViewMut<Messages>| {
-                msgs.add("You cannot run while foes are near.".into())
-            })
-            .unwrap();
+    if start_run && world.run(player_sees_foes) {
+        world.run(|mut msgs: UniqueViewMut<Messages>| {
+            msgs.add("You cannot run while foes are near.".into())
+        });
         return PlayerInputResult::NoResult;
     }
 
     let mut melee_queue = Vec::new();
-    let (took_time, moved) = world
-        .run(
-            |mut map: UniqueViewMut<Map>,
-             combat_stats: View<CombatStats>,
-             mut coords: ViewMut<Coord>,
-             mut fovs: ViewMut<FieldOfView>,
-             players: View<Player>| {
-                let mut took_time = false;
-                let mut moved = false;
+    let (took_time, moved) = world.run(
+        |mut map: UniqueViewMut<Map>,
+         combat_stats: View<CombatStats>,
+         mut coords: ViewMut<Coord>,
+         mut fovs: ViewMut<FieldOfView>,
+         players: View<Player>| {
+            let mut took_time = false;
+            let mut moved = false;
 
-                for (id, (_, mut coord, mut fov)) in
-                    (&players, &mut coords, &mut fovs).iter().with_id()
-                {
-                    let new_x = coord.0.x + dx;
-                    let new_y = coord.0.y + dy;
+            for (id, (_, coord, fov)) in (&players, &mut coords, &mut fovs).iter().with_id() {
+                let new_x = coord.0.x + dx;
+                let new_y = coord.0.y + dy;
 
-                    if new_x >= 0 && new_y >= 0 && new_x < map.width && new_y < map.height {
-                        let melee_target = map
-                            .iter_entities_at(new_x, new_y)
-                            .find(|e| combat_stats.contains(*e));
+                if new_x >= 0 && new_y >= 0 && new_x < map.width && new_y < map.height {
+                    let melee_target = map
+                        .iter_entities_at(new_x, new_y)
+                        .find(|e| combat_stats.contains(*e));
 
-                        if let Some(melee_target) = melee_target {
-                            melee_queue.push((id, melee_target));
-                            took_time = true;
-                        } else if !map.is_blocked(new_x, new_y) {
-                            map.move_entity(id, coord.0.into(), (new_x, new_y), false);
-                            coord.0 = (new_x, new_y).into();
-                            fov.dirty = true;
-                            took_time = true;
-                            moved = true;
-                        }
+                    if let Some(melee_target) = melee_target {
+                        melee_queue.push((id, melee_target));
+                        took_time = true;
+                    } else if !map.is_blocked(new_x, new_y) {
+                        map.move_entity(id, coord.0.into(), (new_x, new_y), false);
+                        coord.0 = (new_x, new_y).into();
+                        fov.dirty = true;
+                        took_time = true;
+                        moved = true;
                     }
                 }
+            }
 
-                (took_time, moved)
-            },
-        )
-        .unwrap();
+            (took_time, moved)
+        },
+    );
 
     for (attacker, defender) in melee_queue {
         damage::melee_attack(world, attacker, defender);
@@ -663,30 +642,26 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
     if start_run && moved {
         if auto_run_corridor_check(world, dx, dy).is_some() {
             // Start corridor auto run.
-            world
-                .run(
-                    |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
-                        (&mut players).get(player_id.0).unwrap().auto_run = Some(AutoRun {
-                            limit: 200,
-                            dir: (dx, dy),
-                            run_type: AutoRunType::Corridor,
-                        });
-                    },
-                )
-                .unwrap();
+            world.run(
+                |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
+                    (&mut players).get(player_id.0).auto_run = Some(AutoRun {
+                        limit: 200,
+                        dir: (dx, dy),
+                        run_type: AutoRunType::Corridor,
+                    });
+                },
+            );
         } else if let Some(expect_wall) = auto_run_straight_check(world, dx, dy) {
             // Start straight auto run.
-            world
-                .run(
-                    |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
-                        (&mut players).get(player_id.0).unwrap().auto_run = Some(AutoRun {
-                            limit: 200,
-                            dir: (dx, dy),
-                            run_type: AutoRunType::Straight { expect_wall },
-                        });
-                    },
-                )
-                .unwrap();
+            world.run(
+                |player_id: UniqueView<PlayerId>, mut players: ViewMut<Player>| {
+                    (&mut players).get(player_id.0).auto_run = Some(AutoRun {
+                        limit: 200,
+                        dir: (dx, dy),
+                        run_type: AutoRunType::Straight { expect_wall },
+                    });
+                },
+            );
         }
     }
 
@@ -698,12 +673,10 @@ pub fn try_move_player(world: &World, dx: i32, dy: i32, start_run: bool) -> Play
 }
 
 fn wait_player(world: &World, rest_in_place: bool) -> PlayerInputResult {
-    let foes_seen = world.run(player_sees_foes).unwrap();
-    let (player_id, mut players) = world
-        .borrow::<(UniqueView<PlayerId>, ViewMut<Player>)>()
-        .unwrap();
+    let foes_seen = world.run(player_sees_foes);
+    let (player_id, mut players) = world.borrow::<(UniqueView<PlayerId>, ViewMut<Player>)>();
     let player_can_regen = hunger::can_regen(world, player_id.0);
-    let mut msgs = world.borrow::<UniqueViewMut<Messages>>().unwrap();
+    let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
 
     if rest_in_place {
         if foes_seen {
@@ -723,7 +696,7 @@ fn wait_player(world: &World, rest_in_place: bool) -> PlayerInputResult {
     // Rest in place if requested.
     if rest_in_place && matches!(player_can_regen, CanRegenResult::CanRegen) {
         msgs.add("You tend to your wounds.".into());
-        (&mut players).get(player_id.0).unwrap().auto_run = Some(AutoRun {
+        (&mut players).get(player_id.0).auto_run = Some(AutoRun {
             limit: 400,
             dir: (0, 0),
             run_type: AutoRunType::RestInPlace,
@@ -745,13 +718,13 @@ pub fn all_player_associated_ids(
         ids.insert(id);
 
         // Add the player's equipment.
-        if let Ok(equip) = equipments.get(id) {
+        if let Ok(equip) = equipments.try_get(id) {
             ids.extend(equip.weapon.iter());
             ids.extend(equip.armor.iter());
         }
 
         // Add the player's inventory items.
-        if let Ok(inv) = inventories.get(id) {
+        if let Ok(inv) = inventories.try_get(id) {
             ids.extend(inv.items.iter());
         }
     }
@@ -765,7 +738,7 @@ pub fn player_try_descend(
     player_id: UniqueView<PlayerId>,
     coords: View<Coord>,
 ) -> bool {
-    let player_coord = coords.get(player_id.0).unwrap();
+    let player_coord = coords.get(player_id.0);
 
     if matches!(
         map.get_tile(player_coord.0.x, player_coord.0.y),
@@ -780,86 +753,70 @@ pub fn player_try_descend(
 
 pub fn player_do_descend(world: &World) {
     spawn::despawn_all_but_player(world);
-    world
-        .run(|mut map: UniqueViewMut<Map>| {
-            map.clear();
-            map.depth += 1;
-        })
-        .unwrap();
-    world.run(map::generate_rooms_and_corridors).unwrap();
-    world.run(map::place_player_in_first_room).unwrap();
+    world.run(|mut map: UniqueViewMut<Map>| {
+        map.clear();
+        map.depth += 1;
+    });
+    world.run(map::generate_rooms_and_corridors);
+    world.run(map::place_player_in_first_room);
 
-    world.run(experience::redeem_exp_for_next_depth).unwrap();
-    world.run(experience::gain_levels).unwrap();
+    world.run(experience::redeem_exp_for_next_depth);
+    world.run(experience::gain_levels);
     spawn::fill_rooms_with_spawns(world);
-    world.run(experience::calc_exp_for_next_depth).unwrap();
+    world.run(experience::calc_exp_for_next_depth);
 
-    world
-        .run(|mut fovs: ViewMut<FieldOfView>, players: View<Player>| {
-            for (mut fov, _) in (&mut fovs, &players).iter() {
-                fov.dirty = true;
-            }
-        })
-        .unwrap();
-    world.run(vision::recalculate_fields_of_view).unwrap();
+    world.run(|mut fovs: ViewMut<FieldOfView>, players: View<Player>| {
+        for (fov, _) in (&mut fovs, &players).iter() {
+            fov.dirty = true;
+        }
+    });
+    world.run(vision::recalculate_fields_of_view);
 
-    world
-        .run(
-            |map: UniqueView<Map>,
-             mut msgs: UniqueViewMut<Messages>,
-             player_id: UniqueView<PlayerId>,
-             names: View<Name>| {
-                msgs.add(format!(
-                    "{} descends to depth {}.",
-                    names.get(player_id.0).unwrap().0,
-                    map.depth,
-                ));
-            },
-        )
-        .unwrap();
+    world.run(
+        |map: UniqueView<Map>,
+         mut msgs: UniqueViewMut<Messages>,
+         player_id: UniqueView<PlayerId>,
+         names: View<Name>| {
+            msgs.add(format!(
+                "{} descends to depth {}.",
+                names.get(player_id.0).0,
+                map.depth,
+            ));
+        },
+    );
 }
 
 pub fn player_pick_up_item(world: &World, item_id: EntityId) {
-    let player_id = world
-        .run(|player_id: UniqueView<PlayerId>| player_id.0)
-        .unwrap();
+    let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
 
     item::remove_item_from_map(world, item_id);
     item::add_item_to_inventory(world, player_id, item_id);
-    world
-        .run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
-            msgs.add(format!(
-                "{} picks up {}.",
-                names.get(player_id).unwrap().0,
-                names.get(item_id).unwrap().0
-            ));
-        })
-        .unwrap();
+    world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+        msgs.add(format!(
+            "{} picks up {}.",
+            names.get(player_id).0,
+            names.get(item_id).0
+        ));
+    });
 }
 
 pub fn player_drop_item(world: &World, item_id: EntityId) {
-    let player_id = world
-        .run(|player_id: UniqueView<PlayerId>| player_id.0)
-        .unwrap();
-    let player_pos: (i32, i32) = world
-        .run(|coords: View<Coord>| coords.get(player_id).unwrap().0.into())
-        .unwrap();
+    let player_id = world.run(|player_id: UniqueView<PlayerId>| player_id.0);
+    let player_pos: (i32, i32) = world.run(|coords: View<Coord>| coords.get(player_id).0.into());
 
     item::remove_item_from_inventory(world, player_id, item_id);
     item::add_item_to_map(world, item_id, player_pos);
-    world
-        .run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
-            msgs.add(format!(
-                "{} drops {}.",
-                names.get(player_id).unwrap().0,
-                names.get(item_id).unwrap().0
-            ));
-        })
-        .unwrap();
+    world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+        msgs.add(format!(
+            "{} drops {}.",
+            names.get(player_id).0,
+            names.get(item_id).0
+        ));
+    });
 }
 
 pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResult {
-    let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+    let player_id = world.borrow::<UniqueView<PlayerId>>();
 
     inputs.prepare_input();
 
@@ -871,23 +828,15 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
             let key = gamekey::from_keycode(keycode, shift);
 
             if !matches!(key, GameKey::Unmapped) {
-                world
-                    .borrow::<UniqueViewMut<Messages>>()
-                    .unwrap()
-                    .reset_highlight();
+                world.borrow::<UniqueViewMut<Messages>>().reset_highlight();
             }
 
             match key {
                 GameKey::Cancel => PlayerInputResult::ShowOptionsMenu,
                 _ => {
-                    world
-                        .run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
-                            msgs.add(format!(
-                                "{} is sleeping.",
-                                names.get(player_id.0).unwrap().0
-                            ));
-                        })
-                        .unwrap();
+                    world.run(|mut msgs: UniqueViewMut<Messages>, names: View<Name>| {
+                        msgs.add(format!("{} is sleeping.", names.get(player_id.0).0));
+                    });
                     item::handle_sleep_turn(world, player_id.0);
                     PlayerInputResult::TurnDone
                 }
@@ -895,33 +844,31 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
         } else {
             PlayerInputResult::NoResult
         }
-    } else if world.run(player_is_auto_running).unwrap() {
+    } else if world.run(player_is_auto_running) {
         if matches!(inputs.get_input(), Some(InputEvent::AppQuit)) {
-            world.run(player_stop_auto_run).unwrap();
+            world.run(player_stop_auto_run);
             PlayerInputResult::AppQuit
         } else if matches!(inputs.get_input(), Some(InputEvent::Press(_)))
-            || world.run(player_check_frontier).unwrap()
-            || world.run(player_sees_foes).unwrap()
+            || world.run(player_check_frontier)
+            || world.run(player_sees_foes)
         {
-            world.run(player_stop_auto_run).unwrap();
+            world.run(player_stop_auto_run);
             PlayerInputResult::NoResult
         } else {
-            let limit_reached = world
-                .run(|mut players: ViewMut<Player>| {
-                    let mut player = (&mut players).get(player_id.0).unwrap();
-                    if let Some(auto_run) = &mut player.auto_run {
-                        if auto_run.limit > 0 {
-                            auto_run.limit -= 1;
-                        }
-                        auto_run.limit <= 0
-                    } else {
-                        true
+            let limit_reached = world.run(|mut players: ViewMut<Player>| {
+                let player = (&mut players).get(player_id.0);
+                if let Some(auto_run) = &mut player.auto_run {
+                    if auto_run.limit > 0 {
+                        auto_run.limit -= 1;
                     }
-                })
-                .unwrap();
+                    auto_run.limit <= 0
+                } else {
+                    true
+                }
+            });
 
             if limit_reached {
-                world.run(player_stop_auto_run).unwrap();
+                world.run(player_stop_auto_run);
                 PlayerInputResult::NoResult
             } else if let Some((dx, dy)) = auto_run_next_step(world) {
                 // Do one step of auto running.
@@ -931,7 +878,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
                     try_move_player(world, dx, dy, false)
                 }
             } else {
-                world.run(player_stop_auto_run).unwrap();
+                world.run(player_stop_auto_run);
                 PlayerInputResult::NoResult
             }
         }
@@ -942,10 +889,7 @@ pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResul
         let key = gamekey::from_keycode(keycode, shift);
 
         if !matches!(key, GameKey::Unmapped) {
-            world
-                .borrow::<UniqueViewMut<Messages>>()
-                .unwrap()
-                .reset_highlight();
+            world.borrow::<UniqueViewMut<Messages>>().reset_highlight();
         }
 
         match key {

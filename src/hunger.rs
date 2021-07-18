@@ -1,5 +1,5 @@
 use shipyard::{
-    EntitiesView, EntityId, Get, IntoIter, IntoWithId, UniqueView, UniqueViewMut, View, ViewMut,
+    EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
     World,
 };
 
@@ -80,15 +80,13 @@ impl From<i32> for HungerState {
 
 /// Checks if the given entity can or cannot regenerate with a specific reason.
 pub fn can_regen(world: &World, entity_id: EntityId) -> CanRegenResult {
-    let (combat_stats, stomachs) = world
-        .borrow::<(View<CombatStats>, View<Stomach>)>()
-        .unwrap();
-    let stats = if let Ok(stats) = combat_stats.get(entity_id) {
+    let (combat_stats, stomachs) = world.borrow::<(View<CombatStats>, View<Stomach>)>();
+    let stats = if let Ok(stats) = combat_stats.try_get(entity_id) {
         stats
     } else {
         return CanRegenResult::NoRegen;
     };
-    let stomach = if let Ok(stomach) = stomachs.get(entity_id) {
+    let stomach = if let Ok(stomach) = stomachs.try_get(entity_id) {
         stomach
     } else {
         return CanRegenResult::NoRegen;
@@ -114,7 +112,7 @@ pub fn player_hunger_label(
     player_id: UniqueView<PlayerId>,
     stomachs: View<Stomach>,
 ) -> (&'static str, Color, Color) {
-    if let Ok(stomach) = stomachs.get(player_id.0) {
+    if let Ok(stomach) = stomachs.try_get(player_id.0) {
         match HungerState::from(stomach.fullness) {
             HungerState::Starving => ("Starving", Color::BLACK, Color::ORANGE),
             HungerState::Famished => ("Famished", Color::ORANGE, Color::BLACK),
@@ -140,14 +138,14 @@ pub fn tick_hunger(
     mut stomachs: ViewMut<Stomach>,
     mut tallies: ViewMut<Tally>,
 ) {
-    for (id, mut stomach) in (&mut stomachs).iter().with_id() {
-        let name = names.get(id).unwrap();
+    for (id, stomach) in (&mut stomachs).iter().with_id() {
+        let name = names.get(id);
 
         if stomach.fullness > 0 {
             let old_hunger = HungerState::from(stomach.fullness);
             stomach.fullness -= 1;
 
-            if let Ok(mut stats) = (&mut combat_stats).get(id) {
+            if let Ok(stats) = (&mut combat_stats).try_get(id) {
                 if stats.hp > 0 {
                     // Regenerate hit points if below max and stomach allows it.
                     if stats.hp < stats.max_hp && stomach.fullness > 0 {
@@ -173,7 +171,7 @@ pub fn tick_hunger(
             let new_hunger = HungerState::from(stomach.fullness);
             if new_hunger != old_hunger && !matches!(new_hunger, HungerState::Normal) {
                 // Stop auto-run when hunger state changes.
-                if let Ok(mut player) = (&mut players).get(id) {
+                if let Ok(player) = (&mut players).try_get(id) {
                     player.auto_run = None;
                 }
 
@@ -184,7 +182,7 @@ pub fn tick_hunger(
             }
         }
 
-        if let Ok(mut stats) = (&mut combat_stats).get(id) {
+        if let Ok(stats) = (&mut combat_stats).try_get(id) {
             if stats.hp > 0 {
                 // Inflict damage if stomach is starving.
                 if let Some(starve_turns) =
@@ -197,13 +195,13 @@ pub fn tick_hunger(
                         let amount = -stomach.sub_hp / starve_turns;
                         stats.hp -= amount;
                         stomach.sub_hp += starve_turns * amount;
-                        entities.add_component(id, &mut hurt_bys, HurtBy::Starvation);
-                        if let Ok(mut tally) = (&mut tallies).get(id) {
+                        entities.add_component(&mut hurt_bys, HurtBy::Starvation, id);
+                        if let Ok(tally) = (&mut tallies).try_get(id) {
                             tally.damage_taken += amount.max(0) as u64;
                         }
 
                         // Stop auto-run when taking damage from starvation.
-                        if let Ok(mut player) = (&mut players).get(id) {
+                        if let Ok(player) = (&mut players).try_get(id) {
                             player.auto_run = None;
                         }
 

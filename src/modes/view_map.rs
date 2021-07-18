@@ -36,7 +36,7 @@ fn reset_camera(
     player_id: UniqueView<PlayerId>,
     coords: View<Coord>,
 ) {
-    camera.0 = coords.get(player_id.0).unwrap().0;
+    camera.0 = coords.get(player_id.0).0;
 }
 
 /// Show a movable cursor that describes seen and recalled map tiles and any occupying entities.
@@ -46,7 +46,7 @@ impl ViewMapMode {
             chunked_map_grid: ChunkedMapGrid::new(),
             old_msg_frame_size: (0, 0).into(),
             redraw_msg_frame_grid: true,
-            center: world.borrow::<UniqueView<Camera>>().unwrap().0,
+            center: world.borrow::<UniqueView<Camera>>().0,
             range: 80,
         }
     }
@@ -83,7 +83,7 @@ impl ViewMapMode {
         inputs.prepare_input();
 
         if let Some(InputEvent::AppQuit) = inputs.get_input() {
-            world.run(reset_camera).unwrap();
+            world.run(reset_camera);
 
             return (
                 ModeControl::Pop(ViewMapModeResult::AppQuit.into()),
@@ -118,17 +118,17 @@ impl ViewMapMode {
                 }
                 GameKey::Home => {
                     let player_pos = {
-                        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
-                        let coords = world.borrow::<View<Coord>>().unwrap();
-                        coords.get(player_id.0).unwrap().0
+                        let player_id = world.borrow::<UniqueView<PlayerId>>();
+                        let coords = world.borrow::<View<Coord>>();
+                        coords.get(player_id.0).0
                     };
-                    let camera = world.borrow::<UniqueView<Camera>>().unwrap();
+                    let camera = world.borrow::<UniqueView<Camera>>();
 
                     move_x = player_pos.x - camera.0.x;
                     move_y = player_pos.y - camera.0.y;
                 }
                 GameKey::Confirm | GameKey::Cancel | GameKey::ViewMap => {
-                    world.run(reset_camera).unwrap();
+                    world.run(reset_camera);
                     return (
                         ModeControl::Pop(ViewMapModeResult::Done.into()),
                         ModeUpdate::Immediate,
@@ -142,7 +142,7 @@ impl ViewMapMode {
                 let max_x = self.center.x + self.range;
                 let min_y = self.center.y - self.range;
                 let max_y = self.center.y + self.range;
-                let mut camera = world.borrow::<UniqueViewMut<Camera>>().unwrap();
+                let mut camera = world.borrow::<UniqueViewMut<Camera>>();
 
                 // Keep the camera within range of the center.
                 if move_x < 0 && camera.0.x + move_x < min_x {
@@ -203,12 +203,12 @@ impl ViewMapMode {
         self.chunked_map_grid.draw(world, map_grid);
         render::draw_renderables(&self.chunked_map_grid, world, map_grid);
 
-        let camera = world.borrow::<UniqueView<Camera>>().unwrap();
-        let map = world.borrow::<UniqueView<Map>>().unwrap();
+        let camera = world.borrow::<UniqueView<Camera>>();
+        let map = world.borrow::<UniqueView<Map>>();
         let player_pos = {
-            let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
-            let coords = world.borrow::<View<Coord>>().unwrap();
-            coords.get(player_id.0).unwrap().0
+            let player_id = world.borrow::<UniqueView<PlayerId>>();
+            let coords = world.borrow::<View<Coord>>();
+            coords.get(player_id.0).0
         };
 
         // Highlight cursor position.

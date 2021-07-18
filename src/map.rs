@@ -376,35 +376,35 @@ impl Map {
     ) -> (String, bool) {
         if self.seen.get_bit(x, y) {
             let in_player_fov = {
-                let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
-                let fovs = world.borrow::<View<FieldOfView>>().unwrap();
-                fovs.get(player_id.0).unwrap().get((x, y))
+                let player_id = world.borrow::<UniqueView<PlayerId>>();
+                let fovs = world.borrow::<View<FieldOfView>>();
+                fovs.get(player_id.0).get((x, y))
             };
 
             if in_player_fov {
-                let names = world.borrow::<View<Name>>().unwrap();
+                let names = world.borrow::<View<Name>>();
                 let mut desc_vec = Vec::new();
 
                 if let Some(monster) = self
                     .iter_entities_at(x, y)
-                    .find(|id| world.borrow::<View<Monster>>().unwrap().contains(*id))
+                    .find(|id| world.borrow::<View<Monster>>().contains(*id))
                 {
-                    desc_vec.push(names.get(monster).unwrap().0.clone());
+                    desc_vec.push(names.get(monster).0.clone());
                 }
 
                 if !omit_player {
                     if let Some(player) = self
                         .iter_entities_at(x, y)
-                        .find(|id| world.borrow::<View<Player>>().unwrap().contains(*id))
+                        .find(|id| world.borrow::<View<Player>>().contains(*id))
                     {
-                        desc_vec.push(names.get(player).unwrap().0.clone());
+                        desc_vec.push(names.get(player).0.clone());
                     }
                 }
 
                 if desc_vec.is_empty() || !focus_on_target {
                     let mut items_at_pos = self
                         .iter_entities_at(x, y)
-                        .filter(|id| world.borrow::<View<Item>>().unwrap().contains(*id));
+                        .filter(|id| world.borrow::<View<Item>>().contains(*id));
 
                     if let Some(item) = items_at_pos.next() {
                         let more_items_count = items_at_pos.count();
@@ -412,7 +412,7 @@ impl Map {
                         if more_items_count > 0 {
                             desc_vec.push(format!("{} items", more_items_count + 1));
                         } else {
-                            desc_vec.push(names.get(item).unwrap().0.clone());
+                            desc_vec.push(names.get(item).0.clone());
                         }
                     }
 
@@ -722,7 +722,7 @@ pub fn place_player_in_first_room(
     mut coords: ViewMut<Coord>,
 ) {
     let room_center = map.rooms.first().unwrap().center();
-    let mut player_coord = (&mut coords).get(player_id.0).unwrap();
+    let mut player_coord = (&mut coords).get(player_id.0);
 
     map.place_entity(player_id.0, room_center, false);
     player_coord.0 = room_center.into();

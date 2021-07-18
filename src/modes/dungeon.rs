@@ -51,7 +51,7 @@ fn app_quit_dialog(inputs: &mut InputBuffer) -> (ModeControl, ModeUpdate) {
 }
 
 fn get_player_fov(player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>) -> (Position, Size) {
-    let player_fov = fovs.get(player_id.0).unwrap();
+    let player_fov = fovs.get(player_id.0);
 
     (
         Position {
@@ -66,7 +66,7 @@ fn get_player_fov(player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>) -> (
 }
 
 fn get_player_pos(player_id: UniqueView<PlayerId>, coords: View<Coord>) -> Position {
-    coords.get(player_id.0).unwrap().0
+    coords.get(player_id.0).0
 }
 
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
@@ -75,15 +75,14 @@ impl DungeonMode {
     pub fn new(world: &World) -> Self {
         world
             .borrow::<UniqueViewMut<Messages>>()
-            .unwrap()
             .add("Welcome to Ruggle!".into());
-        world.borrow::<UniqueViewMut<TurnCount>>().unwrap().0 = 1;
-        world.borrow::<UniqueViewMut<Map>>().unwrap().depth = 1;
-        world.run(map::generate_rooms_and_corridors).unwrap();
-        world.borrow::<UniqueViewMut<PlayerAlive>>().unwrap().0 = true;
-        world.run(map::place_player_in_first_room).unwrap();
+        world.borrow::<UniqueViewMut<TurnCount>>().0 = 1;
+        world.borrow::<UniqueViewMut<Map>>().depth = 1;
+        world.run(map::generate_rooms_and_corridors);
+        world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
+        world.run(map::place_player_in_first_room);
         spawn::fill_rooms_with_spawns(world);
-        world.run(vision::recalculate_fields_of_view).unwrap();
+        world.run(vision::recalculate_fields_of_view);
 
         Self {
             chunked_map_grid: ChunkedMapGrid::new(),
@@ -121,10 +120,10 @@ impl DungeonMode {
         _grids: &[TileGrid<GameSym>],
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
-        if world.run(player::player_is_alive).unwrap() {
-            let old_player_fov = world.run(get_player_fov).unwrap();
-            let old_player_pos = world.run(get_player_pos).unwrap();
-            let old_depth = world.borrow::<UniqueView<Map>>().unwrap().depth;
+        if world.run(player::player_is_alive) {
+            let old_player_fov = world.run(get_player_fov);
+            let old_player_pos = world.run(get_player_pos);
+            let old_depth = world.borrow::<UniqueView<Map>>().depth;
             let time_passed = if let Some(result) = pop_result {
                 match result {
                     ModeResult::AppQuitDialogModeResult(result) => match result {
@@ -167,7 +166,7 @@ impl DungeonMode {
                     },
 
                     ModeResult::InventoryModeResult(result) => {
-                        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap().0;
+                        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
 
                         match result {
                             InventoryModeResult::AppQuit => return app_quit_dialog(inputs),
@@ -196,7 +195,7 @@ impl DungeonMode {
                     }
 
                     ModeResult::InventoryShortcutModeResult(result) => {
-                        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap().0;
+                        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
 
                         match result {
                             InventoryShortcutModeResult::AppQuit => return app_quit_dialog(inputs),
@@ -217,7 +216,7 @@ impl DungeonMode {
                     }
 
                     ModeResult::EquipmentShortcutModeResult(result) => {
-                        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap().0;
+                        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
 
                         match result {
                             EquipmentShortcutModeResult::AppQuit => return app_quit_dialog(inputs),
@@ -260,7 +259,7 @@ impl DungeonMode {
                         );
                     }
                     PlayerInputResult::TryDescend => {
-                        if world.run(player::player_try_descend).unwrap() {
+                        if world.run(player::player_try_descend) {
                             inputs.clear_input();
                             return (
                                 ModeControl::Push(
@@ -316,34 +315,33 @@ impl DungeonMode {
             };
 
             if time_passed {
-                world.run(damage::handle_dead_entities).unwrap();
-                world.run(experience::gain_levels).unwrap();
-                world.run(vision::recalculate_fields_of_view).unwrap();
-                world.run(monster::enqueue_monster_turns).unwrap();
+                world.run(damage::handle_dead_entities);
+                world.run(experience::gain_levels);
+                world.run(vision::recalculate_fields_of_view);
+                world.run(monster::enqueue_monster_turns);
 
-                while world.run(player::player_is_alive).unwrap()
-                    && !world.run(monster::monster_turns_empty).unwrap()
+                while world.run(player::player_is_alive) && !world.run(monster::monster_turns_empty)
                 {
                     monster::do_monster_turns(world);
-                    world.run(damage::handle_dead_entities).unwrap();
-                    world.run(experience::gain_levels).unwrap();
-                    world.run(vision::recalculate_fields_of_view).unwrap();
+                    world.run(damage::handle_dead_entities);
+                    world.run(experience::gain_levels);
+                    world.run(vision::recalculate_fields_of_view);
                 }
 
-                if world.run(player::player_is_alive).unwrap() {
-                    world.run(hunger::tick_hunger).unwrap();
-                    world.run(damage::handle_dead_entities).unwrap();
-                    world.run(experience::gain_levels).unwrap();
-                    world.run(vision::recalculate_fields_of_view).unwrap();
+                if world.run(player::player_is_alive) {
+                    world.run(hunger::tick_hunger);
+                    world.run(damage::handle_dead_entities);
+                    world.run(experience::gain_levels);
+                    world.run(vision::recalculate_fields_of_view);
 
-                    if world.run(player::player_is_alive).unwrap() {
-                        world.run(damage::clear_hurt_bys).unwrap();
-                        world.borrow::<UniqueViewMut<TurnCount>>().unwrap().0 += 1;
+                    if world.run(player::player_is_alive) {
+                        world.run(damage::clear_hurt_bys);
+                        world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
                     }
                 }
 
                 // Redraw map chunks containing the player's old and new fields of view.
-                let new_player_fov = world.run(get_player_fov).unwrap();
+                let new_player_fov = world.run(get_player_fov);
                 self.chunked_map_grid
                     .mark_dirty(old_player_fov.0, old_player_fov.1);
                 self.chunked_map_grid
@@ -351,9 +349,9 @@ impl DungeonMode {
             }
 
             {
-                let new_depth = world.borrow::<UniqueView<Map>>().unwrap().depth;
-                let turn_count = world.borrow::<UniqueView<TurnCount>>().unwrap().0;
-                let new_player_pos = world.run(get_player_pos).unwrap();
+                let new_depth = world.borrow::<UniqueView<Map>>().depth;
+                let turn_count = world.borrow::<UniqueView<TurnCount>>().0;
+                let new_player_pos = world.run(get_player_pos);
 
                 // Redraw all map chunks when changing levels.
                 if new_depth != old_depth {
@@ -364,36 +362,31 @@ impl DungeonMode {
                 // or it's the first turn and the player happened to spawn on top of an item.
                 if new_depth != old_depth || new_player_pos != old_player_pos || turn_count == 1 {
                     let Position { x, y } = new_player_pos;
-                    let map = world.borrow::<UniqueView<Map>>().unwrap();
+                    let map = world.borrow::<UniqueView<Map>>();
                     let more_than_player = map.iter_entities_at(x, y).nth(1).is_some();
                     let interesting_tile = !matches!(map.get_tile(x, y), Tile::Floor | Tile::Wall);
 
                     if more_than_player || interesting_tile {
                         let (desc, recalled) = map.describe_pos(world, x, y, false, true, true);
 
-                        world
-                            .borrow::<UniqueViewMut<Messages>>()
-                            .unwrap()
-                            .add(format!(
-                                "You {} {} here.",
-                                if recalled { "recall" } else { "see" },
-                                desc,
-                            ));
+                        world.borrow::<UniqueViewMut<Messages>>().add(format!(
+                            "You {} {} here.",
+                            if recalled { "recall" } else { "see" },
+                            desc,
+                        ));
                     }
                 }
 
                 // Make the camera follow the player.
                 {
-                    let mut camera = world.borrow::<UniqueViewMut<Camera>>().unwrap();
+                    let mut camera = world.borrow::<UniqueViewMut<Camera>>();
                     camera.0 = new_player_pos;
                 }
             }
 
             (
                 ModeControl::Stay,
-                if world.run(player::player_is_alive).unwrap()
-                    && world.run(player::player_is_auto_running).unwrap()
-                {
+                if world.run(player::player_is_alive) && world.run(player::player_is_auto_running) {
                     ModeUpdate::Update
                 } else {
                     ModeUpdate::WaitForEvent

@@ -88,7 +88,7 @@ impl OptionsMenuMode {
         };
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>().unwrap();
+        } = *world.borrow::<UniqueView<Options>>();
 
         if !grids.is_empty() {
             grids[0].resize(new_grid_size);
@@ -134,7 +134,7 @@ impl OptionsMenuMode {
                 ModeUpdate::Immediate,
             );
         } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
-            let mut options = world.borrow::<UniqueViewMut<Options>>().unwrap();
+            let mut options = world.borrow::<UniqueViewMut<Options>>();
             let gkey = gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT));
 
             match (&self.selection, gkey) {
@@ -241,7 +241,7 @@ impl OptionsMenuMode {
                 .max()
                 .unwrap_or_else(|| UNKNOWN_TILESET_NAME.len()) as i32;
         let tileset_y = 2;
-        let tileset = world.borrow::<UniqueView<Options>>().unwrap().tileset;
+        let tileset = world.borrow::<UniqueView<Options>>().tileset;
 
         grid.print((2, tileset_y), TILESET_LABEL);
         if tileset > 0 {
@@ -283,7 +283,7 @@ impl OptionsMenuMode {
                 .max()
                 .unwrap_or_else(|| UNKNOWN_TILESET_NAME.len()) as i32;
         let font_y = 3;
-        let font = world.borrow::<UniqueView<Options>>().unwrap().font;
+        let font = world.borrow::<UniqueView<Options>>().font;
 
         grid.print((2, font_y), FONT_LABEL);
         if font > 0 {
@@ -318,7 +318,7 @@ impl OptionsMenuMode {
         let map_zoom_1x_x = 3 + MAP_ZOOM_LABEL.len() as i32;
         let map_zoom_2x_x = 4 + (MAP_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
         let map_zoom_y = 4;
-        let map_zoom = world.borrow::<UniqueView<Options>>().unwrap().map_zoom;
+        let map_zoom = world.borrow::<UniqueView<Options>>().map_zoom;
 
         grid.print((2, map_zoom_y), MAP_ZOOM_LABEL);
         grid.print_color(
@@ -364,7 +364,7 @@ impl OptionsMenuMode {
         let text_zoom_1x_x = 3 + TEXT_ZOOM_LABEL.len() as i32;
         let text_zoom_2x_x = 4 + (TEXT_ZOOM_LABEL.len() + ZOOM_1X_OFF.len()) as i32;
         let text_zoom_y = 5;
-        let text_zoom = world.borrow::<UniqueView<Options>>().unwrap().text_zoom;
+        let text_zoom = world.borrow::<UniqueView<Options>>().text_zoom;
 
         grid.print((2, text_zoom_y), TEXT_ZOOM_LABEL);
         grid.print_color(
