@@ -51,8 +51,13 @@ impl InventoryAction {
 
     pub fn item_supports_action(world: &World, item_id: EntityId, action: InventoryAction) -> bool {
         match action {
-            InventoryAction::EquipItem => world.borrow::<View<EquipSlot>>().contains(item_id),
-            InventoryAction::UseItem => world.borrow::<View<Consumable>>().contains(item_id),
+            InventoryAction::EquipItem => {
+                world.borrow::<View<EquipSlot>>().unwrap().contains(item_id)
+            }
+            InventoryAction::UseItem => world
+                .borrow::<View<Consumable>>()
+                .unwrap()
+                .contains(item_id),
             InventoryAction::DropItem => true,
         }
     }
@@ -102,7 +107,13 @@ impl InventoryActionMode {
         let selection = default_action
             .and_then(|d_act| actions.iter().position(|a| *a == d_act))
             .unwrap_or(0);
-        let item_width = world.borrow::<View<Name>>().get(item_id).0.len();
+        let item_width = world
+            .borrow::<View<Name>>()
+            .unwrap()
+            .get(item_id)
+            .unwrap()
+            .0
+            .len();
         let inner_width = 2 + item_width
             .max(CANCEL.len())
             .max(actions.iter().map(|a| a.label().len()).max().unwrap_or(0));
@@ -125,7 +136,7 @@ impl InventoryActionMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let new_grid_size = Size {
             w: 4 + self.inner_width as u32,
             h: 8 + self.actions.len() as u32,
@@ -148,13 +159,23 @@ impl InventoryActionMode {
             SubSection::Actions => match self.actions[self.selection as usize] {
                 InventoryAction::EquipItem => InventoryActionModeResult::EquipItem(self.item_id),
                 InventoryAction::UseItem => {
-                    if let Some(Ranged { range }) =
-                        &world.borrow::<View<Ranged>>().try_get(self.item_id).ok()
+                    if let Some(Ranged { range }) = &world
+                        .borrow::<View<Ranged>>()
+                        .unwrap()
+                        .get(self.item_id)
+                        .ok()
                     {
-                        let item_name = world.borrow::<View<Name>>().get(self.item_id).0.clone();
+                        let item_name = world
+                            .borrow::<View<Name>>()
+                            .unwrap()
+                            .get(self.item_id)
+                            .unwrap()
+                            .0
+                            .clone();
                         let radius = world
                             .borrow::<View<AreaOfEffect>>()
-                            .try_get(self.item_id)
+                            .unwrap()
+                            .get(self.item_id)
                             .map_or(0, |aoe| aoe.radius);
 
                         inputs.clear_input();
@@ -280,12 +301,14 @@ impl InventoryActionMode {
 
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
 
-        world.run(|names: View<Name>, renderables: View<Renderable>| {
-            let render = renderables.get(self.item_id);
+        world
+            .run(|names: View<Name>, renderables: View<Renderable>| {
+                let render = renderables.get(self.item_id).unwrap();
 
-            grid.put_sym_color((2, 2), render.sym, render.fg, render.bg);
-            grid.print_color((4, 2), &names.get(self.item_id).0, true, fg, bg);
-        });
+                grid.put_sym_color((2, 2), render.sym, render.fg, render.bg);
+                grid.print_color((4, 2), &names.get(self.item_id).unwrap().0, true, fg, bg);
+            })
+            .unwrap();
 
         for (i, action) in self.actions.iter().enumerate() {
             grid.print_color(

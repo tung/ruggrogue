@@ -60,7 +60,7 @@ impl ChunkedMapGrid {
     /// Get the map chunk that should be at the top-left of the screen based on the position of the
     /// camera.
     fn screen_top_left_map_chunk(&self, world: &World) -> Position {
-        let camera_pos = world.borrow::<UniqueView<Camera>>().0;
+        let camera_pos = world.borrow::<UniqueView<Camera>>().unwrap().0;
         let tile_px_w = self.tile_size.w as i32;
         let tile_px_h = self.tile_size.h as i32;
         let screen_px_w = self.screen_size.w as i32;
@@ -88,7 +88,7 @@ impl ChunkedMapGrid {
             tileset: map_tileset_index,
             map_zoom,
             ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let map_tileset = &tilesets
             .get(map_tileset_index as usize)
             .unwrap_or(&tilesets[0]);
@@ -177,7 +177,7 @@ impl ChunkedMapGrid {
     /// Draw all screen chunks flagged dirty to their destination on the grid with their matching
     /// map chunk and clear their dirty flags.
     pub fn draw(&mut self, world: &World, grid: &mut TileGrid<GameSym>) {
-        let camera_pos = world.borrow::<UniqueView<Camera>>().0;
+        let camera_pos = world.borrow::<UniqueView<Camera>>().unwrap().0;
         let camera_chunk_x = camera_pos.x / CHUNK_TILE_WIDTH;
         let camera_chunk_y = camera_pos.y / CHUNK_TILE_HEIGHT;
         let tile_px_w = self.tile_size.w as i32;
@@ -261,11 +261,11 @@ impl ChunkedMapGrid {
             }
         }
 
-        let map = world.borrow::<UniqueView<Map>>();
-        let fovs = world.borrow::<View<FieldOfView>>();
+        let map = world.borrow::<UniqueView<Map>>().unwrap();
+        let fovs = world.borrow::<View<FieldOfView>>().unwrap();
         let player_fov = {
-            let player_id = world.borrow::<UniqueView<PlayerId>>();
-            fovs.get(player_id.0)
+            let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+            fovs.get(player_id.0).unwrap()
         };
 
         // Draw dirty grids and unflag them.

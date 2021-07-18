@@ -1,4 +1,4 @@
-use shipyard::{IntoIter, Shiperator, UniqueViewMut, View, ViewMut};
+use shipyard::{IntoIter, IntoWithId, UniqueViewMut, View, ViewMut};
 
 use crate::{
     components::{Coord, FieldOfView, Player},

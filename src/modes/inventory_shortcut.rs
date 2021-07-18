@@ -49,11 +49,11 @@ pub struct InventoryShortcutMode {
 /// inventory action modes.
 impl InventoryShortcutMode {
     pub fn new(world: &World, action: InventoryAction) -> Self {
-        let menu_memory = world.borrow::<UniqueView<MenuMemory>>();
-        let player_id = world.borrow::<UniqueView<PlayerId>>();
-        let inventories = world.borrow::<View<Inventory>>();
-        let names = world.borrow::<View<Name>>();
-        let player_inv = inventories.get(player_id.0);
+        let menu_memory = world.borrow::<UniqueView<MenuMemory>>().unwrap();
+        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+        let inventories = world.borrow::<View<Inventory>>().unwrap();
+        let names = world.borrow::<View<Name>>().unwrap();
+        let player_inv = inventories.get(player_id.0).unwrap();
         let items = player_inv
             .items
             .iter()
@@ -65,7 +65,7 @@ impl InventoryShortcutMode {
         let inner_width = title.len().max(prompt.len()).max(CANCEL.len()).max(
             items
                 .iter()
-                .map(|it| names.get(*it).0.len() + 2)
+                .map(|it| names.get(*it).unwrap().0.len() + 2)
                 .max()
                 .unwrap_or(2),
         );
@@ -96,7 +96,7 @@ impl InventoryShortcutMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let tileset = &tilesets.get(font as usize).unwrap_or(&tilesets[0]);
         let new_grid_size = Size {
             w: self.inner_width as u32 + 4,
@@ -129,12 +129,19 @@ impl InventoryShortcutMode {
                 InventoryAction::EquipItem => InventoryShortcutModeResult::EquipItem(item_id),
                 InventoryAction::UseItem => {
                     if let Some(Ranged { range }) =
-                        &world.borrow::<View<Ranged>>().try_get(item_id).ok()
+                        &world.borrow::<View<Ranged>>().unwrap().get(item_id).ok()
                     {
-                        let item_name = world.borrow::<View<Name>>().get(item_id).0.clone();
+                        let item_name = world
+                            .borrow::<View<Name>>()
+                            .unwrap()
+                            .get(item_id)
+                            .unwrap()
+                            .0
+                            .clone();
                         let radius = world
                             .borrow::<View<AreaOfEffect>>()
-                            .try_get(item_id)
+                            .unwrap()
+                            .get(item_id)
                             .map_or(0, |aoe| aoe.radius);
 
                         inputs.clear_input();
@@ -164,10 +171,13 @@ impl InventoryShortcutMode {
         pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if self.items.is_empty() {
-            world.borrow::<UniqueViewMut<Messages>>().add(format!(
-                "You have no items in your inventory to {}.",
-                self.action.name().to_lowercase(),
-            ));
+            world
+                .borrow::<UniqueViewMut<Messages>>()
+                .unwrap()
+                .add(format!(
+                    "You have no items in your inventory to {}.",
+                    self.action.name().to_lowercase(),
+                ));
 
             (
                 ModeControl::Pop(InventoryShortcutModeResult::Cancelled.into()),
@@ -281,7 +291,7 @@ impl InventoryShortcutMode {
 
                 // Update inventory shortcut menu memory for the matching action.
                 {
-                    let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
+                    let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>().unwrap();
                     let menu_memory = match self.action {
                         InventoryAction::EquipItem => {
                             &mut menu_memory[MenuMemory::INVENTORY_SHORTCUT_EQUIP]
@@ -335,8 +345,8 @@ impl InventoryShortcutMode {
         }
 
         {
-            let names = world.borrow::<View<Name>>();
-            let renderables = world.borrow::<View<Renderable>>();
+            let names = world.borrow::<View<Name>>().unwrap();
+            let renderables = world.borrow::<View<Renderable>>().unwrap();
 
             for (i, item_id) in self
                 .items
@@ -345,7 +355,7 @@ impl InventoryShortcutMode {
                 .skip(list_offset as usize)
                 .take(list_height as usize)
             {
-                let render = renderables.get(*item_id);
+                let render = renderables.get(*item_id).unwrap();
 
                 grid.put_sym_color(
                     (2, 4 + i as i32 - list_offset),
@@ -356,7 +366,7 @@ impl InventoryShortcutMode {
 
                 grid.print_color(
                     (4, 4 + i as i32 - list_offset),
-                    &names.get(*item_id).0,
+                    &names.get(*item_id).unwrap().0,
                     true,
                     fg,
                     if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {

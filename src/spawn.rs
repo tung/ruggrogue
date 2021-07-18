@@ -4,7 +4,7 @@ use rand::{
 };
 use rand_pcg::Pcg32;
 use shipyard::{
-    AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView,
+    AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, IntoIter, IntoWithId, UniqueView,
     UniqueViewMut, View, ViewMut, World,
 };
 use std::{collections::HashSet, hash::Hasher};
@@ -156,6 +156,7 @@ pub fn spawn_player(
     );
 
     entities.add_component(
+        id,
         (&mut equipments, &mut tallies),
         (
             Equipment {
@@ -168,58 +169,60 @@ pub fn spawn_player(
                 kills: 0,
             },
         ),
-        id,
     );
 
     id
 }
 
 fn spawn_item(world: &World, pos: (i32, i32), name: String, sym: GameSym, fg: Color) -> EntityId {
-    world.run(
-        |mut map: UniqueViewMut<Map>,
-         mut entities: EntitiesViewMut,
-         mut coords: ViewMut<Coord>,
-         mut items: ViewMut<Item>,
-         mut names: ViewMut<Name>,
-         mut render_on_floors: ViewMut<RenderOnFloor>,
-         mut renderables: ViewMut<Renderable>| {
-            let item_id = entities.add_entity(
-                (
-                    &mut items,
-                    &mut coords,
-                    &mut names,
-                    &mut render_on_floors,
-                    &mut renderables,
-                ),
-                (
-                    Item {},
-                    Coord(pos.into()),
-                    Name(name),
-                    RenderOnFloor {},
-                    Renderable {
-                        sym,
-                        fg,
-                        bg: Color::BLACK,
-                    },
-                ),
-            );
+    world
+        .run(
+            |mut map: UniqueViewMut<Map>,
+             mut entities: EntitiesViewMut,
+             mut coords: ViewMut<Coord>,
+             mut items: ViewMut<Item>,
+             mut names: ViewMut<Name>,
+             mut render_on_floors: ViewMut<RenderOnFloor>,
+             mut renderables: ViewMut<Renderable>| {
+                let item_id = entities.add_entity(
+                    (
+                        &mut items,
+                        &mut coords,
+                        &mut names,
+                        &mut render_on_floors,
+                        &mut renderables,
+                    ),
+                    (
+                        Item {},
+                        Coord(pos.into()),
+                        Name(name),
+                        RenderOnFloor {},
+                        Renderable {
+                            sym,
+                            fg,
+                            bg: Color::BLACK,
+                        },
+                    ),
+                );
 
-            map.place_entity(item_id, pos, false);
+                map.place_entity(item_id, pos, false);
 
-            item_id
-        },
-    )
+                item_id
+            },
+        )
+        .unwrap()
 }
 
 fn spawn_ration(world: &World, pos: (i32, i32)) {
     let item_id = spawn_item(world, pos, "Ration".into(), GameSym::Ration, Color::BROWN);
-    let (entities, mut consumables, mut nutritions) =
-        world.borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<Nutrition>)>();
+    let (entities, mut consumables, mut nutritions) = world
+        .borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<Nutrition>)>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (&mut consumables, &mut nutritions),
         (Consumable {}, Nutrition(750)),
-        item_id,
     );
 }
 
@@ -231,13 +234,14 @@ fn spawn_health_potion(world: &World, pos: (i32, i32)) {
         GameSym::HealthPotion,
         Color::MAGENTA,
     );
-    let (entities, mut consumables, mut provides_healings) =
-        world.borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<ProvidesHealing>)>();
+    let (entities, mut consumables, mut provides_healings) = world
+        .borrow::<(EntitiesView, ViewMut<Consumable>, ViewMut<ProvidesHealing>)>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (&mut consumables, &mut provides_healings),
         (Consumable {}, ProvidesHealing { heal_amount: 15 }),
-        item_id,
     );
 }
 
@@ -249,21 +253,23 @@ fn spawn_magic_missile_scroll(world: &World, pos: (i32, i32)) {
         GameSym::MagicMissileScroll,
         Color::CYAN,
     );
-    let (entities, mut consumables, mut inflicts_damages, mut rangeds) = world.borrow::<(
-        EntitiesView,
-        ViewMut<Consumable>,
-        ViewMut<InflictsDamage>,
-        ViewMut<Ranged>,
-    )>();
+    let (entities, mut consumables, mut inflicts_damages, mut rangeds) = world
+        .borrow::<(
+            EntitiesView,
+            ViewMut<Consumable>,
+            ViewMut<InflictsDamage>,
+            ViewMut<Ranged>,
+        )>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (&mut consumables, &mut inflicts_damages, &mut rangeds),
         (
             Consumable {},
             InflictsDamage { damage: 8 },
             Ranged { range: 6 },
         ),
-        item_id,
     );
 }
 
@@ -275,15 +281,18 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
         GameSym::FireballScroll,
         Color::ORANGE,
     );
-    let (entities, mut aoes, mut consumables, mut inflicts_damages, mut rangeds) = world.borrow::<(
-        EntitiesView,
-        ViewMut<AreaOfEffect>,
-        ViewMut<Consumable>,
-        ViewMut<InflictsDamage>,
-        ViewMut<Ranged>,
-    )>();
+    let (entities, mut aoes, mut consumables, mut inflicts_damages, mut rangeds) = world
+        .borrow::<(
+            EntitiesView,
+            ViewMut<AreaOfEffect>,
+            ViewMut<Consumable>,
+            ViewMut<InflictsDamage>,
+            ViewMut<Ranged>,
+        )>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (
             &mut aoes,
             &mut consumables,
@@ -296,7 +305,6 @@ fn spawn_fireball_scroll(world: &World, pos: (i32, i32)) {
             InflictsDamage { damage: 20 },
             Ranged { range: 6 },
         ),
-        item_id,
     );
 }
 
@@ -308,15 +316,18 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
         GameSym::SleepScroll,
         Color::PINK,
     );
-    let (entities, mut aoes, mut consumables, mut inflicts_sleeps, mut rangeds) = world.borrow::<(
-        EntitiesView,
-        ViewMut<AreaOfEffect>,
-        ViewMut<Consumable>,
-        ViewMut<InflictsSleep>,
-        ViewMut<Ranged>,
-    )>();
+    let (entities, mut aoes, mut consumables, mut inflicts_sleeps, mut rangeds) = world
+        .borrow::<(
+            EntitiesView,
+            ViewMut<AreaOfEffect>,
+            ViewMut<Consumable>,
+            ViewMut<InflictsSleep>,
+            ViewMut<Ranged>,
+        )>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (
             &mut aoes,
             &mut consumables,
@@ -329,7 +340,6 @@ fn spawn_sleep_scroll(world: &World, pos: (i32, i32)) {
             InflictsSleep { sleepiness: 36 },
             Ranged { range: 6 },
         ),
-        item_id,
     );
 }
 
@@ -350,10 +360,12 @@ fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32,
         sym,
         rgb.into(),
     );
-    let (entities, mut combat_bonuses, mut equip_slots) =
-        world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
+    let (entities, mut combat_bonuses, mut equip_slots) = world
+        .borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
@@ -362,7 +374,6 @@ fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32,
             },
             EquipSlot::Weapon,
         ),
-        item_id,
     );
 }
 
@@ -376,10 +387,12 @@ fn spawn_armor<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, 
         sym,
         rgb.into(),
     );
-    let (entities, mut combat_bonuses, mut equip_slots) =
-        world.borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>();
+    let (entities, mut combat_bonuses, mut equip_slots) = world
+        .borrow::<(EntitiesView, ViewMut<CombatBonus>, ViewMut<EquipSlot>)>()
+        .unwrap();
 
     entities.add_component(
+        item_id,
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
@@ -388,23 +401,22 @@ fn spawn_armor<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, 
             },
             EquipSlot::Armor,
         ),
-        item_id,
     );
 }
 
 fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name: &str, fg: Color) {
-    let monster_id = world.borrow::<EntitiesViewMut>().add_entity(
+    let monster_id = world.borrow::<EntitiesViewMut>().unwrap().add_entity(
         (
-            &mut world.borrow::<ViewMut<Monster>>(),
-            &mut world.borrow::<ViewMut<BlocksTile>>(),
-            &mut world.borrow::<ViewMut<CombatStats>>(),
-            &mut world.borrow::<ViewMut<Coord>>(),
-            &mut world.borrow::<ViewMut<Experience>>(),
-            &mut world.borrow::<ViewMut<FieldOfView>>(),
-            &mut world.borrow::<ViewMut<GivesExperience>>(),
-            &mut world.borrow::<ViewMut<Name>>(),
-            &mut world.borrow::<ViewMut<RenderOnMap>>(),
-            &mut world.borrow::<ViewMut<Renderable>>(),
+            &mut world.borrow::<ViewMut<Monster>>().unwrap(),
+            &mut world.borrow::<ViewMut<BlocksTile>>().unwrap(),
+            &mut world.borrow::<ViewMut<CombatStats>>().unwrap(),
+            &mut world.borrow::<ViewMut<Coord>>().unwrap(),
+            &mut world.borrow::<ViewMut<Experience>>().unwrap(),
+            &mut world.borrow::<ViewMut<FieldOfView>>().unwrap(),
+            &mut world.borrow::<ViewMut<GivesExperience>>().unwrap(),
+            &mut world.borrow::<ViewMut<Name>>().unwrap(),
+            &mut world.borrow::<ViewMut<RenderOnMap>>().unwrap(),
+            &mut world.borrow::<ViewMut<Renderable>>().unwrap(),
         ),
         (
             Monster {},
@@ -436,13 +448,14 @@ fn spawn_monster(world: &World, pos: (i32, i32), level: i32, sym: GameSym, name:
 
     world
         .borrow::<UniqueViewMut<Map>>()
+        .unwrap()
         .place_entity(monster_id, pos, true);
 }
 
 fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     let mut level = {
-        let difficulty = world.borrow::<UniqueView<Difficulty>>();
-        let exps = world.borrow::<View<Experience>>();
+        let difficulty = world.borrow::<UniqueView<Difficulty>>().unwrap();
+        let exps = world.borrow::<View<Experience>>().unwrap();
         difficulty.get_round_random(&exps, rng)
     };
     if rng.gen_ratio(4, 5) {
@@ -462,8 +475,8 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     if rng.gen_ratio(1, 11) {
         // Spawn weapon or armor.
         let level = {
-            let difficulty = world.borrow::<UniqueView<Difficulty>>();
-            let exps = world.borrow::<View<Experience>>();
+            let difficulty = world.borrow::<UniqueView<Difficulty>>().unwrap();
+            let exps = world.borrow::<View<Experience>>().unwrap();
             difficulty.as_f32(&exps)
         };
         // Spawn items (really equipment) at a slightly higher level than average.
@@ -492,7 +505,7 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
 }
 
 fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
-    let depth = world.borrow::<UniqueView<Map>>().depth;
+    let depth = world.borrow::<UniqueView<Map>>().unwrap().depth;
     let depth = if depth < 1 { 1usize } else { depth as usize };
 
     if rng.gen_ratio(1, 4) {
@@ -513,8 +526,8 @@ fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
 }
 
 fn pick_random_pos_in_room<R: Rng>(world: &World, rng: &mut R) -> Option<(i32, i32)> {
-    let map = world.borrow::<UniqueView<Map>>();
-    let items = world.borrow::<View<Item>>();
+    let map = world.borrow::<UniqueView<Map>>().unwrap();
+    let items = world.borrow::<View<Item>>().unwrap();
 
     map.rooms.choose(rng).and_then(|room| {
         room.iter_xy()
@@ -524,13 +537,14 @@ fn pick_random_pos_in_room<R: Rng>(world: &World, rng: &mut R) -> Option<(i32, i
 }
 
 fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
-    let depth = world.borrow::<UniqueView<Map>>().depth;
+    let depth = world.borrow::<UniqueView<Map>>().unwrap().depth;
 
     // Spawn starting equipment in the first room of Depth 1.
     if depth == 1 {
         let mut start_equips = [(0, 0); 2];
         let num = world
             .borrow::<UniqueView<Map>>()
+            .unwrap()
             .rooms
             .first()
             .map(|room| {
@@ -555,7 +569,7 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
     // Spawn a weapon and an armor once every so many levels, using separate RNGs for stable,
     // isolated random numbers to decide the exact levels.
     let depth_period_base = depth as u32 / EQUIPMENT_SPAWN_PERIOD * EQUIPMENT_SPAWN_PERIOD;
-    let game_seed = world.borrow::<UniqueView<GameSeed>>().0;
+    let game_seed = world.borrow::<UniqueView<GameSeed>>().unwrap().0;
 
     let mut periodic_weapon_rng = {
         // Offset the weapon spawn period based on the low bytes of the game seed.
@@ -574,8 +588,8 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
         let weapon_pos = pick_random_pos_in_room(world, &mut periodic_weapon_rng);
         if let Some(pos) = weapon_pos {
             let level = {
-                let difficulty = world.borrow::<UniqueView<Difficulty>>();
-                let exps = world.borrow::<View<Experience>>();
+                let difficulty = world.borrow::<UniqueView<Difficulty>>().unwrap();
+                let exps = world.borrow::<View<Experience>>().unwrap();
                 difficulty.as_f32(&exps)
             };
             spawn_weapon(world, &mut periodic_weapon_rng, pos, level, 0);
@@ -598,8 +612,8 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
         let armor_pos = pick_random_pos_in_room(world, &mut periodic_armor_rng);
         if let Some(pos) = armor_pos {
             let level = {
-                let difficulty = world.borrow::<UniqueView<Difficulty>>();
-                let exps = world.borrow::<View<Experience>>();
+                let difficulty = world.borrow::<UniqueView<Difficulty>>().unwrap();
+                let exps = world.borrow::<View<Experience>>().unwrap();
                 difficulty.as_f32(&exps)
             };
             spawn_armor(world, &mut periodic_armor_rng, pos, level, 0);
@@ -618,8 +632,8 @@ fn spawn_guaranteed_ration<R: Rng>(world: &World, rng: &mut R) {
 pub fn fill_rooms_with_spawns(world: &World) {
     let mut rng = {
         let mut hasher = WyHash::with_seed(magicnum::FILL_ROOM_WITH_SPAWNS);
-        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().0);
-        hasher.write_i32(world.borrow::<UniqueView<Map>>().depth);
+        hasher.write_u64(world.borrow::<UniqueView<GameSeed>>().unwrap().0);
+        hasher.write_i32(world.borrow::<UniqueView<Map>>().unwrap().depth);
         Pcg32::seed_from_u64(hasher.finish())
     };
 
@@ -627,6 +641,7 @@ pub fn fill_rooms_with_spawns(world: &World) {
 
     let rooms = world
         .borrow::<UniqueViewMut<Map>>()
+        .unwrap()
         .rooms
         .iter()
         .skip(1)
@@ -647,28 +662,32 @@ fn extend_despawn<T>(
 ) where
     T: 'static + Send + Sync,
 {
-    world.run(|storage: View<T>| {
-        despawn_ids.extend(
-            storage
-                .iter()
-                .with_id()
-                .map(|(id, _)| id)
-                .filter(|id| !preserve_ids.contains(id)),
-        );
-    });
+    world
+        .run(|storage: View<T>| {
+            despawn_ids.extend(
+                storage
+                    .iter()
+                    .with_id()
+                    .map(|(id, _)| id)
+                    .filter(|id| !preserve_ids.contains(id)),
+            );
+        })
+        .unwrap();
 }
 
 pub fn despawn_all_but_player(world: &World) {
-    let preserve_ids = world.run(player::all_player_associated_ids);
+    let preserve_ids = world.run(player::all_player_associated_ids).unwrap();
     let mut despawn_ids = Vec::new();
 
     // I really wish Shipyard had some way to iterate over all entity IDs...
     extend_despawn::<Item>(world, &mut despawn_ids, &preserve_ids);
     extend_despawn::<Monster>(world, &mut despawn_ids, &preserve_ids);
 
-    world.run(|mut all_storages: AllStoragesViewMut| {
-        for id in despawn_ids {
-            all_storages.delete(id);
-        }
-    });
+    world
+        .run(|mut all_storages: AllStoragesViewMut| {
+            for id in despawn_ids {
+                all_storages.delete_entity(id);
+            }
+        })
+        .unwrap();
 }

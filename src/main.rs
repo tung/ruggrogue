@@ -49,22 +49,28 @@ fn main() {
 
     println!("Game seed: {}", game_seed);
 
-    world.add_unique(Options {
-        tileset: 2,
-        font: 0,
-        map_zoom: 1,
-        text_zoom: 1,
-    });
-    world.add_unique(GameSeed(game_seed));
-    world.add_unique(TurnCount(0));
-    world.add_unique(Camera::new());
-    world.add_unique(Difficulty::new(world.run(spawn::spawn_difficulty)));
-    world.add_unique(MenuMemory::new());
-    world.add_unique(Messages::new(100));
-    world.add_unique(Map::new(80, 50));
-    world.add_unique(PlayerId(world.run(spawn::spawn_player)));
-    world.add_unique(PlayerAlive(true));
-    world.add_unique(MonsterTurns::new());
+    world
+        .add_unique(Options {
+            tileset: 2,
+            font: 0,
+            map_zoom: 1,
+            text_zoom: 1,
+        })
+        .unwrap();
+    world.add_unique(GameSeed(game_seed)).unwrap();
+    world.add_unique(TurnCount(0)).unwrap();
+    world.add_unique(Camera::new()).unwrap();
+    world
+        .add_unique(Difficulty::new(world.run(spawn::spawn_difficulty).unwrap()))
+        .unwrap();
+    world.add_unique(MenuMemory::new()).unwrap();
+    world.add_unique(Messages::new(100)).unwrap();
+    world.add_unique(Map::new(80, 50)).unwrap();
+    world
+        .add_unique(PlayerId(world.run(spawn::spawn_player).unwrap()))
+        .unwrap();
+    world.add_unique(PlayerAlive(true)).unwrap();
+    world.add_unique(MonsterTurns::new()).unwrap();
 
     let mut mode_stack = ModeStack::new(vec![DungeonMode::new(&world).into()]);
 

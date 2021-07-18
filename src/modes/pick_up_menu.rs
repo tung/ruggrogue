@@ -42,13 +42,13 @@ pub struct PickUpMenuMode {
 /// Show a list of items that player is on top of and let them choose one to pick up.
 impl PickUpMenuMode {
     pub fn new(world: &World) -> Self {
-        let map = world.borrow::<UniqueView<Map>>();
-        let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
-        let player_id = world.borrow::<UniqueView<PlayerId>>();
-        let coords = world.borrow::<View<Coord>>();
-        let items = world.borrow::<View<Item>>();
-        let names = world.borrow::<View<Name>>();
-        let player_coord = coords.get(player_id.0);
+        let map = world.borrow::<UniqueView<Map>>().unwrap();
+        let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>().unwrap();
+        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+        let coords = world.borrow::<View<Coord>>().unwrap();
+        let items = world.borrow::<View<Item>>().unwrap();
+        let names = world.borrow::<View<Name>>().unwrap();
+        let player_coord = coords.get(player_id.0).unwrap();
         let items = map
             .iter_entities_at(player_coord.0.x, player_coord.0.y)
             .filter(|id| items.contains(*id))
@@ -56,7 +56,7 @@ impl PickUpMenuMode {
         let width = TITLE.len().max(PROMPT.len()).max(CANCEL.len()).max(
             items
                 .iter()
-                .map(|it| names.get(*it).0.len() + 2)
+                .map(|it| names.get(*it).unwrap().0.len() + 2)
                 .max()
                 .unwrap_or(2),
         );
@@ -87,7 +87,7 @@ impl PickUpMenuMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let tileset = &tilesets.get(font as usize).unwrap_or(&tilesets[0]);
         let new_grid_size = Size {
             w: self.width as u32 + 4,
@@ -121,9 +121,11 @@ impl PickUpMenuMode {
         _pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if self.items.is_empty() {
-            world.run(|mut msgs: UniqueViewMut<Messages>| {
-                msgs.add("There are no items to pick up here.".into());
-            });
+            world
+                .run(|mut msgs: UniqueViewMut<Messages>| {
+                    msgs.add("There are no items to pick up here.".into());
+                })
+                .unwrap();
 
             (
                 ModeControl::Pop(PickUpMenuModeResult::Cancelled.into()),
@@ -216,7 +218,8 @@ impl PickUpMenuMode {
                     _ => {}
                 }
 
-                world.borrow::<UniqueViewMut<MenuMemory>>()[MenuMemory::PICK_UP] = self.selection;
+                world.borrow::<UniqueViewMut<MenuMemory>>().unwrap()[MenuMemory::PICK_UP] =
+                    self.selection;
             }
 
             (ModeControl::Stay, ModeUpdate::WaitForEvent)
@@ -255,36 +258,40 @@ impl PickUpMenuMode {
             );
         }
 
-        world.run(|names: View<Name>, renderables: View<Renderable>| {
-            for (i, item_id) in self
-                .items
-                .iter()
-                .enumerate()
-                .skip(list_offset as usize)
-                .take(list_height as usize)
-            {
-                let render = renderables.get(*item_id);
+        world
+            .run(|names: View<Name>, renderables: View<Renderable>| {
+                for (i, item_id) in self
+                    .items
+                    .iter()
+                    .enumerate()
+                    .skip(list_offset as usize)
+                    .take(list_height as usize)
+                {
+                    let render = renderables.get(*item_id).unwrap();
 
-                grid.put_sym_color(
-                    (2, 4 + i as i32 - list_offset),
-                    render.sym,
-                    render.fg,
-                    render.bg,
-                );
+                    grid.put_sym_color(
+                        (2, 4 + i as i32 - list_offset),
+                        render.sym,
+                        render.fg,
+                        render.bg,
+                    );
 
-                grid.print_color(
-                    (4, 4 + i as i32 - list_offset),
-                    &names.get(*item_id).0,
-                    true,
-                    fg,
-                    if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {
-                        selected_bg
-                    } else {
-                        bg
-                    },
-                );
-            }
-        });
+                    grid.print_color(
+                        (4, 4 + i as i32 - list_offset),
+                        &names.get(*item_id).unwrap().0,
+                        true,
+                        fg,
+                        if matches!(self.subsection, SubSection::Items)
+                            && i as i32 == self.selection
+                        {
+                            selected_bg
+                        } else {
+                            bg
+                        },
+                    );
+                }
+            })
+            .unwrap();
 
         grid.print_color(
             (4, height as i32 - 3),

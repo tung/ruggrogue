@@ -84,7 +84,13 @@ impl EquipmentActionMode {
         let selection = default_action
             .and_then(|d_act| actions.iter().position(|a| *a == d_act))
             .unwrap_or(0);
-        let item_width = world.borrow::<View<Name>>().get(item_id).0.len();
+        let item_width = world
+            .borrow::<View<Name>>()
+            .unwrap()
+            .get(item_id)
+            .unwrap()
+            .0
+            .len();
         let inner_width = 2 + item_width
             .max(CANCEL.len())
             .max(actions.iter().map(|a| a.label().len()).max().unwrap_or(0));
@@ -107,7 +113,7 @@ impl EquipmentActionMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let new_grid_size = Size {
             w: 4 + self.inner_width as u32,
             h: 8 + self.actions.len() as u32,
@@ -228,12 +234,12 @@ impl EquipmentActionMode {
         grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
 
         {
-            let names = world.borrow::<View<Name>>();
-            let renderables = world.borrow::<View<Renderable>>();
-            let render = renderables.get(self.item_id);
+            let names = world.borrow::<View<Name>>().unwrap();
+            let renderables = world.borrow::<View<Renderable>>().unwrap();
+            let render = renderables.get(self.item_id).unwrap();
 
             grid.put_sym_color((2, 2), render.sym, render.fg, render.bg);
-            grid.print_color((4, 2), &names.get(self.item_id).0, true, fg, bg);
+            grid.print_color((4, 2), &names.get(self.item_id).unwrap().0, true, fg, bg);
         }
 
         for (i, action) in self.actions.iter().enumerate() {

@@ -44,11 +44,11 @@ pub struct EquipmentShortcutMode {
 /// equipment action modes.
 impl EquipmentShortcutMode {
     pub fn new(world: &World, action: EquipmentAction) -> Self {
-        let menu_memory = world.borrow::<UniqueView<MenuMemory>>();
-        let player_id = world.borrow::<UniqueView<PlayerId>>();
-        let equipments = world.borrow::<View<Equipment>>();
-        let names = world.borrow::<View<Name>>();
-        let player_equipment = equipments.get(player_id.0);
+        let menu_memory = world.borrow::<UniqueView<MenuMemory>>().unwrap();
+        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
+        let equipments = world.borrow::<View<Equipment>>().unwrap();
+        let names = world.borrow::<View<Name>>().unwrap();
+        let player_equipment = equipments.get(player_id.0).unwrap();
         let items = player_equipment
             .weapon
             .iter()
@@ -60,7 +60,7 @@ impl EquipmentShortcutMode {
         let inner_width = title.len().max(prompt.len()).max(CANCEL.len()).max(
             items
                 .iter()
-                .map(|it| names.get(*it).0.len() + 2)
+                .map(|it| names.get(*it).unwrap().0.len() + 2)
                 .max()
                 .unwrap_or(2),
         );
@@ -90,7 +90,7 @@ impl EquipmentShortcutMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let tileset = &tilesets.get(font as usize).unwrap_or(&tilesets[0]);
         let new_grid_size = Size {
             w: self.inner_width as u32 + 4,
@@ -141,10 +141,13 @@ impl EquipmentShortcutMode {
         _pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
         if self.items.is_empty() {
-            world.borrow::<UniqueViewMut<Messages>>().add(format!(
-                "You have no equipment to {}.",
-                self.action.name().to_lowercase(),
-            ));
+            world
+                .borrow::<UniqueViewMut<Messages>>()
+                .unwrap()
+                .add(format!(
+                    "You have no equipment to {}.",
+                    self.action.name().to_lowercase(),
+                ));
 
             (
                 ModeControl::Pop(EquipmentShortcutModeResult::Cancelled.into()),
@@ -237,7 +240,7 @@ impl EquipmentShortcutMode {
 
                 // Update equipment shortcut menu memory for the matching action.
                 {
-                    let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>();
+                    let mut menu_memory = world.borrow::<UniqueViewMut<MenuMemory>>().unwrap();
                     let menu_memory = match self.action {
                         EquipmentAction::RemoveEquipment => {
                             &mut menu_memory[MenuMemory::EQUIPMENT_SHORTCUT_REMOVE]
@@ -288,8 +291,8 @@ impl EquipmentShortcutMode {
         }
 
         {
-            let names = world.borrow::<View<Name>>();
-            let renderables = world.borrow::<View<Renderable>>();
+            let names = world.borrow::<View<Name>>().unwrap();
+            let renderables = world.borrow::<View<Renderable>>().unwrap();
 
             for (i, item_id) in self
                 .items
@@ -298,7 +301,7 @@ impl EquipmentShortcutMode {
                 .skip(list_offset as usize)
                 .take(list_height as usize)
             {
-                let render = renderables.get(*item_id);
+                let render = renderables.get(*item_id).unwrap();
 
                 grid.put_sym_color(
                     (2, 4 + i as i32 - list_offset),
@@ -309,7 +312,7 @@ impl EquipmentShortcutMode {
 
                 grid.print_color(
                     (4, 4 + i as i32 - list_offset),
-                    &names.get(*item_id).0,
+                    &names.get(*item_id).unwrap().0,
                     true,
                     fg,
                     if matches!(self.subsection, SubSection::Items) && i as i32 == self.selection {

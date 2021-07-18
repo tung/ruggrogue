@@ -54,7 +54,7 @@ impl YesNoDialogMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let new_grid_size = Size {
             w: 4 + self.prompt.len().max(YES_STR.len() + NO_STR.len() + 2) as u32,
             h: 7,

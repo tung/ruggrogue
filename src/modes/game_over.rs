@@ -37,7 +37,7 @@ impl GameOverMode {
     ) {
         let Options {
             font, text_zoom, ..
-        } = *world.borrow::<UniqueView<Options>>();
+        } = *world.borrow::<UniqueView<Options>>().unwrap();
         let new_grid_size = Size { w: 34, h: 19 };
 
         if !grids.is_empty() {
@@ -95,17 +95,17 @@ impl GameOverMode {
             bg,
         );
 
-        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let player_id = world.borrow::<UniqueView<PlayerId>>().unwrap();
 
         {
-            let names = world.borrow::<View<Name>>();
-            let hurt_bys = world.borrow::<View<HurtBy>>();
-            let defeated_by = match hurt_bys.try_get(player_id.0) {
+            let names = world.borrow::<View<Name>>().unwrap();
+            let hurt_bys = world.borrow::<View<HurtBy>>().unwrap();
+            let defeated_by = match hurt_bys.get(player_id.0) {
                 Ok(HurtBy::Someone(hurter)) => {
                     if *hurter == player_id.0 {
                         "an overinflated ego"
                     } else {
-                        names.get(*hurter).0.as_str()
+                        names.get(*hurter).unwrap().0.as_str()
                     }
                 }
                 Ok(HurtBy::Starvation) => "starvation",
@@ -117,8 +117,8 @@ impl GameOverMode {
         }
 
         {
-            let exps = world.borrow::<View<Experience>>();
-            let player_exp = exps.get(player_id.0);
+            let exps = world.borrow::<View<Experience>>().unwrap();
+            let player_exp = exps.get(player_id.0).unwrap();
 
             grid.print((8, 4), "Level:");
             grid.print_color(
@@ -139,8 +139,8 @@ impl GameOverMode {
         }
 
         {
-            let combat_stats = world.borrow::<View<CombatStats>>();
-            let player_stats = combat_stats.get(player_id.0);
+            let combat_stats = world.borrow::<View<CombatStats>>().unwrap();
+            let player_stats = combat_stats.get(player_id.0).unwrap();
 
             grid.print((7, 6), "Health:");
             grid.print_color(
@@ -171,7 +171,12 @@ impl GameOverMode {
         grid.print((8, 9), "Depth:");
         grid.print_color(
             (DATA_X, 9),
-            world.borrow::<UniqueView<Map>>().depth.to_string().as_str(),
+            world
+                .borrow::<UniqueView<Map>>()
+                .unwrap()
+                .depth
+                .to_string()
+                .as_str(),
             true,
             data_fg,
             bg,
@@ -182,6 +187,7 @@ impl GameOverMode {
             (DATA_X, 10),
             world
                 .borrow::<UniqueView<TurnCount>>()
+                .unwrap()
                 .0
                 .to_string()
                 .as_str(),
@@ -195,7 +201,9 @@ impl GameOverMode {
             (DATA_X, 12),
             world
                 .borrow::<View<Inventory>>()
+                .unwrap()
                 .get(player_id.0)
+                .unwrap()
                 .items
                 .len()
                 .to_string()
@@ -206,16 +214,16 @@ impl GameOverMode {
         );
 
         {
-            let equipments = world.borrow::<View<Equipment>>();
-            let names = world.borrow::<View<Name>>();
-            let player_equipment = equipments.get(player_id.0);
+            let equipments = world.borrow::<View<Equipment>>().unwrap();
+            let names = world.borrow::<View<Name>>().unwrap();
+            let player_equipment = equipments.get(player_id.0).unwrap();
 
             grid.print((7, 13), "Weapon:");
             grid.print_color(
                 (DATA_X, 13),
                 player_equipment
                     .weapon
-                    .map(|w| names.get(w).0.as_str())
+                    .map(|w| names.get(w).unwrap().0.as_str())
                     .unwrap_or("nothing"),
                 true,
                 data_fg,
@@ -226,7 +234,7 @@ impl GameOverMode {
                 (DATA_X, 14),
                 player_equipment
                     .armor
-                    .map(|a| names.get(a).0.as_str())
+                    .map(|a| names.get(a).unwrap().0.as_str())
                     .unwrap_or("nothing"),
                 true,
                 data_fg,
@@ -235,8 +243,8 @@ impl GameOverMode {
         }
 
         {
-            let tallies = world.borrow::<View<Tally>>();
-            let player_tally = tallies.get(player_id.0);
+            let tallies = world.borrow::<View<Tally>>().unwrap();
+            let player_tally = tallies.get(player_id.0).unwrap();
 
             grid.print((1, 16), "Damage dealt:");
             grid.print_color(
