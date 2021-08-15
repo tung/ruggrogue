@@ -1,13 +1,11 @@
 use sdl2::keyboard::Keycode;
 use shipyard::{
-    EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut, World,
+    EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
+    World,
 };
-use std::collections::HashSet;
 
 use crate::{
-    components::{
-        CombatStats, Coord, Equipment, FieldOfView, Inventory, Item, Monster, Name, Player,
-    },
+    components::{CombatStats, Coord, FieldOfView, Item, Monster, Name, Player},
     damage, experience,
     gamekey::{self, GameKey},
     hunger::{self, CanRegenResult},
@@ -706,30 +704,24 @@ fn wait_player(world: &World, rest_in_place: bool) -> PlayerInputResult {
     PlayerInputResult::TurnDone
 }
 
-pub fn all_player_associated_ids(
-    equipments: View<Equipment>,
-    inventories: View<Inventory>,
+pub fn add_coords_to_players(
+    entities: EntitiesView,
+    mut coords: ViewMut<Coord>,
     players: View<Player>,
-) -> HashSet<EntityId> {
-    let mut ids = HashSet::new();
+) {
+    let player_ids = players.iter().with_id().map(|(id, _)| id);
 
-    for (id, _) in players.iter().with_id() {
-        // Add the player.
-        ids.insert(id);
-
-        // Add the player's equipment.
-        if let Ok(equip) = equipments.try_get(id) {
-            ids.extend(equip.weapon.iter());
-            ids.extend(equip.armor.iter());
-        }
-
-        // Add the player's inventory items.
-        if let Ok(inv) = inventories.try_get(id) {
-            ids.extend(inv.items.iter());
-        }
+    for id in player_ids {
+        entities.add_component((&mut coords,), (Coord((0, 0).into()),), id);
     }
+}
 
-    ids
+pub fn remove_coords_from_players(mut coords: ViewMut<Coord>, players: View<Player>) {
+    let player_ids = players.iter().with_id().map(|(id, _)| id);
+
+    for id in player_ids {
+        coords.remove(id);
+    }
 }
 
 pub fn player_try_descend(
@@ -752,7 +744,10 @@ pub fn player_try_descend(
 }
 
 pub fn player_do_descend(world: &World) {
-    spawn::despawn_all_but_player(world);
+    world.run(remove_coords_from_players);
+    world.run(spawn::despawn_coord_entities);
+    world.run(add_coords_to_players);
+
     world.run(|mut map: UniqueViewMut<Map>| {
         map.clear();
         map.depth += 1;

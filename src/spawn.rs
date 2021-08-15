@@ -7,7 +7,7 @@ use shipyard::{
     AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView,
     UniqueViewMut, View, ViewMut, World,
 };
-use std::{collections::HashSet, hash::Hasher};
+use std::hash::Hasher;
 use wyhash::WyHash;
 
 use crate::{
@@ -16,7 +16,7 @@ use crate::{
     gamesym::GameSym,
     magicnum,
     map::{Map, Rect},
-    player, GameSeed,
+    GameSeed,
 };
 use ruggle::util::Color;
 
@@ -92,11 +92,11 @@ pub fn spawn_difficulty(mut entities: EntitiesViewMut, mut exps: ViewMut<Experie
 
 /// Spawn a player.
 ///
-/// NOTE: The player must be positioned on the map at some point after this.
+/// NOTE: The player must be given a Coord component and then positioned on the map at some point
+/// after this.
 pub fn spawn_player(
     mut entities: EntitiesViewMut,
     mut combat_stats: ViewMut<CombatStats>,
-    mut coords: ViewMut<Coord>,
     mut equipments: ViewMut<Equipment>,
     mut exps: ViewMut<Experience>,
     mut fovs: ViewMut<FieldOfView>,
@@ -114,7 +114,6 @@ pub fn spawn_player(
         (
             &mut players,
             &mut combat_stats,
-            &mut coords,
             &mut exps,
             &mut fovs,
             &mut inventories,
@@ -131,7 +130,6 @@ pub fn spawn_player(
                 attack: experience::calc_player_attack(1),
                 defense: experience::calc_player_defense(1),
             },
-            Coord((0, 0).into()),
             Experience {
                 level: 1,
                 exp: 0,
@@ -640,35 +638,16 @@ pub fn fill_rooms_with_spawns(world: &World) {
     spawn_guaranteed_ration(world, &mut rng);
 }
 
-fn extend_despawn<T>(
-    world: &World,
-    despawn_ids: &mut Vec<EntityId>,
-    preserve_ids: &HashSet<EntityId>,
-) where
-    T: 'static + Send + Sync,
-{
-    world.run(|storage: View<T>| {
-        despawn_ids.extend(
-            storage
-                .iter()
-                .with_id()
-                .map(|(id, _)| id)
-                .filter(|id| !preserve_ids.contains(id)),
-        );
-    });
-}
+/// Despawn all map-local entites, i.e. all entities with a Coord component.
+pub fn despawn_coord_entities(mut all_storages: AllStoragesViewMut) {
+    let despawn_ids = all_storages
+        .borrow::<View<Coord>>()
+        .iter()
+        .with_id()
+        .map(|(id, _)| id)
+        .collect::<Vec<EntityId>>();
 
-pub fn despawn_all_but_player(world: &World) {
-    let preserve_ids = world.run(player::all_player_associated_ids);
-    let mut despawn_ids = Vec::new();
-
-    // I really wish Shipyard had some way to iterate over all entity IDs...
-    extend_despawn::<Item>(world, &mut despawn_ids, &preserve_ids);
-    extend_despawn::<Monster>(world, &mut despawn_ids, &preserve_ids);
-
-    world.run(|mut all_storages: AllStoragesViewMut| {
-        for id in despawn_ids {
-            all_storages.delete(id);
-        }
-    });
+    for id in despawn_ids {
+        all_storages.delete(id);
+    }
 }

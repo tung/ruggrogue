@@ -80,6 +80,7 @@ impl DungeonMode {
         world.borrow::<UniqueViewMut<Map>>().depth = 1;
         world.run(map::generate_rooms_and_corridors);
         world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
+        world.run(player::add_coords_to_players);
         world.run(map::place_player_in_first_room);
         spawn::fill_rooms_with_spawns(world);
         world.run(vision::recalculate_fields_of_view);
