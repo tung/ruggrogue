@@ -41,7 +41,7 @@ pub fn enqueue_monster_turns(
         // Monsters close to the player get their turns first.
         monster_turns
             .0
-            .push((Reverse(coord.dist(&player_coord)), id));
+            .push((Reverse(coord.dist(player_coord)), id));
     }
 }
 

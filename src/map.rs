@@ -479,7 +479,7 @@ pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: Un
         let y: i32 = rng.gen_range(1, map.height - h - 1);
         let new_room = Rect::new(x, y, w, h);
 
-        if !map.rooms.iter().any(|r| new_room.intersects(&r, 1)) {
+        if !map.rooms.iter().any(|r| new_room.intersects(r, 1)) {
             map.set_rect(&new_room, Tile::Floor);
             map.rooms.push(new_room);
         }

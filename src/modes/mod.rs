@@ -59,6 +59,7 @@ use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 // /////////////////////////////////////////////////////////////////////////////
 
 /// All possible modes that can be added to the mode stack.  Add new modes here.
+#[allow(clippy::enum_variant_names)]
 pub enum Mode {
     AppQuitDialogMode(AppQuitDialogMode),
     DungeonMode(DungeonMode),
@@ -157,6 +158,7 @@ impl From<YesNoDialogMode> for Mode {
 
 /// All possible mode results that each mode can return when removed from the mode stack.  A result
 /// should be added for every mode added.
+#[allow(clippy::enum_variant_names)]
 pub enum ModeResult {
     AppQuitDialogModeResult(AppQuitDialogModeResult),
     DungeonModeResult(DungeonModeResult),
@@ -419,7 +421,7 @@ impl ModeStack {
                 .unwrap_or(0);
 
             for (i, mode) in self.stack.iter_mut().enumerate().skip(prepare_grids_from) {
-                mode.prepare_grids(world, &mut layers[i].grids, &tilesets, window_size);
+                mode.prepare_grids(world, &mut layers[i].grids, tilesets, window_size);
             }
 
             // Update the top mode.
