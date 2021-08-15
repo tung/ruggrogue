@@ -4,8 +4,8 @@ use rand::{
 };
 use rand_pcg::Pcg32;
 use shipyard::{
-    AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, IntoIter, Shiperator, UniqueView,
-    UniqueViewMut, View, ViewMut, World,
+    AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, Get, IntoIter, Shiperator,
+    UniqueView, UniqueViewMut, View, ViewMut, World,
 };
 use std::hash::Hasher;
 use wyhash::WyHash;
@@ -638,6 +638,34 @@ pub fn fill_rooms_with_spawns(world: &World) {
     spawn_guaranteed_ration(world, &mut rng);
 }
 
+/// Despawn an entity, including all associated entities like equipment and inventory.
+pub fn despawn_entity(all_storages: &mut AllStoragesViewMut, id: EntityId) {
+    let mut extra_despawn_ids = Vec::new();
+
+    // Despawn equipment associated with this entity.
+    if let Ok(equip) = all_storages.borrow::<View<Equipment>>().try_get(id) {
+        if let Some(weapon) = equip.weapon {
+            extra_despawn_ids.push(weapon);
+        }
+        if let Some(armor) = equip.armor {
+            extra_despawn_ids.push(armor);
+        }
+    }
+
+    // Despawn inventory associated with this entity.
+    if let Ok(inventory) = all_storages.borrow::<View<Inventory>>().try_get(id) {
+        for item in &inventory.items {
+            extra_despawn_ids.push(*item);
+        }
+    }
+
+    for extra_id in extra_despawn_ids {
+        all_storages.delete(extra_id);
+    }
+
+    all_storages.delete(id);
+}
+
 /// Despawn all map-local entites, i.e. all entities with a Coord component.
 pub fn despawn_coord_entities(mut all_storages: AllStoragesViewMut) {
     let despawn_ids = all_storages
@@ -648,6 +676,6 @@ pub fn despawn_coord_entities(mut all_storages: AllStoragesViewMut) {
         .collect::<Vec<EntityId>>();
 
     for id in despawn_ids {
-        all_storages.delete(id);
+        despawn_entity(&mut all_storages, id);
     }
 }

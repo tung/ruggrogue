@@ -16,7 +16,7 @@ use crate::{
     map::Map,
     message::Messages,
     player::{PlayerAlive, PlayerId},
-    GameSeed, TurnCount,
+    spawn, GameSeed, TurnCount,
 };
 
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
@@ -185,7 +185,7 @@ pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
                 );
 
                 // Delete the dead entity.
-                all_storages.delete(entity);
+                spawn::despawn_entity(&mut all_storages, entity);
             }
         }
 
