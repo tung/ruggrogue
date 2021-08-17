@@ -14,7 +14,7 @@ use crate::{
     message::Messages,
     spawn, vision,
 };
-use ruggle::{InputBuffer, InputEvent, KeyMods, PathableMap};
+use ruggle::{util::Position, InputBuffer, InputEvent, KeyMods, PathableMap};
 
 pub struct PlayerId(pub EntityId);
 
@@ -808,6 +808,28 @@ pub fn player_drop_item(world: &World, item_id: EntityId) {
             names.get(item_id).0
         ));
     });
+}
+
+/// Describe contents of the tile the player is on.
+pub fn describe_player_pos(world: &World) {
+    let Position { x, y } = {
+        let player_id = world.borrow::<UniqueView<PlayerId>>();
+        let coords = world.borrow::<View<Coord>>();
+        coords.get(player_id.0).0
+    };
+    let map = world.borrow::<UniqueView<Map>>();
+    let more_than_player = map.iter_entities_at(x, y).nth(1).is_some();
+    let interesting_tile = !matches!(map.get_tile(x, y), Tile::Floor | Tile::Wall);
+
+    if more_than_player || interesting_tile {
+        let (desc, recalled) = map.describe_pos(world, x, y, false, true, true);
+
+        world.borrow::<UniqueViewMut<Messages>>().add(format!(
+            "You {} {} here.",
+            if recalled { "recall" } else { "see" },
+            desc,
+        ));
+    }
 }
 
 pub fn player_input(world: &World, inputs: &mut InputBuffer) -> PlayerInputResult {

@@ -41,13 +41,7 @@ fn new_game_setup(world: &World) {
     println!("Game seed: {}", world.borrow::<UniqueView<GameSeed>>().0);
 
     world.borrow::<UniqueViewMut<MenuMemory>>().reset();
-
-    {
-        let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
-        msgs.reset();
-        msgs.add("Welcome to Ruggle!".into());
-    }
-
+    world.borrow::<UniqueViewMut<Messages>>().reset();
     world.borrow::<UniqueViewMut<TurnCount>>().0 = 1;
 
     // Replace old difficulty tracker with a fresh one.
@@ -82,6 +76,11 @@ fn new_game_setup(world: &World) {
     world.run(map::place_player_in_first_room);
     spawn::fill_rooms_with_spawns(world);
     world.run(vision::recalculate_fields_of_view);
+
+    world
+        .borrow::<UniqueViewMut<Messages>>()
+        .add("Welcome to Ruggle!".into());
+    player::describe_player_pos(world);
 }
 
 pub fn post_game_cleanup(world: &World) {
