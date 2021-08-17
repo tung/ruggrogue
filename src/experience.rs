@@ -11,7 +11,7 @@ use crate::{
 /// of entering a new dungeon depth, used to determine the approximate level that monsters and
 /// items on the current dungeon floor should be based around.
 pub struct Difficulty {
-    id: EntityId,
+    pub id: EntityId,
     exp_for_next_depth: u64,
 }
 
@@ -25,6 +25,12 @@ impl Difficulty {
             id,
             exp_for_next_depth: 0,
         }
+    }
+
+    /// Replace this instance of Difficulty with another instance.
+    pub fn replace(&mut self, replacement: Self) {
+        self.id = replacement.id;
+        self.exp_for_next_depth = replacement.exp_for_next_depth;
     }
 
     /// Get the level tracked by difficulty with a fractional part based on experience.

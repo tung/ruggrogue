@@ -34,6 +34,7 @@ pub mod inventory_shortcut;
 pub mod options_menu;
 pub mod pick_up_menu;
 pub mod target;
+pub mod title;
 pub mod view_map;
 pub mod yes_no_dialog;
 
@@ -53,6 +54,7 @@ use inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult};
 use options_menu::{OptionsMenuMode, OptionsMenuModeResult};
 use pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult};
 use target::{TargetMode, TargetModeResult};
+use title::{TitleMode, TitleModeResult};
 use view_map::{ViewMapMode, ViewMapModeResult};
 use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 
@@ -72,6 +74,7 @@ pub enum Mode {
     OptionsMenuMode(OptionsMenuMode),
     PickUpMenuMode(PickUpMenuMode),
     TargetMode(TargetMode),
+    TitleMode(TitleMode),
     ViewMapMode(ViewMapMode),
     YesNoDialogMode(YesNoDialogMode),
 }
@@ -142,6 +145,12 @@ impl From<TargetMode> for Mode {
     }
 }
 
+impl From<TitleMode> for Mode {
+    fn from(mode: TitleMode) -> Self {
+        Self::TitleMode(mode)
+    }
+}
+
 impl From<ViewMapMode> for Mode {
     fn from(mode: ViewMapMode) -> Self {
         Self::ViewMapMode(mode)
@@ -171,6 +180,7 @@ pub enum ModeResult {
     OptionsMenuModeResult(OptionsMenuModeResult),
     PickUpMenuModeResult(PickUpMenuModeResult),
     TargetModeResult(TargetModeResult),
+    TitleModeResult(TitleModeResult),
     ViewMapModeResult(ViewMapModeResult),
     YesNoDialogModeResult(YesNoDialogModeResult),
 }
@@ -241,6 +251,12 @@ impl From<TargetModeResult> for ModeResult {
     }
 }
 
+impl From<TitleModeResult> for ModeResult {
+    fn from(result: TitleModeResult) -> Self {
+        Self::TitleModeResult(result)
+    }
+}
+
 impl From<ViewMapModeResult> for ModeResult {
     fn from(result: ViewMapModeResult) -> Self {
         Self::ViewMapModeResult(result)
@@ -303,6 +319,7 @@ impl Mode {
             Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::TargetMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::TitleMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::ViewMapMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::YesNoDialogMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
         }
@@ -327,6 +344,7 @@ impl Mode {
             Mode::OptionsMenuMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::PickUpMenuMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::TargetMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::TitleMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::ViewMapMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::YesNoDialogMode(x) => x.update(world, inputs, grids, pop_result),
         }
@@ -345,6 +363,7 @@ impl Mode {
             Mode::OptionsMenuMode(x) => x.draw(world, grids, active),
             Mode::PickUpMenuMode(x) => x.draw(world, grids, active),
             Mode::TargetMode(x) => x.draw(world, grids, active),
+            Mode::TitleMode(x) => x.draw(world, grids, active),
             Mode::ViewMapMode(x) => x.draw(world, grids, active),
             Mode::YesNoDialogMode(x) => x.draw(world, grids, active),
         }
@@ -364,6 +383,7 @@ impl Mode {
             Mode::OptionsMenuMode(_) => true,
             Mode::PickUpMenuMode(_) => true,
             Mode::TargetMode(_) => false,
+            Mode::TitleMode(_) => false,
             Mode::ViewMapMode(_) => false,
             Mode::YesNoDialogMode(_) => true,
         }

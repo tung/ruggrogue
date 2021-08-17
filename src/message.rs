@@ -15,6 +15,11 @@ impl Messages {
         }
     }
 
+    pub fn reset(&mut self) {
+        self.msg_queue.clear();
+        self.num_highlighted = 0;
+    }
+
     pub fn add(&mut self, msg: String) {
         if self.msg_queue.len() >= self.msg_queue.capacity() {
             self.msg_queue.pop_front();

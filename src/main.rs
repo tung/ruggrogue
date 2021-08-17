@@ -29,7 +29,7 @@ use crate::{
     map::Map,
     menu_memory::MenuMemory,
     message::Messages,
-    modes::{dungeon::DungeonMode, ModeStack},
+    modes::{title::TitleMode, ModeStack},
     monster::MonsterTurns,
     player::{PlayerAlive, PlayerId},
     ui::Options,
@@ -46,8 +46,6 @@ fn main() {
         .nth(1)
         .and_then(|arg| arg.as_str().parse().ok())
         .unwrap_or_else(rand::random);
-
-    println!("Game seed: {}", game_seed);
 
     world.add_unique(Options {
         tileset: 2,
@@ -66,7 +64,7 @@ fn main() {
     world.add_unique(PlayerAlive(true));
     world.add_unique(MonsterTurns::new());
 
-    let mut mode_stack = ModeStack::new(vec![DungeonMode::new(&world).into()]);
+    let mut mode_stack = ModeStack::new(vec![TitleMode::new().into()]);
 
     let settings = RunSettings {
         title: "Ruggle".into(),

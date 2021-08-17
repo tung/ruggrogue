@@ -22,6 +22,13 @@ impl MenuMemory {
             pick_up_pos: Position { x: 0, y: 0 },
         }
     }
+
+    pub fn reset(&mut self) {
+        for m in self.menu.iter_mut() {
+            *m = 0;
+        }
+        self.pick_up_pos = Position { x: 0, y: 0 };
+    }
 }
 
 impl Index<usize> for MenuMemory {

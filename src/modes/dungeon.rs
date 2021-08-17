@@ -6,11 +6,11 @@ use crate::{
     damage, experience,
     gamesym::GameSym,
     hunger, item,
-    map::{self, Map, Tile},
+    map::{Map, Tile},
     message::Messages,
     monster,
-    player::{self, PlayerAlive, PlayerId, PlayerInputResult},
-    render, spawn, ui, vision, TurnCount,
+    player::{self, PlayerId, PlayerInputResult},
+    render, ui, vision, TurnCount,
 };
 use ruggle::{
     util::{Color, Position, Size},
@@ -27,6 +27,7 @@ use super::{
     inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult},
     options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult},
+    title::{self, TitleMode},
     view_map::{ViewMapMode, ViewMapModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
@@ -72,19 +73,7 @@ fn get_player_pos(player_id: UniqueView<PlayerId>, coords: View<Coord>) -> Posit
 /// The main gameplay mode.  The player can move around and explore the map, fight monsters and
 /// perform other actions while alive, directly or indirectly.
 impl DungeonMode {
-    pub fn new(world: &World) -> Self {
-        world
-            .borrow::<UniqueViewMut<Messages>>()
-            .add("Welcome to Ruggle!".into());
-        world.borrow::<UniqueViewMut<TurnCount>>().0 = 1;
-        world.borrow::<UniqueViewMut<Map>>().depth = 1;
-        world.run(map::generate_rooms_and_corridors);
-        world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
-        world.run(player::add_coords_to_players);
-        world.run(map::place_player_in_first_room);
-        spawn::fill_rooms_with_spawns(world);
-        world.run(vision::recalculate_fields_of_view);
-
+    pub fn new() -> Self {
         Self {
             chunked_map_grid: ChunkedMapGrid::new(),
             old_msg_frame_size: (0, 0).into(),
@@ -150,10 +139,12 @@ impl DungeonMode {
                         OptionsMenuModeResult::AppQuit => return app_quit_dialog(inputs),
                         OptionsMenuModeResult::Closed => false,
                         OptionsMenuModeResult::ReallyQuit => {
+                            title::post_game_cleanup(world);
+                            inputs.clear_input();
                             return (
-                                ModeControl::Pop(DungeonModeResult::Done.into()),
+                                ModeControl::Switch(TitleMode::new().into()),
                                 ModeUpdate::Immediate,
-                            )
+                            );
                         }
                     },
 

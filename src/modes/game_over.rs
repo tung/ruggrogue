@@ -14,11 +14,13 @@ use ruggle::{
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };
 
-use super::{ModeControl, ModeResult, ModeUpdate};
+use super::{
+    title::{self, TitleMode},
+    ModeControl, ModeResult, ModeUpdate,
+};
 
 pub enum GameOverModeResult {
     AppQuit,
-    Done,
 }
 
 pub struct GameOverMode;
@@ -54,7 +56,7 @@ impl GameOverMode {
 
     pub fn update(
         &mut self,
-        _world: &World,
+        world: &World,
         inputs: &mut InputBuffer,
         _grids: &[TileGrid<GameSym>],
         _pop_result: &Option<ModeResult>,
@@ -69,8 +71,10 @@ impl GameOverMode {
         } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             let key = gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT));
             if matches!(key, GameKey::Confirm | GameKey::Cancel) {
+                title::post_game_cleanup(world);
+                inputs.clear_input();
                 return (
-                    ModeControl::Pop(GameOverModeResult::Done.into()),
+                    ModeControl::Switch(TitleMode::new().into()),
                     ModeUpdate::Immediate,
                 );
             }
