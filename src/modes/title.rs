@@ -8,7 +8,7 @@ use crate::{
     menu_memory::MenuMemory,
     message::Messages,
     player::{self, PlayerAlive, PlayerId},
-    spawn,
+    saveload, spawn,
     ui::{self, Options},
     vision, GameSeed, TurnCount,
 };
@@ -17,7 +17,11 @@ use ruggle::{
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };
 
-use super::{dungeon::DungeonMode, ModeControl, ModeResult, ModeUpdate};
+use super::{
+    dungeon::DungeonMode,
+    yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
+    ModeControl, ModeResult, ModeUpdate,
+};
 
 pub enum TitleModeResult {
     AppQuit,
@@ -25,6 +29,7 @@ pub enum TitleModeResult {
 
 pub enum TitleAction {
     NewGame,
+    LoadGame,
     Quit,
 }
 
@@ -32,13 +37,18 @@ impl TitleAction {
     fn label(&self) -> &'static str {
         match self {
             TitleAction::NewGame => "New Game",
+            TitleAction::LoadGame => "Load Game",
             TitleAction::Quit => "Quit",
         }
     }
 }
 
+fn print_game_seed(game_seed: UniqueView<GameSeed>) {
+    println!("Game seed: {}", game_seed.0);
+}
+
 fn new_game_setup(world: &World) {
-    println!("Game seed: {}", world.borrow::<UniqueView<GameSeed>>().0);
+    world.run(print_game_seed);
 
     world.borrow::<UniqueViewMut<MenuMemory>>().reset();
     world.borrow::<UniqueViewMut<Messages>>().reset();
@@ -100,13 +110,22 @@ pub struct TitleMode {
 /// Show the title screen of the game with a menu that leads into the game proper.
 impl TitleMode {
     pub fn new() -> Self {
-        let actions = vec![TitleAction::NewGame, TitleAction::Quit];
-        let inner_width = actions.iter().map(|a| a.label().len()).max().unwrap_or(0);
+        let mut actions = vec![TitleAction::NewGame];
+        if saveload::save_file_exists() {
+            actions.push(TitleAction::LoadGame);
+        }
+        actions.push(TitleAction::Quit);
+
+        let inner_width = actions.iter().map(|a| a.label().len()).max().unwrap_or(0) as u32;
+        let selection = actions
+            .iter()
+            .position(|a| matches!(*a, TitleAction::LoadGame))
+            .unwrap_or(0);
 
         Self {
             actions,
-            inner_width: inner_width as u32,
-            selection: 0,
+            inner_width,
+            selection,
         }
     }
 
@@ -142,8 +161,43 @@ impl TitleMode {
         world: &World,
         inputs: &mut InputBuffer,
         _grids: &[TileGrid<GameSym>],
-        _pop_result: &Option<ModeResult>,
+        pop_result: &Option<ModeResult>,
     ) -> (ModeControl, ModeUpdate) {
+        if let Some(result) = pop_result {
+            return match result {
+                ModeResult::YesNoDialogModeResult(result) => match result {
+                    YesNoDialogModeResult::AppQuit => (
+                        ModeControl::Pop(TitleModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    YesNoDialogModeResult::Yes => {
+                        saveload::delete_save_file();
+
+                        // Remove the load game option.
+                        self.actions
+                            .retain(|a| !matches!(*a, TitleAction::LoadGame));
+
+                        // Adjust selection if needed.
+                        if let Some(pos) = self
+                            .actions
+                            .iter()
+                            .position(|a| matches!(*a, TitleAction::NewGame))
+                        {
+                            self.selection = pos;
+                        } else {
+                            self.selection =
+                                self.selection.min(self.actions.len().saturating_sub(1));
+                        }
+
+                        inputs.clear_input();
+                        (ModeControl::Stay, ModeUpdate::Immediate)
+                    }
+                    YesNoDialogModeResult::No => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                },
+                _ => unreachable!(),
+            };
+        }
+
         inputs.prepare_input();
 
         match inputs.get_input() {
@@ -184,7 +238,30 @@ impl TitleMode {
 
                         match self.actions[self.selection] {
                             TitleAction::NewGame => {
-                                new_game_setup(world);
+                                if saveload::save_file_exists() {
+                                    inputs.clear_input();
+                                    return (
+                                        ModeControl::Push(
+                                            YesNoDialogMode::new(
+                                                "Save data already exists.  Delete it?".into(),
+                                                false,
+                                            )
+                                            .into(),
+                                        ),
+                                        ModeUpdate::Immediate,
+                                    );
+                                } else {
+                                    new_game_setup(world);
+                                    inputs.clear_input();
+                                    return (
+                                        ModeControl::Switch(DungeonMode::new().into()),
+                                        ModeUpdate::Immediate,
+                                    );
+                                }
+                            }
+                            TitleAction::LoadGame => {
+                                saveload::load_game(world).unwrap();
+                                world.run(print_game_seed);
                                 inputs.clear_input();
                                 return (
                                     ModeControl::Switch(DungeonMode::new().into()),

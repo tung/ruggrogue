@@ -1,8 +1,9 @@
+use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, path::PathBuf};
 
 use ruggle::{Symbol, TilesetInfo};
 
-#[derive(Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, Deserialize, Serialize)]
 pub enum GameSym {
     Floor,
     WallPillar,

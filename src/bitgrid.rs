@@ -1,9 +1,12 @@
 use bitvec::prelude::*;
+use serde::{Deserialize, Serialize};
 
 /// A width-by-height-sized BitVec for convenient handling of a grid of boolean values.
+#[derive(Deserialize, Serialize)]
 pub struct BitGrid {
     width: i32,
     height: i32,
+    #[serde(with = "crate::saveload::bit_vec")]
     bv: BitVec,
 }
 

@@ -1,4 +1,5 @@
 use sdl2::keyboard::Keycode;
+use serde::{Deserialize, Serialize};
 use shipyard::{
     EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut,
     World,
@@ -16,8 +17,10 @@ use crate::{
 };
 use ruggle::{util::Position, InputBuffer, InputEvent, KeyMods, PathableMap};
 
+#[derive(Deserialize, Serialize)]
 pub struct PlayerId(pub EntityId);
 
+#[derive(Deserialize, Serialize)]
 pub struct PlayerAlive(pub bool);
 
 #[derive(Clone, Copy, PartialEq)]

@@ -16,7 +16,7 @@ use crate::{
     map::Map,
     message::Messages,
     player::{PlayerAlive, PlayerId},
-    spawn, GameSeed, TurnCount,
+    saveload, spawn, GameSeed, TurnCount,
 };
 
 pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
@@ -166,6 +166,8 @@ pub fn handle_dead_entities(mut all_storages: AllStoragesViewMut) {
                         player_alive.0 = false;
                     },
                 );
+
+                saveload::delete_save_file();
 
                 // Don't handle any more dead entities.
                 num_entities = 0;

@@ -26,7 +26,7 @@ const ZOOM_1X_ON: &str = "[1x]";
 const ZOOM_1X_OFF: &str = " 1x ";
 const ZOOM_2X_ON: &str = "[2x]";
 const ZOOM_2X_OFF: &str = " 2x ";
-const QUIT: &str = "[ Quit ]";
+const QUIT: &str = "[ Save and exit ]";
 
 pub enum OptionsMenuModeResult {
     AppQuit,
@@ -204,7 +204,8 @@ impl OptionsMenuMode {
                     inputs.clear_input();
                     return (
                         ModeControl::Push(
-                            YesNoDialogMode::new("Really exit Ruggle?".to_string(), false).into(),
+                            YesNoDialogMode::new("Save and return to title screen?".into(), false)
+                                .into(),
                         ),
                         ModeUpdate::Immediate,
                     );

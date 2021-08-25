@@ -1,5 +1,6 @@
 use rand::{seq::IteratorRandom, Rng, SeedableRng};
 use rand_pcg::Pcg32;
+use serde::{Deserialize, Serialize};
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 use std::{collections::HashMap, hash::Hasher};
 use wyhash::WyHash;
@@ -15,10 +16,13 @@ use crate::{
 };
 use ruggle::util::Color;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Tile {
+    #[serde(rename = "F")]
     Floor,
+    #[serde(rename = "W")]
     Wall,
+    #[serde(rename = "D")]
     DownStairs,
 }
 
@@ -36,7 +40,7 @@ impl std::fmt::Display for Tile {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Deserialize, Serialize)]
 pub struct Rect {
     pub x1: i32,
     pub y1: i32,
@@ -79,16 +83,22 @@ impl Rect {
     }
 }
 
+#[derive(Deserialize, Serialize)]
 pub struct Map {
     pub depth: i32,
     pub width: i32,
     pub height: i32,
+    #[serde(with = "crate::saveload::run_length_encoded")]
     tiles: Vec<Tile>,
     pub rooms: Vec<Rect>,
     pub seen: BitGrid,
+
     // (x, y) -> (blocking_entity_count, entities_here)
+    #[serde(skip)]
     tile_entities: HashMap<(i32, i32), (i32, Vec<EntityId>)>,
+
     // zero-length non-zero-capacity vectors for reuse in tile_entities
+    #[serde(skip)]
     empty_entity_vecs: Vec<Vec<EntityId>>,
 }
 
@@ -111,6 +121,17 @@ impl Map {
             tile_entities: HashMap::new(),
             empty_entity_vecs: Vec::new(),
         }
+    }
+
+    pub fn replace(&mut self, replacement: Self) {
+        self.depth = replacement.depth;
+        self.width = replacement.width;
+        self.height = replacement.height;
+        self.tiles = replacement.tiles;
+        self.rooms = replacement.rooms;
+        self.seen = replacement.seen;
+        self.tile_entities = replacement.tile_entities;
+        self.empty_entity_vecs = replacement.empty_entity_vecs;
     }
 
     pub fn clear(&mut self) {

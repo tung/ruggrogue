@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use shipyard::{EntityId, Get, IntoIter, Shiperator, UniqueView, UniqueViewMut, View, ViewMut};
 
 use crate::{
@@ -10,6 +11,7 @@ use crate::{
 /// Tracking state that counts total amount of experience points that could be gained at the time
 /// of entering a new dungeon depth, used to determine the approximate level that monsters and
 /// items on the current dungeon floor should be based around.
+#[derive(Deserialize, Serialize)]
 pub struct Difficulty {
     pub id: EntityId,
     exp_for_next_depth: u64,

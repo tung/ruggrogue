@@ -9,7 +9,7 @@ use crate::{
     map::Map,
     monster,
     player::{self, PlayerId, PlayerInputResult},
-    render, ui, vision, TurnCount,
+    render, saveload, ui, vision, TurnCount,
 };
 use ruggle::{
     util::{Color, Position, Size},
@@ -117,10 +117,13 @@ impl DungeonMode {
                 match result {
                     ModeResult::AppQuitDialogModeResult(result) => match result {
                         AppQuitDialogModeResult::Confirmed => {
+                            if let Err(e) = saveload::save_game(world) {
+                                eprintln!("Warning: saveload::save_game: {}", e);
+                            }
                             return (
                                 ModeControl::Pop(DungeonModeResult::Done.into()),
                                 ModeUpdate::Immediate,
-                            )
+                            );
                         }
                         AppQuitDialogModeResult::Cancelled => false,
                     },
@@ -138,6 +141,9 @@ impl DungeonMode {
                         OptionsMenuModeResult::AppQuit => return app_quit_dialog(inputs),
                         OptionsMenuModeResult::Closed => false,
                         OptionsMenuModeResult::ReallyQuit => {
+                            if let Err(e) = saveload::save_game(world) {
+                                eprintln!("Warning: saveload::save_game: {}", e);
+                            }
                             title::post_game_cleanup(world);
                             inputs.clear_input();
                             return (

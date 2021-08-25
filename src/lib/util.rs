@@ -1,4 +1,6 @@
-#[derive(Clone, Copy, Eq, PartialEq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
 pub struct Color {
     pub r: u8,
     pub g: u8,
@@ -73,7 +75,7 @@ impl From<(u8, u8, u8)> for Color {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
 pub struct Position {
     pub x: i32,
     pub y: i32,

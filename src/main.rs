@@ -15,10 +15,12 @@ mod modes;
 mod monster;
 mod player;
 mod render;
+mod saveload;
 mod spawn;
 mod ui;
 mod vision;
 
+use serde::{Deserialize, Serialize};
 use shipyard::World;
 use std::{collections::HashMap, path::PathBuf};
 
@@ -36,8 +38,10 @@ use crate::{
 };
 use ruggle::{RunSettings, TilesetInfo};
 
+#[derive(Deserialize, Serialize)]
 pub struct GameSeed(u64);
 
+#[derive(Deserialize, Serialize)]
 pub struct TurnCount(u64);
 
 fn main() {
