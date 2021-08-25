@@ -1,5 +1,5 @@
-use ron::{Deserializer, Serializer};
 use serde::{Deserialize, Serialize};
+use serde_json::{Deserializer, Serializer};
 use shipyard::{
     AllStoragesViewMut, EntitiesView, EntitiesViewMut, EntityId, Get, IntoIter, Shiperator,
     UniqueView, UniqueViewMut, View, ViewMut, World,
@@ -74,7 +74,7 @@ where
     write!(writer, "{} ", name)?;
     world
         .borrow::<UniqueView<T>>()
-        .serialize(&mut Serializer::new(&mut writer, None, false)?)?;
+        .serialize(&mut Serializer::new(&mut writer))?;
     writer.write_all(b"\n")?;
     Ok(())
 }
@@ -93,9 +93,9 @@ where
     W: Write,
 {
     for (id, component) in world.borrow::<View<T>>().iter().with_id() {
-        id.serialize(&mut Serializer::new(&mut writer, None, false)?)?;
+        id.serialize(&mut Serializer::new(&mut writer))?;
         write!(writer, "\t{} ", name)?;
-        component.serialize(&mut Serializer::new(&mut writer, None, false)?)?;
+        component.serialize(&mut Serializer::new(&mut writer))?;
         writer.write_all(b"\n")?;
     }
 
@@ -157,13 +157,13 @@ pub fn save_game(world: &World) -> Result<(), BoxedError> {
 ///
 /// Returns `Ok(true)` if the line was successfully parsed, `Ok(false)` if the line wasn't parsed
 /// but might be something else, and `Err` if the line was parsed as a duplicate of a unique that
-/// was already present in `dest`, or some other parser failure occurred.
+/// was already present in `dest`.
 fn deserialize_named_unique<'a, T>(
     line: &'a str,
     line_num: usize,
     dest: &mut Option<T>,
     name: &'static str,
-) -> Result<bool, BoxedError>
+) -> Result<bool, LoadError>
 where
     T: Deserialize<'a>,
 {
@@ -172,7 +172,7 @@ where
     } else {
         return Ok(false);
     };
-    let mut ds = Deserializer::from_str(line)?;
+    let mut ds = Deserializer::from_str(line);
 
     if let Ok(parsed) = T::deserialize(&mut ds) {
         if ds.end().is_ok() {
@@ -180,7 +180,7 @@ where
                 dest.insert(parsed);
                 Ok(true)
             } else {
-                Err(Box::new(LoadError::DuplicateUnique(line_num, name)))
+                Err(LoadError::DuplicateUnique(line_num, name))
             }
         } else {
             Ok(false)
@@ -201,14 +201,14 @@ macro_rules! deserialize_unique {
 ///
 /// Returns `Ok(true)` if the component was successfully parsed, `Ok(false)` if the data wasn't
 /// parsed but might be something else, and `Err` if the data was parsed as a duplicate of a
-/// component that the entity already had, or some other parser failure occurred.
+/// component that the entity already had.
 fn deserialize_named_component<'a, T>(
     world: &World,
     maybe_data: &'a str,
     line_num: usize,
     id: EntityId,
     name: &'static str,
-) -> Result<bool, BoxedError>
+) -> Result<bool, LoadError>
 where
     T: 'static + Send + Sync + Deserialize<'a>,
 {
@@ -220,7 +220,7 @@ where
     } else {
         return Ok(false);
     };
-    let mut ds = Deserializer::from_str(maybe_data)?;
+    let mut ds = Deserializer::from_str(maybe_data);
 
     if let Ok(parsed) = T::deserialize(&mut ds) {
         if ds.end().is_ok() {
@@ -231,7 +231,7 @@ where
                 entities.add_component(&mut storage, parsed, id);
                 Ok(true)
             } else {
-                Err(Box::new(LoadError::DuplicateComponent(line_num, name)))
+                Err(LoadError::DuplicateComponent(line_num, name))
             }
         } else {
             Ok(false)
@@ -275,7 +275,7 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
 
         // A line with a tab should contain component data for an entity.
         if let Some((maybe_id, maybe_data)) = line.split_once('\t') {
-            let save_id = EntityId::deserialize(&mut Deserializer::from_str(maybe_id)?)?;
+            let save_id = EntityId::deserialize(&mut Deserializer::from_str(maybe_id))?;
 
             // Map entity_id into the current world, creating a new entity if needed.
             let live_id = if let Some(id) = old_to_new_ids.get(&save_id) {
