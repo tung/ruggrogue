@@ -1,7 +1,7 @@
 use shipyard::{AllStoragesViewMut, UniqueView, UniqueViewMut, World};
 
 use crate::{
-    experience::Difficulty,
+    experience::{self, Difficulty},
     gamekey::{self, GameKey},
     gamesym::GameSym,
     map::{self, Map},
@@ -85,6 +85,7 @@ fn new_game_setup(world: &World) {
     world.run(player::add_coords_to_players);
     world.run(map::place_player_in_first_room);
     spawn::fill_rooms_with_spawns(world);
+    world.run(experience::calc_exp_for_next_depth);
     world.run(vision::recalculate_fields_of_view);
 
     world
