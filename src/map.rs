@@ -1,5 +1,5 @@
 use rand::{seq::IteratorRandom, Rng, SeedableRng};
-use rand_pcg::Pcg32;
+use rand_xoshiro::Xoshiro128PlusPlus as GameRng;
 use serde::{Deserialize, Serialize};
 use shipyard::{EntityId, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 use std::{collections::HashMap, hash::Hasher};
@@ -490,14 +490,14 @@ pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: Un
         let mut hasher = WyHash::with_seed(magicnum::GENERATE_ROOMS_AND_CORRIDORS);
         hasher.write_u64(game_seed.0);
         hasher.write_i32(map.depth);
-        Pcg32::seed_from_u64(hasher.finish())
+        GameRng::seed_from_u64(hasher.finish())
     };
 
     for _ in 0..30 {
-        let w: i32 = rng.gen_range(6, 15);
-        let h: i32 = rng.gen_range(6, 11);
-        let x: i32 = rng.gen_range(1, map.width - w - 1);
-        let y: i32 = rng.gen_range(1, map.height - h - 1);
+        let w: i32 = rng.gen_range(6..15);
+        let h: i32 = rng.gen_range(6..11);
+        let x: i32 = rng.gen_range(1..map.width - w - 1);
+        let y: i32 = rng.gen_range(1..map.height - h - 1);
         let new_room = Rect::new(x, y, w, h);
 
         if !map.rooms.iter().any(|r| new_room.intersects(r, 1)) {

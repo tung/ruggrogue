@@ -13,8 +13,8 @@ fps = []
 [dependencies]
 bitflags = "1.0"
 bitvec = "0.21"
-rand = "0.7"
-rand_pcg = "0.2"
+rand = "0.8"
+rand_xoshiro = "0.6"
 serde_json = "1.0"
 wyhash = "0.5"
 

@@ -1,5 +1,5 @@
 use rand::{Rng, SeedableRng};
-use rand_pcg::Pcg32;
+use rand_xoshiro::Xoshiro128PlusPlus as GameRng;
 use shipyard::{
     AllStoragesViewMut, EntitiesView, EntityId, Get, IntoIter, Shiperator, UniqueView,
     UniqueViewMut, View, ViewMut, World,
@@ -43,10 +43,10 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
             hasher.write_i32(defender_coord.0.x);
             hasher.write_i32(defender_coord.0.y);
         }
-        Pcg32::seed_from_u64(hasher.finish())
+        GameRng::seed_from_u64(hasher.finish())
     };
 
-    if !asleeps.contains(defender) && rng.gen_range(0, 10) == 0 {
+    if !asleeps.contains(defender) && rng.gen_range(0..10) == 0 {
         msgs.add(format!("{} misses {}.", att_name, def_name));
         return;
     }
@@ -81,11 +81,11 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
     }
 
     // Fluctuate damage by a random amount.
-    damage = rng.gen_range(damage * 0.8, damage * 1.2);
+    damage = rng.gen_range(damage * 0.8..damage * 1.2);
 
     // Randomly round to nearest integer, e.g. 3.1 damage has a 10% chance to round to 4.
     let damage = damage.trunc() as i32
-        + if rng.gen_range(0, 100) < (damage.fract() * 100.0) as u32 {
+        + if rng.gen_range(0..100) < (damage.fract() * 100.0) as u32 {
             1
         } else {
             0
