@@ -444,9 +444,9 @@ fn spawn_random_monster_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) 
         difficulty.get_round_random(&exps, rng)
     };
     if rng.gen_ratio(4, 5) {
-        level = (level - rng.gen_range(1..4)).max(1);
+        level = (level - rng.gen_range(1i32..4i32)).max(1);
         if level > 1 && rng.gen() {
-            level = rng.gen_range(1..level);
+            level = rng.gen_range(1i32..level);
         }
     }
     let (sym, name, fg) = MONSTERS[(level.max(1) as usize)
@@ -465,7 +465,7 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
             difficulty.as_f32(&exps)
         };
         // Spawn items (really equipment) at a slightly higher level than average.
-        let bonus = rng.gen_range(1..4);
+        let bonus = rng.gen_range(1i32..4i32);
 
         if rng.gen() {
             spawn_weapon(world, rng, pos, level, bonus);
@@ -475,7 +475,7 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
     } else {
         // Spawn an item.
         type ItemFn = fn(&World, (i32, i32));
-        let choice: Result<&(usize, ItemFn), _> = [
+        let choice: Result<&(u32, ItemFn), _> = [
             (3, spawn_health_potion as _),
             (3, spawn_magic_missile_scroll as _),
             (2, spawn_fireball_scroll as _),
@@ -491,20 +491,19 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
 
 fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
     let depth = world.borrow::<UniqueView<Map>>().depth;
-    let depth = if depth < 1 { 1usize } else { depth as usize };
 
     if rng.gen_ratio(1, 4) {
-        let num = rng.gen_range(1..2);
+        let num = rng.gen_range(1i32..2i32);
 
-        for pos in room.iter_xy().choose_multiple(rng, num) {
+        for pos in room.iter_xy().choose_multiple(rng, num as usize) {
             spawn_random_item_at(world, rng, pos);
         }
     }
 
     if rng.gen_ratio(1, 2) {
-        let num = rng.gen_range(1..1 + ((depth + 1) / 2).min(3));
+        let num = rng.gen_range(1i32..1 + ((depth + 1) / 2).max(1).min(3));
 
-        for pos in room.iter_xy().choose_multiple(rng, num) {
+        for pos in room.iter_xy().choose_multiple(rng, num as usize) {
             spawn_random_monster_at(world, rng, pos);
         }
     }
@@ -566,7 +565,7 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
 
     // Pick a random number in a range one-short of the period to guarantee a "gap" level, to make
     // the period less obvious.
-    if periodic_weapon_rng.gen_range(0..EQUIPMENT_SPAWN_PERIOD - 1)
+    if periodic_weapon_rng.gen_range(0u32..EQUIPMENT_SPAWN_PERIOD - 1)
         == depth as u32 - depth_period_base
     {
         let weapon_pos = pick_random_pos_in_room(world, &mut periodic_weapon_rng);
@@ -590,7 +589,7 @@ fn spawn_guaranteed_equipment<R: Rng>(world: &World, rng: &mut R) {
     };
 
     // Random number one-short of the period, for the same reason as the weapon spawn.
-    if periodic_armor_rng.gen_range(0..EQUIPMENT_SPAWN_PERIOD - 1)
+    if periodic_armor_rng.gen_range(0u32..EQUIPMENT_SPAWN_PERIOD - 1)
         == depth as u32 - depth_period_base
     {
         let armor_pos = pick_random_pos_in_room(world, &mut periodic_armor_rng);

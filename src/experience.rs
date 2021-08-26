@@ -46,7 +46,8 @@ impl Difficulty {
     pub fn get_round_random<R: Rng>(&self, exps: &View<Experience>, rng: &mut R) -> i32 {
         let difficulty_exp = exps.get(self.id);
 
-        if difficulty_exp.next > 0 && rng.gen_range(0..difficulty_exp.next) < difficulty_exp.exp {
+        if difficulty_exp.next > 0 && rng.gen_range(0u64..difficulty_exp.next) < difficulty_exp.exp
+        {
             difficulty_exp.level + 1
         } else {
             difficulty_exp.level

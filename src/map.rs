@@ -494,10 +494,10 @@ pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: Un
     };
 
     for _ in 0..30 {
-        let w: i32 = rng.gen_range(6..15);
-        let h: i32 = rng.gen_range(6..11);
-        let x: i32 = rng.gen_range(1..map.width - w - 1);
-        let y: i32 = rng.gen_range(1..map.height - h - 1);
+        let w: i32 = rng.gen_range(6i32..15i32);
+        let h: i32 = rng.gen_range(6i32..11i32);
+        let x: i32 = rng.gen_range(1i32..map.width - w - 1);
+        let y: i32 = rng.gen_range(1i32..map.height - h - 1);
         let new_room = Rect::new(x, y, w, h);
 
         if !map.rooms.iter().any(|r| new_room.intersects(r, 1)) {
@@ -548,7 +548,7 @@ pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: Un
             &mut map,
             connected[closest_connected],
             disconnected[closest_disconnected],
-            rng.gen(),
+            rng.gen::<bool>(),
         );
 
         // Transfer newly-connected room index from disconnected to connected.
@@ -558,7 +558,7 @@ pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: Un
     // Decide corridor styles to connect random extra rooms.
     let mut extra_corridors = [false; 3];
     for extra_corridor in extra_corridors.iter_mut() {
-        *extra_corridor = rng.gen();
+        *extra_corridor = rng.gen::<bool>();
     }
 
     // Connect random extra rooms.
