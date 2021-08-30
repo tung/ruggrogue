@@ -132,6 +132,9 @@ impl DungeonMode {
                         YesNoDialogModeResult::AppQuit => return app_quit_dialog(inputs),
                         YesNoDialogModeResult::Yes => {
                             player::player_do_descend(world);
+                            if let Err(e) = saveload::save_game(world) {
+                                eprintln!("Warning: saveload::save_game: {}", e);
+                            }
                             false
                         }
                         YesNoDialogModeResult::No => false,
