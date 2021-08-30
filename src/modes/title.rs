@@ -30,6 +30,7 @@ pub enum TitleModeResult {
 pub enum TitleAction {
     NewGame,
     LoadGame,
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     Quit,
 }
 
@@ -112,9 +113,12 @@ pub struct TitleMode {
 impl TitleMode {
     pub fn new() -> Self {
         let mut actions = vec![TitleAction::NewGame];
+
         if saveload::save_file_exists() {
             actions.push(TitleAction::LoadGame);
         }
+
+        #[cfg(not(target_arch = "wasm32"))]
         actions.push(TitleAction::Quit);
 
         let inner_width = actions.iter().map(|a| a.label().len()).max().unwrap_or(0) as u32;
