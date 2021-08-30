@@ -114,7 +114,10 @@ impl TitleMode {
     pub fn new() -> Self {
         let mut actions = vec![TitleAction::NewGame];
 
-        if saveload::save_file_exists() {
+        // There's no obvious way to get Emscripten to load the IndexedDB filesystem in time to
+        // realize that a save file exists, so always include the Load Game option for it and just
+        // check if there really is a save file when the option is chosen instead.
+        if cfg!(target_os = "emscripten") || saveload::save_file_exists() {
             actions.push(TitleAction::LoadGame);
         }
 
@@ -122,10 +125,14 @@ impl TitleMode {
         actions.push(TitleAction::Quit);
 
         let inner_width = actions.iter().map(|a| a.label().len()).max().unwrap_or(0) as u32;
-        let selection = actions
-            .iter()
-            .position(|a| matches!(*a, TitleAction::LoadGame))
-            .unwrap_or(0);
+        let selection = if saveload::save_file_exists() {
+            actions
+                .iter()
+                .position(|a| matches!(*a, TitleAction::LoadGame))
+                .unwrap_or(0)
+        } else {
+            0
+        };
 
         Self {
             actions,
@@ -265,13 +272,15 @@ impl TitleMode {
                                 }
                             }
                             TitleAction::LoadGame => {
-                                saveload::load_game(world).unwrap();
-                                world.run(print_game_seed);
-                                inputs.clear_input();
-                                return (
-                                    ModeControl::Switch(DungeonMode::new().into()),
-                                    ModeUpdate::Immediate,
-                                );
+                                if saveload::save_file_exists() {
+                                    saveload::load_game(world).unwrap();
+                                    world.run(print_game_seed);
+                                    inputs.clear_input();
+                                    return (
+                                        ModeControl::Switch(DungeonMode::new().into()),
+                                        ModeUpdate::Immediate,
+                                    );
+                                }
                             }
                             TitleAction::Quit => {
                                 return (
@@ -306,7 +315,11 @@ impl TitleMode {
                 (2, 2 + i as i32),
                 action.label(),
                 true,
-                fg,
+                if matches!(action, TitleAction::LoadGame) && !saveload::save_file_exists() {
+                    Color::GRAY
+                } else {
+                    fg
+                },
                 if i == self.selection { selected_bg } else { bg },
             );
         }

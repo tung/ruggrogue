@@ -44,6 +44,11 @@ pub struct GameSeed(u64);
 #[derive(Deserialize, Serialize)]
 pub struct TurnCount(u64);
 
+#[cfg(target_os = "emscripten")]
+extern "C" {
+    pub fn ruggle_sync_idbfs();
+}
+
 fn main() {
     let world = World::new();
     let game_seed = std::env::args()
@@ -99,4 +104,9 @@ fn main() {
     ruggle::run(settings, |inputs, layers, tilesets, window_size| {
         mode_stack.update(&world, inputs, layers, tilesets, window_size)
     });
+
+    #[cfg(target_os = "emscripten")]
+    unsafe {
+        ruggle_sync_idbfs();
+    }
 }

@@ -30,7 +30,7 @@
     </style>
 </head>
 
-<body>
+<body onunload="FS.syncfs(false, (err) => {})">
     <canvas id="canvas"></canvas>
     <script>
         var Module = {
@@ -42,7 +42,12 @@
                 }
                 return prefix + path;
             },
-            'canvas': document.getElementById('canvas')
+            'canvas': document.getElementById('canvas'),
+            'preRun': [function () {
+                FS.mkdir("/ruggle");
+                FS.mount(IDBFS, {}, "/ruggle");
+                FS.syncfs(true, (err) => {});
+            }],
         };
     </script>
     <script src="ruggle.js"></script>

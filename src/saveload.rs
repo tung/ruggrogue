@@ -12,6 +12,8 @@ use std::{
     path::Path,
 };
 
+#[cfg(target_os = "emscripten")]
+use crate::ruggle_sync_idbfs;
 use crate::{
     components::*,
     experience::Difficulty,
@@ -21,6 +23,10 @@ use crate::{
     spawn, GameSeed, TurnCount,
 };
 
+#[cfg(target_os = "emscripten")]
+const SAVE_FILENAME: &str = "/ruggle/savegame.txt";
+
+#[cfg(not(target_os = "emscripten"))]
 const SAVE_FILENAME: &str = "savegame.txt";
 
 type BoxedError = Box<dyn error::Error>;
@@ -149,6 +155,12 @@ pub fn save_game(world: &World) -> Result<(), BoxedError> {
     save_storage!(Tally, world, &mut writer)?;
 
     writer.flush()?;
+
+    #[cfg(target_os = "emscripten")]
+    unsafe {
+        ruggle_sync_idbfs();
+    }
+
     Ok(())
 }
 
