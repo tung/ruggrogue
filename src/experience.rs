@@ -99,7 +99,7 @@ fn level_factor(level: i32) -> f32 {
 }
 
 pub fn calc_player_max_hp(level: i32) -> i32 {
-    (level_factor(level) * 60.0).round() as i32
+    (level_factor(level) * 40.0).round() as i32
 }
 
 pub fn calc_player_attack(level: i32) -> f32 {
