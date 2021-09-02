@@ -20,7 +20,7 @@ use crate::{
 };
 use ruggle::util::Color;
 
-const EQUIPMENT_SPAWN_PERIOD: u32 = 7;
+const EQUIPMENT_SPAWN_PERIOD: u32 = 4;
 
 const MONSTERS: [(GameSym, &str, (u8, u8, u8)); 25] = [
     (GameSym::Blob, "Blob", (89, 162, 191)),
