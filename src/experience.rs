@@ -167,7 +167,7 @@ pub fn gain_levels(
                     }
 
                     stats.max_hp += hp_gain;
-                    stats.hp += hp_gain;
+                    stats.hp = stats.max_hp;
                     stats.attack = new_attack;
                     stats.defense = new_defense;
 

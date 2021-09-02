@@ -45,9 +45,9 @@ impl HungerState {
             HungerState::Starving => None,
             HungerState::Famished => None,
             HungerState::VeryHungry => None,
-            HungerState::Hungry => Some(240),
-            HungerState::Normal => Some(240),
-            HungerState::Full => Some(240),
+            HungerState::Hungry => Some(300),
+            HungerState::Normal => Some(300),
+            HungerState::Full => Some(300),
         }
     }
 
