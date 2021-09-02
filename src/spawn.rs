@@ -84,7 +84,7 @@ pub fn spawn_difficulty(mut entities: EntitiesViewMut, mut exps: ViewMut<Experie
         (Experience {
             level: 1,
             exp: 0,
-            next: 100,
+            next: 50,
             base: 0,
         },),
     )
@@ -133,7 +133,7 @@ pub fn spawn_player(
             Experience {
                 level: 1,
                 exp: 0,
-                next: 100,
+                next: 50,
                 base: 0,
             },
             FieldOfView::new(8),

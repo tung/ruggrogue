@@ -148,7 +148,7 @@ pub fn gain_levels(
                 exp.level += 1;
                 exp.exp -= exp.next;
                 exp.base += exp.next;
-                exp.next = exp.next * 6 / 5;
+                exp.next = exp.next * 11 / 10;
 
                 if let Ok(stats) = (&mut combat_stats).try_get(id) {
                     let hp_gain;
