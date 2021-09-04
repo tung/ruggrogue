@@ -755,7 +755,9 @@ pub fn player_do_descend(world: &World) {
         map.clear();
         map.depth += 1;
     });
-    world.run(map::generate_rooms_and_corridors);
+    if let Some(victory_pos) = world.run(map::generate_rooms_and_corridors) {
+        spawn::spawn_present(world, victory_pos);
+    }
     world.run(map::place_player_in_first_room);
 
     world.run(experience::redeem_exp_for_next_depth);

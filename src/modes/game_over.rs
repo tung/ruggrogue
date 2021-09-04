@@ -5,7 +5,7 @@ use crate::{
     gamekey::{self, GameKey},
     gamesym::GameSym,
     map::Map,
-    player::PlayerId,
+    player::{PlayerAlive, PlayerId},
     ui::Options,
     TurnCount,
 };
@@ -88,20 +88,33 @@ impl GameOverMode {
         let grid = &mut grids[0];
         let data_fg = Color::YELLOW;
         let bg = Color::BLACK;
+        let player_alive = world.borrow::<UniqueView<PlayerAlive>>().0;
 
         grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
 
-        grid.print_color(
-            (0, 0),
-            "* * * You have been defeated * * *",
-            true,
-            Color::MAGENTA,
-            bg,
-        );
+        if player_alive {
+            grid.print_color(
+                (1, 0),
+                "* * *  Y O U   W I N !  * * *",
+                true,
+                Color::GREEN,
+                bg,
+            );
+        } else {
+            grid.print_color(
+                (0, 0),
+                "* * * You have been defeated * * *",
+                true,
+                Color::MAGENTA,
+                bg,
+            );
+        }
 
         let player_id = world.borrow::<UniqueView<PlayerId>>();
 
-        {
+        if player_alive {
+            grid.print((0, 2), "Your birthday present is saved!");
+        } else {
             let names = world.borrow::<View<Name>>();
             let hurt_bys = world.borrow::<View<HurtBy>>();
             let defeated_by = match hurt_bys.try_get(player_id.0) {

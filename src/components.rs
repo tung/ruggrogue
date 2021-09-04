@@ -201,3 +201,6 @@ pub struct Tally {
     pub damage_taken: u64,
     pub kills: u64,
 }
+
+#[derive(Deserialize, Serialize)]
+pub struct Victory;

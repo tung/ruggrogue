@@ -50,6 +50,7 @@ pub enum GameSym {
     Platemail,
     ArmyHelmet,
     FlakJacket,
+    Present,
     Blob,
     Bat,
     Crab,
@@ -127,6 +128,7 @@ impl Symbol for GameSym {
             Platemail => '[',
             ArmyHelmet => '[',
             FlakJacket => '[',
+            Present => '$',
             Blob => 'b',
             Bat => 'B',
             Crab => 'c',
@@ -264,6 +266,7 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(Platemail, (31, 23));
         symbol_map.insert(ArmyHelmet, (33, 43));
         symbol_map.insert(FlakJacket, (34, 43));
+        symbol_map.insert(Present, (27, 30));
         symbol_map.insert(Blob, (39, 10));
         symbol_map.insert(Bat, (8, 13));
         symbol_map.insert(Crab, (7, 13));

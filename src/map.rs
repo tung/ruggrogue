@@ -8,7 +8,8 @@ use wyhash::WyHash;
 use crate::{
     bitgrid::BitGrid,
     chunked,
-    components::{Coord, FieldOfView, Item, Monster, Name, Player},
+    components::{Coord, Experience, FieldOfView, Item, Monster, Name, Player},
+    experience::Difficulty,
     gamesym::GameSym,
     magicnum,
     player::PlayerId,
@@ -479,7 +480,13 @@ impl ruggle::PathableMap for Map {
     }
 }
 
-pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: UniqueViewMut<Map>) {
+/// Returns the position to spawn the victory item if the game has progressed far enough.
+pub fn generate_rooms_and_corridors(
+    difficulty: UniqueView<Difficulty>,
+    game_seed: UniqueView<GameSeed>,
+    mut map: UniqueViewMut<Map>,
+    exps: View<Experience>,
+) -> Option<(i32, i32)> {
     {
         let w = map.width;
         let h = map.height;
@@ -572,7 +579,15 @@ pub fn generate_rooms_and_corridors(game_seed: UniqueView<GameSeed>, mut map: Un
 
     if let Some(last_room) = map.rooms.last() {
         let (center_x, center_y) = last_room.center();
-        map.set_tile(center_x, center_y, Tile::DownStairs);
+
+        if exps.get(difficulty.id).level < 25 {
+            map.set_tile(center_x, center_y, Tile::DownStairs);
+            None
+        } else {
+            Some((center_x, center_y))
+        }
+    } else {
+        None
     }
 }
 

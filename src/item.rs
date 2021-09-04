@@ -9,6 +9,7 @@ use crate::{
     map::Map,
     message::Messages,
     player::{self, PlayerId},
+    saveload,
 };
 use ruggle::FovShape;
 
@@ -143,7 +144,22 @@ pub fn sort_inventory(world: &World, holder: EntityId) {
     let provides_healings = world.borrow::<View<ProvidesHealing>>();
     let nutritions = world.borrow::<View<Nutrition>>();
     let rangeds = world.borrow::<View<Ranged>>();
+    let victories = world.borrow::<View<Victory>>();
     let item_order = |&a: &EntityId, &b: &EntityId| -> Ordering {
+        // Present
+        {
+            let a_is_victory = victories.contains(a);
+            let b_is_victory = victories.contains(b);
+
+            if a_is_victory && b_is_victory {
+                return Ordering::Equal;
+            } else if a_is_victory {
+                return Ordering::Less;
+            } else if b_is_victory {
+                return Ordering::Greater;
+            }
+        }
+
         // Ration
         {
             let a_is_ration = nutritions.contains(a);
@@ -269,8 +285,25 @@ pub fn sort_inventory(world: &World, holder: EntityId) {
     holder_inv.items.sort_unstable_by(item_order);
 }
 
-pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Option<(i32, i32)>) {
+/// Returns true if the game should end after the item is used.
+pub fn use_item(
+    world: &World,
+    user_id: EntityId,
+    item_id: EntityId,
+    target: Option<(i32, i32)>,
+) -> bool {
+    if world.borrow::<View<Player>>().contains(user_id)
+        && world.borrow::<View<Victory>>().contains(item_id)
     {
+        // Auto-save the game before the victory item is deleted in case an AppQuit causes the game
+        // to terminate outside of standard gameplay.
+        if let Err(e) = saveload::save_game(world) {
+            eprintln!("Warning: saveload::save_game: {}", e);
+        }
+        remove_item_from_inventory(world, user_id, item_id);
+        world.borrow::<AllStoragesViewMut>().delete(item_id);
+        return true;
+    } else {
         let map = world.borrow::<UniqueView<Map>>();
         let mut msgs = world.borrow::<UniqueViewMut<Messages>>();
         let entities = world.borrow::<EntitiesView>();
@@ -362,6 +395,8 @@ pub fn use_item(world: &World, user_id: EntityId, item_id: EntityId, target: Opt
         remove_item_from_inventory(world, user_id, item_id);
         world.borrow::<AllStoragesViewMut>().delete(item_id);
     }
+
+    false
 }
 
 pub fn is_asleep(world: &World, who: EntityId) -> bool {

@@ -153,6 +153,7 @@ pub fn save_game(world: &World) -> Result<(), BoxedError> {
     save_storage!(Renderable, world, &mut writer)?;
     save_storage!(Stomach, world, &mut writer)?;
     save_storage!(Tally, world, &mut writer)?;
+    save_storage!(Victory, world, &mut writer)?;
 
     writer.flush()?;
 
@@ -328,6 +329,7 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
                 || deserialize_component!(Renderable, world, maybe_data, line_num, live_id)?
                 || deserialize_component!(Stomach, world, maybe_data, line_num, live_id)?
                 || deserialize_component!(Tally, world, maybe_data, line_num, live_id)?
+                || deserialize_component!(Victory, world, maybe_data, line_num, live_id)?
             {
                 continue;
             }

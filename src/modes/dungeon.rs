@@ -184,7 +184,13 @@ impl DungeonMode {
                                 true
                             }
                             InventoryModeResult::UseItem(item_id, target) => {
-                                item::use_item(world, player_id, *item_id, *target);
+                                if item::use_item(world, player_id, *item_id, *target) {
+                                    inputs.clear_input();
+                                    return (
+                                        ModeControl::Switch(GameOverMode::new().into()),
+                                        ModeUpdate::Immediate,
+                                    );
+                                }
                                 true
                             }
                             InventoryModeResult::DropItem(item_id) => {
@@ -205,7 +211,13 @@ impl DungeonMode {
                                 true
                             }
                             InventoryShortcutModeResult::UseItem(item_id, target) => {
-                                item::use_item(world, player_id, *item_id, *target);
+                                if item::use_item(world, player_id, *item_id, *target) {
+                                    inputs.clear_input();
+                                    return (
+                                        ModeControl::Switch(GameOverMode::new().into()),
+                                        ModeUpdate::Immediate,
+                                    );
+                                }
                                 true
                             }
                             InventoryShortcutModeResult::DropItem(item_id) => {

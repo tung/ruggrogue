@@ -172,6 +172,41 @@ pub fn spawn_player(
     id
 }
 
+pub fn spawn_present(world: &World, pos: (i32, i32)) {
+    let mut map = world.borrow::<UniqueViewMut<Map>>();
+    let mut entities = world.borrow::<EntitiesViewMut>();
+    let mut coords = world.borrow::<ViewMut<Coord>>();
+    let mut items = world.borrow::<ViewMut<Item>>();
+    let mut names = world.borrow::<ViewMut<Name>>();
+    let mut render_on_floors = world.borrow::<ViewMut<RenderOnFloor>>();
+    let mut renderables = world.borrow::<ViewMut<Renderable>>();
+    let mut victories = world.borrow::<ViewMut<Victory>>();
+    let present_id = entities.add_entity(
+        (
+            &mut items,
+            &mut coords,
+            &mut names,
+            &mut render_on_floors,
+            &mut renderables,
+            &mut victories,
+        ),
+        (
+            Item {},
+            Coord(pos.into()),
+            Name("Present".into()),
+            RenderOnFloor {},
+            Renderable {
+                sym: GameSym::Present,
+                fg: Color::YELLOW,
+                bg: Color::BLACK,
+            },
+            Victory {},
+        ),
+    );
+
+    map.place_entity(present_id, pos, false);
+}
+
 fn spawn_item(world: &World, pos: (i32, i32), name: String, sym: GameSym, fg: Color) -> EntityId {
     world.run(
         |mut map: UniqueViewMut<Map>,

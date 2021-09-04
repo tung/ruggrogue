@@ -1,7 +1,7 @@
 use shipyard::{EntityId, Get, UniqueView, View, World};
 
 use crate::{
-    components::{AreaOfEffect, Consumable, EquipSlot, Name, Ranged, Renderable},
+    components::{AreaOfEffect, Consumable, EquipSlot, Name, Ranged, Renderable, Victory},
     gamekey::{self, GameKey},
     gamesym::GameSym,
     ui::{self, Options},
@@ -52,7 +52,10 @@ impl InventoryAction {
     pub fn item_supports_action(world: &World, item_id: EntityId, action: InventoryAction) -> bool {
         match action {
             InventoryAction::EquipItem => world.borrow::<View<EquipSlot>>().contains(item_id),
-            InventoryAction::UseItem => world.borrow::<View<Consumable>>().contains(item_id),
+            InventoryAction::UseItem => {
+                world.borrow::<View<Consumable>>().contains(item_id)
+                    | world.borrow::<View<Victory>>().contains(item_id)
+            }
             InventoryAction::DropItem => true,
         }
     }

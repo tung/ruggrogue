@@ -82,7 +82,9 @@ fn new_game_setup(world: &World) {
 
     world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
 
-    world.run(map::generate_rooms_and_corridors);
+    if let Some(victory_pos) = world.run(map::generate_rooms_and_corridors) {
+        spawn::spawn_present(world, victory_pos);
+    }
     world.run(player::add_coords_to_players);
     world.run(map::place_player_in_first_room);
     spawn::fill_rooms_with_spawns(world);
