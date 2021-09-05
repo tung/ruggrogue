@@ -20,7 +20,7 @@ use crate::{
     map::Map,
     message::Messages,
     player::{PlayerAlive, PlayerId},
-    spawn, GameSeed, TurnCount,
+    spawn, BaseEquipmentLevel, GameSeed, TurnCount, Wins,
 };
 
 #[cfg(target_os = "emscripten")]
@@ -120,6 +120,8 @@ pub fn save_game(world: &World) -> Result<(), BoxedError> {
 
     save_unique!(GameSeed, world, &mut writer)?;
     save_unique!(TurnCount, world, &mut writer)?;
+    save_unique!(Wins, world, &mut writer)?;
+    save_unique!(BaseEquipmentLevel, world, &mut writer)?;
     save_unique!(Difficulty, world, &mut writer)?;
     save_unique!(Messages, world, &mut writer)?;
     save_unique!(PlayerAlive, world, &mut writer)?;
@@ -274,6 +276,8 @@ macro_rules! deserialize_component {
 fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), BoxedError> {
     let mut game_seed: Option<GameSeed> = None;
     let mut turn_count: Option<TurnCount> = None;
+    let mut wins: Option<Wins> = None;
+    let mut base_equipment_level: Option<BaseEquipmentLevel> = None;
     let mut difficulty: Option<Difficulty> = None;
     let mut messages: Option<Messages> = None;
     let mut player_alive: Option<PlayerAlive> = None;
@@ -341,6 +345,13 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
         // Try parsing the line as a unique.
         if deserialize_unique!(GameSeed, &line, line_num, &mut game_seed)?
             || deserialize_unique!(TurnCount, &line, line_num, &mut turn_count)?
+            || deserialize_unique!(Wins, &line, line_num, &mut wins)?
+            || deserialize_unique!(
+                BaseEquipmentLevel,
+                &line,
+                line_num,
+                &mut base_equipment_level
+            )?
             || deserialize_unique!(Difficulty, &line, line_num, &mut difficulty)?
             || deserialize_unique!(Messages, &line, line_num, &mut messages)?
             || deserialize_unique!(PlayerAlive, &line, line_num, &mut player_alive)?
@@ -356,6 +367,9 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
     // Check that all uniques are present.
     let game_seed = game_seed.ok_or(LoadError::MissingUnique("GameSeed"))?;
     let turn_count = turn_count.ok_or(LoadError::MissingUnique("TurnCount"))?;
+    let wins = wins.ok_or(LoadError::MissingUnique("Wins"))?;
+    let base_equipment_level =
+        base_equipment_level.ok_or(LoadError::MissingUnique("BaseEquipmentLevel"))?;
     let mut difficulty = difficulty.ok_or(LoadError::MissingUnique("Difficulty"))?;
     let messages = messages.ok_or(LoadError::MissingUnique("Messages"))?;
     let player_alive = player_alive.ok_or(LoadError::MissingUnique("PlayerAlive"))?;
@@ -424,6 +438,8 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
     // Commit uniques.
     world.borrow::<UniqueViewMut<GameSeed>>().0 = game_seed.0;
     world.borrow::<UniqueViewMut<TurnCount>>().0 = turn_count.0;
+    world.borrow::<UniqueViewMut<Wins>>().0 = wins.0;
+    world.borrow::<UniqueViewMut<BaseEquipmentLevel>>().0 = base_equipment_level.0;
     world
         .borrow::<UniqueViewMut<Difficulty>>()
         .replace(difficulty);

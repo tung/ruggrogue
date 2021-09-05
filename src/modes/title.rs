@@ -1,6 +1,7 @@
-use shipyard::{AllStoragesViewMut, UniqueView, UniqueViewMut, World};
+use shipyard::{AllStoragesViewMut, Get, UniqueView, UniqueViewMut, View, ViewMut, World};
 
 use crate::{
+    components::{CombatStats, Experience, FieldOfView},
     experience::{self, Difficulty},
     gamekey::{self, GameKey},
     gamesym::GameSym,
@@ -10,7 +11,7 @@ use crate::{
     player::{self, PlayerAlive, PlayerId},
     saveload, spawn,
     ui::{self, Options},
-    vision, GameSeed, TurnCount,
+    vision, BaseEquipmentLevel, GameSeed, TurnCount, Wins,
 };
 use ruggle::{
     util::{Color, Size},
@@ -48,12 +49,61 @@ fn print_game_seed(game_seed: UniqueView<GameSeed>) {
     println!("Game seed: {}", game_seed.0);
 }
 
-fn new_game_setup(world: &World) {
-    world.run(print_game_seed);
-
+pub fn new_game_setup(world: &World, new_game_plus: bool) {
     world.borrow::<UniqueViewMut<MenuMemory>>().reset();
     world.borrow::<UniqueViewMut<Messages>>().reset();
-    world.borrow::<UniqueViewMut<TurnCount>>().0 = 1;
+    world.borrow::<UniqueViewMut<Map>>().clear();
+    world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
+
+    if new_game_plus {
+        // Set base equipment level based on difficulty level at the end of the previous game.
+        {
+            let difficulty_id = world.borrow::<UniqueView<Difficulty>>().id;
+            let experiences = world.borrow::<View<Experience>>();
+            let difficulty_exp = experiences.get(difficulty_id);
+            world.borrow::<UniqueViewMut<BaseEquipmentLevel>>().0 += difficulty_exp.level - 1;
+        }
+
+        // Increment turn count and depth.
+        world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
+        world.borrow::<UniqueViewMut<Map>>().depth += 1;
+
+        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
+
+        // Restore player to full health.
+        if let Ok(stats) = (&mut world.borrow::<ViewMut<CombatStats>>()).try_get(player_id) {
+            stats.hp = stats.max_hp;
+        }
+
+        // Mark field of view as dirty.
+        if let Ok(fov) = (&mut world.borrow::<ViewMut<FieldOfView>>()).try_get(player_id) {
+            fov.dirty = true;
+        }
+
+        world
+            .borrow::<UniqueViewMut<Messages>>()
+            .add("Welcome back to Ruggle!".into());
+    } else {
+        world.run(print_game_seed);
+
+        // Reset wins and base equipment level.
+        world.borrow::<UniqueViewMut<Wins>>().0 = 0;
+        world.borrow::<UniqueViewMut<BaseEquipmentLevel>>().0 = 0;
+
+        // Reset turn count and depth.
+        world.borrow::<UniqueViewMut<TurnCount>>().0 = 1;
+        world.borrow::<UniqueViewMut<Map>>().depth = 1;
+
+        // Replace the old player with a fresh one.
+        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
+        spawn::despawn_entity(&mut world.borrow::<AllStoragesViewMut>(), player_id);
+        let new_player_id = world.run(spawn::spawn_player);
+        world.borrow::<UniqueViewMut<PlayerId>>().0 = new_player_id;
+
+        world
+            .borrow::<UniqueViewMut<Messages>>()
+            .add("Welcome to Ruggle!".into());
+    }
 
     // Replace old difficulty tracker with a fresh one.
     {
@@ -65,23 +115,6 @@ fn new_game_setup(world: &World) {
             .replace(new_difficulty);
     }
 
-    // Reset the map state.
-    {
-        let mut map = world.borrow::<UniqueViewMut<Map>>();
-        map.clear();
-        map.depth = 1;
-    }
-
-    // Replace the old player with a fresh one.
-    {
-        let player_id = world.borrow::<UniqueView<PlayerId>>().0;
-        spawn::despawn_entity(&mut world.borrow::<AllStoragesViewMut>(), player_id);
-        let new_player_id = world.run(spawn::spawn_player);
-        world.borrow::<UniqueViewMut<PlayerId>>().0 = new_player_id;
-    }
-
-    world.borrow::<UniqueViewMut<PlayerAlive>>().0 = true;
-
     if let Some(victory_pos) = world.run(map::generate_rooms_and_corridors) {
         spawn::spawn_present(world, victory_pos);
     }
@@ -91,18 +124,17 @@ fn new_game_setup(world: &World) {
     world.run(experience::calc_exp_for_next_depth);
     world.run(vision::recalculate_fields_of_view);
 
-    world
-        .borrow::<UniqueViewMut<Messages>>()
-        .add("Welcome to Ruggle!".into());
     player::describe_player_pos(world);
 }
 
-pub fn post_game_cleanup(world: &World) {
+pub fn post_game_cleanup(world: &World, reset_seed: bool) {
     world.run(player::remove_coords_from_players);
     world.run(spawn::despawn_coord_entities);
 
-    // Ensure the next game uses a new seed.
-    world.borrow::<UniqueViewMut<GameSeed>>().0 = rand::random();
+    if reset_seed {
+        // Ensure the next game uses a new seed.
+        world.borrow::<UniqueViewMut<GameSeed>>().0 = rand::random();
+    }
 }
 
 pub struct TitleMode {
@@ -265,7 +297,7 @@ impl TitleMode {
                                         ModeUpdate::Immediate,
                                     );
                                 } else {
-                                    new_game_setup(world);
+                                    new_game_setup(world, false);
                                     inputs.clear_input();
                                     return (
                                         ModeControl::Switch(DungeonMode::new().into()),

@@ -9,7 +9,7 @@ use crate::{
     map::Map,
     message::Messages,
     player::{self, PlayerId},
-    saveload,
+    saveload, Wins,
 };
 use ruggle::FovShape;
 
@@ -302,6 +302,7 @@ pub fn use_item(
         }
         remove_item_from_inventory(world, user_id, item_id);
         world.borrow::<AllStoragesViewMut>().delete(item_id);
+        world.borrow::<UniqueViewMut<Wins>>().0 += 1;
         return true;
     } else {
         let map = world.borrow::<UniqueView<Map>>();

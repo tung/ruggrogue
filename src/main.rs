@@ -44,6 +44,12 @@ pub struct GameSeed(u64);
 #[derive(Deserialize, Serialize)]
 pub struct TurnCount(u64);
 
+#[derive(Deserialize, Serialize)]
+pub struct Wins(u32);
+
+#[derive(Deserialize, Serialize)]
+pub struct BaseEquipmentLevel(i32);
+
 #[cfg(target_os = "emscripten")]
 extern "C" {
     pub fn ruggle_sync_idbfs();
@@ -64,6 +70,8 @@ fn main() {
     });
     world.add_unique(GameSeed(game_seed));
     world.add_unique(TurnCount(0));
+    world.add_unique(Wins(0));
+    world.add_unique(BaseEquipmentLevel(0));
     world.add_unique(Camera::new());
     world.add_unique(Difficulty::new(world.run(spawn::spawn_difficulty)));
     world.add_unique(MenuMemory::new());

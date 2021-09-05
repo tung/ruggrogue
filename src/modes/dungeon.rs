@@ -147,7 +147,7 @@ impl DungeonMode {
                             if let Err(e) = saveload::save_game(world) {
                                 eprintln!("Warning: saveload::save_game: {}", e);
                             }
-                            title::post_game_cleanup(world);
+                            title::post_game_cleanup(world, true);
                             inputs.clear_input();
                             return (
                                 ModeControl::Switch(TitleMode::new().into()),

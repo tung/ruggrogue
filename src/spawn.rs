@@ -16,7 +16,7 @@ use crate::{
     gamesym::GameSym,
     magicnum,
     map::{Map, Rect},
-    GameSeed,
+    BaseEquipmentLevel, GameSeed, Wins,
 };
 use ruggle::util::Color;
 
@@ -376,10 +376,11 @@ fn rescale_level<R: Rng>(level: f32, scale: usize, rng: &mut R) -> usize {
 fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, bonus: i32) {
     let (sym, name, rgb) = WEAPONS[rescale_level(level, WEAPONS.len().saturating_sub(1), rng)];
     let level = experience::f32_round_random(level, rng);
+    let base_equipment_level = world.borrow::<UniqueView<BaseEquipmentLevel>>().0;
     let item_id = spawn_item(
         world,
         pos,
-        format!("{:+} {}", level + bonus, name),
+        format!("{:+} {}", level + bonus + base_equipment_level, name),
         sym,
         rgb.into(),
     );
@@ -390,7 +391,7 @@ fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32,
         (&mut combat_bonuses, &mut equip_slots),
         (
             CombatBonus {
-                attack: experience::calc_weapon_attack(level + bonus),
+                attack: experience::calc_weapon_attack(level + bonus + base_equipment_level),
                 defense: 0.0,
             },
             EquipSlot::Weapon,
@@ -402,10 +403,11 @@ fn spawn_weapon<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32,
 fn spawn_armor<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, bonus: i32) {
     let (sym, name, rgb) = ARMORS[rescale_level(level, ARMORS.len().saturating_sub(1), rng)];
     let level = experience::f32_round_random(level, rng);
+    let base_equipment_level = world.borrow::<UniqueView<BaseEquipmentLevel>>().0;
     let item_id = spawn_item(
         world,
         pos,
-        format!("{:+} {}", level + bonus, name),
+        format!("{:+} {}", level + bonus + base_equipment_level, name),
         sym,
         rgb.into(),
     );
@@ -417,7 +419,7 @@ fn spawn_armor<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32), level: f32, 
         (
             CombatBonus {
                 attack: 0.0,
-                defense: experience::calc_armor_defense(level + bonus),
+                defense: experience::calc_armor_defense(level + bonus + base_equipment_level),
             },
             EquipSlot::Armor,
         ),
@@ -526,9 +528,10 @@ fn spawn_random_item_at<R: Rng>(world: &World, rng: &mut R, pos: (i32, i32)) {
 
 fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
     let depth = world.borrow::<UniqueView<Map>>().depth;
+    let wins = world.borrow::<UniqueView<Wins>>().0.min(i32::MAX as u32) as i32;
 
     if rng.gen_ratio(1, 4) {
-        let num = rng.gen_range(1i32..2i32);
+        let num = rng.gen_range(1i32..2i32 + wins);
 
         for pos in room.iter_xy().choose_multiple(rng, num as usize) {
             spawn_random_item_at(world, rng, pos);
@@ -536,7 +539,7 @@ fn fill_room_with_spawns<R: Rng>(world: &World, rng: &mut R, room: &Rect) {
     }
 
     if rng.gen_ratio(1, 2) {
-        let num = rng.gen_range(1i32..1 + ((depth + 1) / 2).max(1).min(3));
+        let num = rng.gen_range(1i32..1 + wins + ((depth + 1) / 2).max(1).min(3));
 
         for pos in room.iter_xy().choose_multiple(rng, num as usize) {
             spawn_random_monster_at(world, rng, pos);

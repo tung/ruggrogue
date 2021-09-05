@@ -7,7 +7,7 @@ use crate::{
     map::Map,
     player::{PlayerAlive, PlayerId},
     ui::Options,
-    TurnCount,
+    TurnCount, Wins,
 };
 use ruggle::{
     util::{Color, Size},
@@ -15,6 +15,7 @@ use ruggle::{
 };
 
 use super::{
+    dungeon::DungeonMode,
     title::{self, TitleMode},
     ModeControl, ModeResult, ModeUpdate,
 };
@@ -71,10 +72,21 @@ impl GameOverMode {
         } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
             let key = gamekey::from_keycode(keycode, inputs.get_mods(KeyMods::SHIFT));
             if matches!(key, GameKey::Confirm | GameKey::Cancel) {
-                title::post_game_cleanup(world);
+                let player_alive = world.borrow::<UniqueView<PlayerAlive>>().0;
+
+                title::post_game_cleanup(world, !player_alive);
+                if player_alive {
+                    title::new_game_setup(world, true);
+                }
+
                 inputs.clear_input();
                 return (
-                    ModeControl::Switch(TitleMode::new().into()),
+                    ModeControl::Switch(if player_alive {
+                        // Jump straight into new game plus.
+                        DungeonMode::new().into()
+                    } else {
+                        TitleMode::new().into()
+                    }),
                     ModeUpdate::Immediate,
                 );
             }
@@ -113,7 +125,14 @@ impl GameOverMode {
         let player_id = world.borrow::<UniqueView<PlayerId>>();
 
         if player_alive {
-            grid.print((0, 2), "Your birthday present is saved!");
+            let wins = world.borrow::<UniqueView<Wins>>().0;
+
+            if wins < 2 {
+                grid.print((0, 2), "Your birthday present is saved!");
+            } else {
+                grid.print((9, 2), "Wins:");
+                grid.print_color((DATA_X, 2), wins.to_string().as_str(), true, data_fg, bg);
+            }
         } else {
             let names = world.borrow::<View<Name>>();
             let hurt_bys = world.borrow::<View<HurtBy>>();
