@@ -27,6 +27,7 @@ const ZOOM_1X_OFF: &str = " 1x ";
 const ZOOM_2X_ON: &str = "[2x]";
 const ZOOM_2X_OFF: &str = " 2x ";
 const QUIT: &str = "[ Save and exit ]";
+const BACK: &str = "[ Back ]";
 
 pub enum OptionsMenuModeResult {
     AppQuit,
@@ -43,13 +44,15 @@ enum Selection {
 }
 
 pub struct OptionsMenuMode {
+    prompt_to_save: bool,
     selection: Selection,
 }
 
 /// A menu of general game options that the player can choose amongst.
 impl OptionsMenuMode {
-    pub fn new() -> Self {
+    pub fn new(prompt_to_save: bool) -> Self {
         Self {
+            prompt_to_save,
             selection: Selection::Tileset,
         }
     }
@@ -203,10 +206,17 @@ impl OptionsMenuMode {
                 (Selection::Quit, GameKey::Confirm) => {
                     inputs.clear_input();
                     return (
-                        ModeControl::Push(
-                            YesNoDialogMode::new("Save and return to title screen?".into(), false)
+                        if self.prompt_to_save {
+                            ModeControl::Push(
+                                YesNoDialogMode::new(
+                                    "Save and return to title screen?".into(),
+                                    false,
+                                )
                                 .into(),
-                        ),
+                            )
+                        } else {
+                            ModeControl::Pop(OptionsMenuModeResult::Closed.into())
+                        },
                         ModeUpdate::Immediate,
                     );
                 }
@@ -418,7 +428,7 @@ impl OptionsMenuMode {
 
         grid.print_color(
             (2, 7),
-            QUIT,
+            if self.prompt_to_save { QUIT } else { BACK },
             true,
             fg,
             if matches!(self.selection, Selection::Quit) {

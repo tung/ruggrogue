@@ -259,7 +259,7 @@ impl DungeonMode {
                     PlayerInputResult::ShowOptionsMenu => {
                         inputs.clear_input();
                         return (
-                            ModeControl::Push(OptionsMenuMode::new().into()),
+                            ModeControl::Push(OptionsMenuMode::new(true).into()),
                             ModeUpdate::Immediate,
                         );
                     }

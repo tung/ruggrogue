@@ -20,6 +20,7 @@ use ruggle::{
 
 use super::{
     dungeon::DungeonMode,
+    options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
 };
@@ -45,6 +46,7 @@ pub enum TitleModeResult {
 pub enum TitleAction {
     NewGame,
     LoadGame,
+    Options,
     #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     Quit,
 }
@@ -54,14 +56,16 @@ impl TitleAction {
         match self {
             TitleAction::NewGame => "New Game",
             TitleAction::LoadGame => "Load Game",
+            TitleAction::Options => "Options",
             TitleAction::Quit => "Quit",
         }
     }
 }
 
-const ALL_TITLE_ACTIONS: [TitleAction; 3] = [
+const ALL_TITLE_ACTIONS: [TitleAction; 4] = [
     TitleAction::NewGame,
     TitleAction::LoadGame,
+    TitleAction::Options,
     TitleAction::Quit,
 ];
 
@@ -175,6 +179,8 @@ impl TitleMode {
         if cfg!(target_os = "emscripten") || saveload::save_file_exists() {
             actions.push(TitleAction::LoadGame);
         }
+
+        actions.push(TitleAction::Options);
 
         #[cfg(not(target_arch = "wasm32"))]
         actions.push(TitleAction::Quit);
@@ -290,6 +296,14 @@ impl TitleMode {
     ) -> (ModeControl, ModeUpdate) {
         if let Some(result) = pop_result {
             return match result {
+                ModeResult::OptionsMenuModeResult(result) => match result {
+                    OptionsMenuModeResult::AppQuit => (
+                        ModeControl::Pop(TitleModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    OptionsMenuModeResult::Closed => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                    OptionsMenuModeResult::ReallyQuit => unreachable!(),
+                },
                 ModeResult::YesNoDialogModeResult(result) => match result {
                     YesNoDialogModeResult::AppQuit => (
                         ModeControl::Pop(TitleModeResult::AppQuit.into()),
@@ -394,6 +408,13 @@ impl TitleMode {
                                         ModeUpdate::Immediate,
                                     );
                                 }
+                            }
+                            TitleAction::Options => {
+                                inputs.clear_input();
+                                return (
+                                    ModeControl::Push(OptionsMenuMode::new(false).into()),
+                                    ModeUpdate::Immediate,
+                                );
                             }
                             TitleAction::Quit => {
                                 return (
