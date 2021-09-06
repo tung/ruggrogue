@@ -507,10 +507,11 @@ impl<Y: Symbol> RawTileGrid<Y> {
             && pos.x + s.len() as i32 > 0
         {
             for (i, c) in s
-                .char_indices()
+                .chars()
                 .skip(-pos.x.min(0) as usize)
                 .take(self.size.w.saturating_sub(pos.x.max(0) as u32) as usize)
-                .filter(|(_, c)| draw_space || *c != ' ')
+                .filter(|c| draw_space || *c != ' ')
+                .enumerate()
             {
                 self.put_color_raw(
                     Position {
