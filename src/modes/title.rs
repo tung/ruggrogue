@@ -24,6 +24,20 @@ use super::{
     ModeControl, ModeResult, ModeUpdate,
 };
 
+const LOGO_GRID: usize = 0;
+const SOURCE_GRID: usize = 1;
+const MENU_GRID: usize = 2;
+
+const SOURCE_STR: &str = "github.com/tung/ruggle";
+const LOGO_STR: &str = "░░░░░░  ░░  ░░   ░░░░    ░░░░  ░░░░    ░░░░░░░
+ ▒▒  ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒      ▒▒   ▒
+ ▓▓  ▓▓ ▓▓  ▓▓ ▓▓      ▓▓       ▓▓      ▓▓ ▓
+ █████  ██  ██ ██      ██       ██      ████
+ ▓▓▓▓   ▓▓  ▓▓ ▓▓  ▓▓▓ ▓▓  ▓▓▓  ▓▓   ▓  ▓▓ ▓
+ ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒   ▒
+░░░  ░░ ░░░░░░   ░░░░░   ░░░░░ ░░░░░░░ ░░░░░░░
+";
+
 pub enum TitleModeResult {
     AppQuit,
 }
@@ -44,6 +58,12 @@ impl TitleAction {
         }
     }
 }
+
+const ALL_TITLE_ACTIONS: [TitleAction; 3] = [
+    TitleAction::NewGame,
+    TitleAction::LoadGame,
+    TitleAction::Quit,
+];
 
 fn print_game_seed(game_seed: UniqueView<GameSeed>) {
     println!("Game seed: {}", game_seed.0);
@@ -139,7 +159,8 @@ pub fn post_game_cleanup(world: &World, reset_seed: bool) {
 
 pub struct TitleMode {
     actions: Vec<TitleAction>,
-    inner_width: u32,
+    menu_width: u32,
+    menu_height: u32,
     selection: usize,
 }
 
@@ -158,7 +179,6 @@ impl TitleMode {
         #[cfg(not(target_arch = "wasm32"))]
         actions.push(TitleAction::Quit);
 
-        let inner_width = actions.iter().map(|a| a.label().len()).max().unwrap_or(0) as u32;
         let selection = if saveload::save_file_exists() {
             actions
                 .iter()
@@ -170,7 +190,12 @@ impl TitleMode {
 
         Self {
             actions,
-            inner_width,
+            menu_width: ALL_TITLE_ACTIONS
+                .iter()
+                .map(|a| a.label().len())
+                .max()
+                .unwrap_or(0) as u32,
+            menu_height: ALL_TITLE_ACTIONS.len() as u32,
             selection,
         }
     }
@@ -185,21 +210,75 @@ impl TitleMode {
         let Options {
             font, text_zoom, ..
         } = *world.borrow::<UniqueView<Options>>();
-        let new_grid_size = Size {
-            w: 4 + self.inner_width,
-            h: 4 + self.actions.len() as u32,
+        let tileset = &tilesets.get(font as usize).unwrap_or(&tilesets[0]);
+
+        let new_logo_size = Size {
+            w: LOGO_STR
+                .lines()
+                .map(str::chars)
+                .map(Iterator::count)
+                .max()
+                .unwrap_or(1) as u32,
+            h: LOGO_STR.chars().filter(|c| *c == '\n').count() as u32,
+        };
+        let new_source_size = Size {
+            w: SOURCE_STR.len() as u32,
+            h: 1,
+        };
+        let new_menu_size = Size {
+            w: self.menu_width,
+            h: self.menu_height,
         };
 
         if !grids.is_empty() {
-            grids[0].resize(new_grid_size);
+            grids[LOGO_GRID].resize(new_logo_size);
+            grids[SOURCE_GRID].resize(new_source_size);
+            grids[MENU_GRID].resize(new_menu_size);
         } else {
-            grids.push(TileGrid::new(new_grid_size, tilesets, font as usize));
-            grids[0].view.clear_color = None;
+            grids.push(TileGrid::new(new_logo_size, tilesets, font as usize));
+            grids.push(TileGrid::new(new_source_size, tilesets, font as usize));
+            grids.push(TileGrid::new(new_menu_size, tilesets, font as usize));
+            grids[LOGO_GRID].view.clear_color = None;
+            grids[SOURCE_GRID].view.clear_color = None;
+            grids[MENU_GRID].view.clear_color = None;
         }
 
-        grids[0].set_tileset(tilesets, font as usize);
-        grids[0].view_centered(tilesets, text_zoom, (0, 0).into(), window_size);
-        grids[0].view.zoom = text_zoom;
+        let (logo_grid, grids) = grids.split_first_mut().unwrap(); // LOGO_GRID
+        let (source_grid, grids) = grids.split_first_mut().unwrap(); // SOURCE_GRID
+        let (menu_grid, _) = grids.split_first_mut().unwrap(); // MENU_GRID
+
+        // Set fonts.
+        logo_grid.set_tileset(tilesets, font as usize);
+        source_grid.set_tileset(tilesets, font as usize);
+        menu_grid.set_tileset(tilesets, font as usize);
+
+        let combined_px_height =
+            (new_logo_size.h + new_menu_size.h) * tileset.tile_height() * text_zoom;
+
+        // Logo goes in the center top third.
+        logo_grid.view.size.w = new_logo_size.w * tileset.tile_width() * text_zoom;
+        logo_grid.view.size.h = new_logo_size.h * tileset.tile_height() * text_zoom;
+        logo_grid.view.pos.x = (window_size.w - logo_grid.view.size.w) as i32 / 2;
+        logo_grid.view.pos.y = (window_size.h.saturating_sub(combined_px_height) / 3) as i32;
+
+        // Menu goes in the center bottom third.
+        menu_grid.view.size.w = new_menu_size.w * tileset.tile_width() * text_zoom;
+        menu_grid.view.size.h = new_menu_size.h * tileset.tile_height() * text_zoom;
+        menu_grid.view.pos.x = (window_size.w - menu_grid.view.size.w) as i32 / 2;
+        menu_grid.view.pos.y =
+            (logo_grid.view.size.h + window_size.h.saturating_sub(combined_px_height) * 2 / 3)
+                .min(window_size.h.saturating_sub(menu_grid.view.size.h)) as i32;
+
+        // Source goes in the bottom right corner of the screen.
+        source_grid.view.size.w = new_source_size.w * tileset.tile_width() * text_zoom;
+        source_grid.view.size.h = new_source_size.h * tileset.tile_height() * text_zoom;
+        source_grid.view.pos.x = (window_size.w - source_grid.view.size.w) as i32;
+        source_grid.view.pos.y = (window_size.h - source_grid.view.size.h) as i32;
+
+        // Set all grids to current text zoom.
+        logo_grid.view.zoom = text_zoom;
+        source_grid.view.zoom = text_zoom;
+        menu_grid.view.zoom = text_zoom;
     }
 
     pub fn update(
@@ -335,18 +414,33 @@ impl TitleMode {
     }
 
     pub fn draw(&self, _world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
-        let grid = &mut grids[0];
+        let (logo_grid, grids) = grids.split_first_mut().unwrap(); // LOGO_GRID
+        let (source_grid, grids) = grids.split_first_mut().unwrap(); // SOURCE_GRID
+        let (menu_grid, _) = grids.split_first_mut().unwrap(); // MENU_GRID
         let fg = Color::WHITE;
         let bg = Color::BLACK;
         let selected_bg = ui::SELECTED_BG;
 
-        grid.view.color_mod = if active { Color::WHITE } else { Color::GRAY };
+        if active {
+            logo_grid.view.color_mod = Color::WHITE;
+            source_grid.view.color_mod = Color::WHITE;
+            menu_grid.view.color_mod = Color::WHITE;
+        } else {
+            logo_grid.view.color_mod = Color::GRAY;
+            source_grid.view.color_mod = Color::GRAY;
+            menu_grid.view.color_mod = Color::GRAY;
+        }
 
-        grid.draw_box((0, 0), (grid.width(), grid.height()), fg, bg);
+        for (i, logo_line) in LOGO_STR.lines().enumerate() {
+            logo_grid.print_color((0, i as i32), logo_line, true, Color::ORANGE, bg);
+        }
 
+        source_grid.print_color((0, 0), SOURCE_STR, true, Color::GRAY, bg);
+
+        menu_grid.clear();
         for (i, action) in self.actions.iter().enumerate() {
-            grid.print_color(
-                (2, 2 + i as i32),
+            menu_grid.print_color(
+                (0, i as i32),
                 action.label(),
                 true,
                 if matches!(action, TitleAction::LoadGame) && !saveload::save_file_exists() {
