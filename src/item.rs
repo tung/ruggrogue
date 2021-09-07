@@ -13,6 +13,8 @@ use crate::{
 };
 use ruggrogue::FovShape;
 
+pub struct PickUpHint(pub bool);
+
 pub fn add_item_to_map(world: &World, item_id: EntityId, pos: (i32, i32)) {
     let (mut map, entities, mut coords, mut render_on_floors) = world.borrow::<(
         UniqueViewMut<Map>,

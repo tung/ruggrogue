@@ -5,6 +5,7 @@ use crate::{
     experience::{self, Difficulty},
     gamekey::{self, GameKey},
     gamesym::GameSym,
+    item::PickUpHint,
     map::{self, Map},
     menu_memory::MenuMemory,
     message::Messages,
@@ -131,6 +132,9 @@ pub fn new_game_setup(world: &World, new_game_plus: bool) {
         spawn::despawn_entity(&mut world.borrow::<AllStoragesViewMut>(), player_id);
         let new_player_id = world.run(spawn::spawn_player);
         world.borrow::<UniqueViewMut<PlayerId>>().0 = new_player_id;
+
+        // Show the hint for the pick up item key.
+        world.borrow::<UniqueViewMut<PickUpHint>>().0 = true;
 
         world
             .borrow::<UniqueViewMut<Messages>>()
@@ -410,6 +414,10 @@ impl TitleMode {
                                 if saveload::save_file_exists() {
                                     saveload::load_game(world).unwrap();
                                     world.run(print_game_seed);
+
+                                    // Don't show pick up key hint to returning players.
+                                    world.borrow::<UniqueViewMut<PickUpHint>>().0 = false;
+
                                     inputs.clear_input();
                                     return (
                                         ModeControl::Switch(DungeonMode::new().into()),

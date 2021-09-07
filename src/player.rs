@@ -10,7 +10,7 @@ use crate::{
     damage, experience,
     gamekey::{self, GameKey},
     hunger::{self, CanRegenResult},
-    item,
+    item::{self, PickUpHint},
     map::{self, Map, Tile},
     message::Messages,
     spawn, vision,
@@ -824,15 +824,24 @@ pub fn describe_player_pos(world: &World) {
     };
     let map = world.borrow::<UniqueView<Map>>();
     let more_than_player = map.iter_entities_at(x, y).nth(1).is_some();
+    let pick_up_hint = world.borrow::<UniqueView<PickUpHint>>().0
+        && map
+            .iter_entities_at(x, y)
+            .any(|id| world.borrow::<View<Item>>().contains(id));
     let interesting_tile = !matches!(map.get_tile(x, y), Tile::Floor | Tile::Wall);
 
     if more_than_player || interesting_tile {
         let (desc, recalled) = map.describe_pos(world, x, y, false, true, true);
 
         world.borrow::<UniqueViewMut<Messages>>().add(format!(
-            "You {} {} here.",
+            "You {} {} here.{}",
             if recalled { "recall" } else { "see" },
             desc,
+            if pick_up_hint {
+                " (Press 'g' to pick up.)"
+            } else {
+                ""
+            },
         ));
     }
 }

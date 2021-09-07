@@ -4,6 +4,7 @@ use crate::{
     components::{Coord, Item, Name, Renderable},
     gamekey::{self, GameKey},
     gamesym::GameSym,
+    item::PickUpHint,
     map::Map,
     menu_memory::MenuMemory,
     message::Messages,
@@ -205,9 +206,14 @@ impl PickUpMenuMode {
                     }
                     GameKey::Confirm | GameKey::PickUp => {
                         let result = match self.subsection {
-                            SubSection::Items => PickUpMenuModeResult::PickedItem(
-                                self.items[self.selection as usize],
-                            ),
+                            SubSection::Items => {
+                                // Item picked up, so don't repeat the pick up key hint.
+                                world.borrow::<UniqueViewMut<PickUpHint>>().0 = false;
+
+                                PickUpMenuModeResult::PickedItem(
+                                    self.items[self.selection as usize],
+                                )
+                            }
                             SubSection::Cancel => PickUpMenuModeResult::Cancelled,
                         };
 

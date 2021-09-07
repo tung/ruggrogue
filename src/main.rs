@@ -28,6 +28,7 @@ use crate::{
     chunked::Camera,
     experience::Difficulty,
     gamesym::GameSym,
+    item::PickUpHint,
     map::Map,
     menu_memory::MenuMemory,
     message::Messages,
@@ -77,6 +78,7 @@ fn main() {
     world.add_unique(MenuMemory::new());
     world.add_unique(Messages::new(100));
     world.add_unique(Map::new(80, 50));
+    world.add_unique(PickUpHint(true));
     world.add_unique(PlayerId(world.run(spawn::spawn_player)));
     world.add_unique(PlayerAlive(true));
     world.add_unique(MonsterTurns::new());
