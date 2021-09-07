@@ -4,7 +4,7 @@ use crate::{
     components::{Coord, FieldOfView, Player},
     map::{Map, Tile},
 };
-use ruggle::FovShape;
+use ruggrogue::FovShape;
 
 pub fn recalculate_fields_of_view(
     mut map: UniqueViewMut<Map>,
@@ -19,7 +19,7 @@ pub fn recalculate_fields_of_view(
 
             // Update field of view.
             for (x, y, symmetric) in
-                ruggle::field_of_view(&*map, coord.0.into(), fov.range, FovShape::CirclePlus)
+                ruggrogue::field_of_view(&*map, coord.0.into(), fov.range, FovShape::CirclePlus)
             {
                 if symmetric || matches!(map.get_tile(x, y), &Tile::Wall) {
                     fov.set((x, y), true);

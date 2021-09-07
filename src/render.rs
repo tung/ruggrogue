@@ -6,7 +6,7 @@ use crate::{
     gamesym::GameSym,
     player::PlayerId,
 };
-use ruggle::TileGrid;
+use ruggrogue::TileGrid;
 
 pub fn draw_renderables(
     chunked_map_grid: &ChunkedMapGrid,

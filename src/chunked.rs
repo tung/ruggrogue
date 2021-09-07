@@ -1,7 +1,7 @@
 use shipyard::{Get, UniqueView, View, World};
 
 use crate::{components::FieldOfView, gamesym::GameSym, map::Map, player::PlayerId, ui::Options};
-use ruggle::{
+use ruggrogue::{
     util::{Color, Position, Size},
     Symbol, TileGrid, Tileset,
 };

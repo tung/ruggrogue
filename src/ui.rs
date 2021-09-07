@@ -10,7 +10,7 @@ use crate::{
     player::PlayerId,
     TurnCount,
 };
-use ruggle::{
+use ruggrogue::{
     util::{Color, Position, Size},
     Symbol, TileGrid, Tileset,
 };
@@ -244,7 +244,7 @@ where
         let msg_fg = if highlighted { highlight_fg } else { fg };
 
         grid.put_char_color((0, y), '>', msg_fg, None);
-        for line in ruggle::word_wrap(message, 32) {
+        for line in ruggrogue::word_wrap(message, 32) {
             grid.print_color((2, y), line, true, msg_fg, None);
             y += 1;
         }
@@ -262,7 +262,7 @@ pub fn draw_ui<Y: Symbol>(
     draw_item_info(world, item_grid);
 
     if let Some(prompt) = prompt {
-        for (y, prompt_line) in ruggle::word_wrap(prompt, 32).enumerate() {
+        for (y, prompt_line) in ruggrogue::word_wrap(prompt, 32).enumerate() {
             msg_grid.print_color((2, y as i32), prompt_line, true, Color::WHITE, None);
         }
         draw_messages(world, msg_grid, false, 3, msg_grid.height() as i32 - 1);

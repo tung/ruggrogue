@@ -18,7 +18,7 @@ use crate::{
     map::{Map, Rect},
     BaseEquipmentLevel, GameSeed, Wins,
 };
-use ruggle::util::Color;
+use ruggrogue::util::Color;
 
 const EQUIPMENT_SPAWN_PERIOD: u32 = 4;
 

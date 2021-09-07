@@ -13,7 +13,7 @@ use std::{
 };
 
 #[cfg(target_os = "emscripten")]
-use crate::ruggle_sync_idbfs;
+use crate::ruggrogue_sync_idbfs;
 use crate::{
     components::*,
     experience::Difficulty,
@@ -24,7 +24,7 @@ use crate::{
 };
 
 #[cfg(target_os = "emscripten")]
-const SAVE_FILENAME: &str = "/ruggle/savegame.txt";
+const SAVE_FILENAME: &str = "/ruggrogue/savegame.txt";
 
 #[cfg(not(target_os = "emscripten"))]
 const SAVE_FILENAME: &str = "savegame.txt";
@@ -161,7 +161,7 @@ pub fn save_game(world: &World) -> Result<(), BoxedError> {
 
     #[cfg(target_os = "emscripten")]
     unsafe {
-        ruggle_sync_idbfs();
+        ruggrogue_sync_idbfs();
     }
 
     Ok(())

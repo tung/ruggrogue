@@ -15,7 +15,7 @@ use crate::{
     message::Messages,
     spawn, vision,
 };
-use ruggle::{util::Position, InputBuffer, InputEvent, KeyMods, PathableMap};
+use ruggrogue::{util::Position, InputBuffer, InputEvent, KeyMods, PathableMap};
 
 #[derive(Deserialize, Serialize)]
 pub struct PlayerId(pub EntityId);

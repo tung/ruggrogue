@@ -9,7 +9,7 @@ use crate::{
     ui::Options,
     TurnCount, Wins,
 };
-use ruggle::{
+use ruggrogue::{
     util::{Color, Size},
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };

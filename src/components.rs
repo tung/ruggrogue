@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use shipyard::EntityId;
 
 use crate::{bitgrid::BitGrid, gamesym::GameSym, player::AutoRun};
-use ruggle::util::{Color, Position};
+use ruggrogue::util::{Color, Position};
 
 #[derive(Deserialize, Serialize)]
 pub struct AreaOfEffect {

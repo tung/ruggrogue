@@ -11,7 +11,7 @@ use crate::{
     player::{self, PlayerId, PlayerInputResult},
     render, saveload, ui, vision, TurnCount,
 };
-use ruggle::{
+use ruggrogue::{
     util::{Color, Position, Size},
     InputBuffer, TileGrid, Tileset,
 };

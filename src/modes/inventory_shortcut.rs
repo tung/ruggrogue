@@ -9,7 +9,7 @@ use crate::{
     player::PlayerId,
     ui::{self, Options},
 };
-use ruggle::{
+use ruggrogue::{
     util::{Color, Size},
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };

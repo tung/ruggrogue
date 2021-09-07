@@ -11,7 +11,7 @@ use crate::{
     player::{self, PlayerId},
     saveload, Wins,
 };
-use ruggle::FovShape;
+use ruggrogue::FovShape;
 
 pub fn add_item_to_map(world: &World, item_id: EntityId, pos: (i32, i32)) {
     let (mut map, entities, mut coords, mut render_on_floors) = world.borrow::<(
@@ -325,7 +325,7 @@ pub fn use_item(
 
         let center = target.unwrap_or_else(|| coords.get(user_id).0.into());
         let radius = aoes.try_get(item_id).map_or(0, |aoe| aoe.radius);
-        let targets = ruggle::field_of_view(&*map, center, radius, FovShape::CirclePlus)
+        let targets = ruggrogue::field_of_view(&*map, center, radius, FovShape::CirclePlus)
             .filter(|(_, _, symmetric)| *symmetric)
             .flat_map(|(x, y, _)| map.iter_entities_at(x, y))
             .filter(|id| monsters.contains(*id) || players.contains(*id));

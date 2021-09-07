@@ -8,7 +8,7 @@ use crate::{
     message::Messages,
     player::PlayerId,
 };
-use ruggle::util::Color;
+use ruggrogue::util::Color;
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 pub enum CanRegenResult {

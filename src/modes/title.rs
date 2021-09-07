@@ -13,7 +13,7 @@ use crate::{
     ui::{self, Options},
     vision, BaseEquipmentLevel, GameSeed, TurnCount, Wins,
 };
-use ruggle::{
+use ruggrogue::{
     util::{Color, Size},
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };
@@ -29,7 +29,7 @@ const LOGO_GRID: usize = 0;
 const SOURCE_GRID: usize = 1;
 const MENU_GRID: usize = 2;
 
-const SOURCE_STR: &str = "github.com/tung/ruggle";
+const SOURCE_STR: &str = "github.com/tung/ruggrogue";
 const LOGO_STR: &str = "░░░░░░  ░░  ░░   ░░░░    ░░░░  ░░░░    ░░░░░░░
  ▒▒  ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒      ▒▒   ▒
  ▓▓  ▓▓ ▓▓  ▓▓ ▓▓      ▓▓       ▓▓      ▓▓ ▓
@@ -106,7 +106,7 @@ pub fn new_game_setup(world: &World, new_game_plus: bool) {
 
         world
             .borrow::<UniqueViewMut<Messages>>()
-            .add("Welcome back to Ruggle!".into());
+            .add("Welcome back to RuggRogue!".into());
     } else {
         world.run(print_game_seed);
 
@@ -126,7 +126,7 @@ pub fn new_game_setup(world: &World, new_game_plus: bool) {
 
         world
             .borrow::<UniqueViewMut<Messages>>()
-            .add("Welcome to Ruggle!".into());
+            .add("Welcome to RuggRogue!".into());
     }
 
     // Replace old difficulty tracker with a fresh one.

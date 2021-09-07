@@ -41,7 +41,7 @@ pub mod yes_no_dialog;
 use shipyard::World;
 
 use crate::gamesym::GameSym;
-use ruggle::{util::Size, InputBuffer, RunControl, TileGrid, TileGridLayer, Tileset};
+use ruggrogue::{util::Size, InputBuffer, RunControl, TileGrid, TileGridLayer, Tileset};
 
 use app_quit_dialog::{AppQuitDialogMode, AppQuitDialogModeResult};
 use dungeon::{DungeonMode, DungeonModeResult};
@@ -411,7 +411,7 @@ impl ModeStack {
 
     /// Perform update logic for the top mode of the stack, and then drawing logic for all  modes.
     ///
-    /// This also converts [ModeUpdate] values into [ruggle::RunControl] values to control the
+    /// This also converts [ModeUpdate] values into [ruggrogue::RunControl] values to control the
     /// behavior of the next update.
     pub fn update(
         &mut self,

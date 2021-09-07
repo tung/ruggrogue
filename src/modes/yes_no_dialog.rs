@@ -5,7 +5,7 @@ use crate::{
     gamesym::GameSym,
     ui::{self, Options},
 };
-use ruggle::{
+use ruggrogue::{
     util::{Color, Size},
     InputBuffer, InputEvent, KeyMods, TileGrid, Tileset,
 };

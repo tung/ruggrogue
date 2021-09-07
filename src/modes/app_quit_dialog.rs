@@ -1,7 +1,7 @@
 use shipyard::World;
 
 use crate::gamesym::GameSym;
-use ruggle::{util::Size, InputBuffer, TileGrid, Tileset};
+use ruggrogue::{util::Size, InputBuffer, TileGrid, Tileset};
 
 use super::{
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
@@ -19,7 +19,7 @@ pub struct AppQuitDialogMode(YesNoDialogMode);
 impl AppQuitDialogMode {
     pub fn new() -> Self {
         Self(YesNoDialogMode::new(
-            "Really quit Ruggle?".to_string(),
+            "Really quit RuggRogue?".to_string(),
             false,
         ))
     }

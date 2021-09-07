@@ -36,7 +36,7 @@ use crate::{
     player::{PlayerAlive, PlayerId},
     ui::Options,
 };
-use ruggle::{RunSettings, TilesetInfo};
+use ruggrogue::{RunSettings, TilesetInfo};
 
 #[derive(Deserialize, Serialize)]
 pub struct GameSeed(u64);
@@ -52,7 +52,7 @@ pub struct BaseEquipmentLevel(i32);
 
 #[cfg(target_os = "emscripten")]
 extern "C" {
-    pub fn ruggle_sync_idbfs();
+    pub fn ruggrogue_sync_idbfs();
 }
 
 fn main() {
@@ -84,7 +84,7 @@ fn main() {
     let mut mode_stack = ModeStack::new(vec![TitleMode::new().into()]);
 
     let settings = RunSettings {
-        title: "Ruggle".into(),
+        title: "RuggRogue".into(),
         window_size: (896, 560).into(),
         min_window_size: (640, 192).into(),
         fps: 30,
@@ -109,12 +109,12 @@ fn main() {
         ],
     };
 
-    ruggle::run(settings, |inputs, layers, tilesets, window_size| {
+    ruggrogue::run(settings, |inputs, layers, tilesets, window_size| {
         mode_stack.update(&world, inputs, layers, tilesets, window_size)
     });
 
     #[cfg(target_os = "emscripten")]
     unsafe {
-        ruggle_sync_idbfs();
+        ruggrogue_sync_idbfs();
     }
 }

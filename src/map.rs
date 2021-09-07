@@ -15,7 +15,7 @@ use crate::{
     player::PlayerId,
     GameSeed,
 };
-use ruggle::util::Color;
+use ruggrogue::util::Color;
 
 #[derive(Clone, Copy, Eq, PartialEq, Deserialize, Serialize)]
 pub enum Tile {
@@ -458,19 +458,19 @@ impl Map {
     }
 }
 
-impl ruggle::BoundedMap for Map {
+impl ruggrogue::BoundedMap for Map {
     fn bounds(&self) -> (i32, i32, i32, i32) {
         (0, 0, self.width - 1, self.height - 1)
     }
 }
 
-impl ruggle::ViewableField for Map {
+impl ruggrogue::ViewableField for Map {
     fn is_opaque(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x, y), Tile::Wall)
     }
 }
 
-impl ruggle::PathableMap for Map {
+impl ruggrogue::PathableMap for Map {
     fn is_blocked(&self, x: i32, y: i32) -> bool {
         matches!(self.get_tile(x, y), &Tile::Wall)
             || self

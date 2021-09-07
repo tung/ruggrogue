@@ -1,6 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-use ruggle::util::Position;
+use ruggrogue::util::Position;
 
 pub struct MenuMemory {
     menu: [i32; 7],

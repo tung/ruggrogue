@@ -59,7 +59,7 @@ fn do_turn_for_one_monster(world: &World, monster: EntityId) {
             )
         };
 
-        if let Some(step) = ruggle::find_path(&*map, pos, player_pos, 4, true).nth(1) {
+        if let Some(step) = ruggrogue::find_path(&*map, pos, player_pos, 4, true).nth(1) {
             if step == player_pos {
                 damage::melee_attack(world, monster, player_id.0);
             } else {
