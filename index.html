@@ -30,7 +30,7 @@
     </style>
 </head>
 
-<body onunload="FS.syncfs(false, (err) => {})">
+<body onunload="FS.syncfs(false, function (err) {})">
     <canvas id="canvas"></canvas>
     <script>
         var Module = {
@@ -46,7 +46,7 @@
             'preRun': [function () {
                 FS.mkdir("/ruggrogue");
                 FS.mount(IDBFS, {}, "/ruggrogue");
-                FS.syncfs(true, (err) => {});
+                FS.syncfs(true, function (err) {});
             }],
         };
     </script>
