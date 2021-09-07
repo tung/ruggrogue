@@ -30,13 +30,21 @@ const SOURCE_GRID: usize = 1;
 const MENU_GRID: usize = 2;
 
 const SOURCE_STR: &str = "github.com/tung/ruggrogue";
-const LOGO_STR: &str = "░░░░░░  ░░  ░░   ░░░░    ░░░░  ░░░░    ░░░░░░░
- ▒▒  ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒      ▒▒   ▒
- ▓▓  ▓▓ ▓▓  ▓▓ ▓▓      ▓▓       ▓▓      ▓▓ ▓
- █████  ██  ██ ██      ██       ██      ████
- ▓▓▓▓   ▓▓  ▓▓ ▓▓  ▓▓▓ ▓▓  ▓▓▓  ▓▓   ▓  ▓▓ ▓
- ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒   ▒
-░░░  ░░ ░░░░░░   ░░░░░   ░░░░░ ░░░░░░░ ░░░░░░░
+const LOGO_STR: &str = "░░░░░░  ░░  ░░   ░░░░    ░░░░
+ ▒▒  ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒
+ ▓▓  ▓▓ ▓▓  ▓▓ ▓▓      ▓▓
+ █████  ██  ██ ██      ██
+ ▓▓▓▓   ▓▓  ▓▓ ▓▓  ▓▓▓ ▓▓  ▓▓▓
+ ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒
+░░░  ░░ ░░░░░░   ░░░░░   ░░░░░
+
+        ░░░░░░    ░░░░     ░░░░  ░░  ░░ ░░░░░░░
+         ▒▒  ▒▒  ▒▒  ▒▒   ▒▒  ▒▒ ▒▒  ▒▒  ▒▒   ▒
+         ▓▓  ▓▓ ▓▓    ▓▓ ▓▓      ▓▓  ▓▓  ▓▓ ▓
+         █████  ██    ██ ██      ██  ██  ████
+         ▓▓▓▓   ▓▓    ▓▓ ▓▓  ▓▓▓ ▓▓  ▓▓  ▓▓ ▓
+         ▒▒ ▒▒   ▒▒  ▒▒   ▒▒  ▒▒ ▒▒  ▒▒  ▒▒   ▒
+        ░░░  ░░   ░░░░     ░░░░░ ░░░░░░ ░░░░░░░
 ";
 
 pub enum TitleModeResult {
@@ -267,10 +275,10 @@ impl TitleMode {
         logo_grid.view.pos.x = (window_size.w - logo_grid.view.size.w) as i32 / 2;
         logo_grid.view.pos.y = (window_size.h.saturating_sub(combined_px_height) / 3) as i32;
 
-        // Menu goes in the center bottom third.
+        // Menu goes in the left-center bottom third.
         menu_grid.view.size.w = new_menu_size.w * tileset.tile_width() * text_zoom;
         menu_grid.view.size.h = new_menu_size.h * tileset.tile_height() * text_zoom;
-        menu_grid.view.pos.x = (window_size.w - menu_grid.view.size.w) as i32 / 2;
+        menu_grid.view.pos.x = (window_size.w / 2 - menu_grid.view.size.w) as i32;
         menu_grid.view.pos.y =
             (logo_grid.view.size.h + window_size.h.saturating_sub(combined_px_height) * 2 / 3)
                 .min(window_size.h.saturating_sub(menu_grid.view.size.h)) as i32;
