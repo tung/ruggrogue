@@ -192,7 +192,7 @@ where
     if let Ok(parsed) = T::deserialize(&mut ds) {
         if ds.end().is_ok() {
             if dest.is_none() {
-                dest.insert(parsed);
+                *dest = Some(parsed);
                 Ok(true)
             } else {
                 Err(LoadError::DuplicateUnique(line_num, name))
