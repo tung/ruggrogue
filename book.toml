@@ -1,0 +1,10 @@
+[book]
+title = "RuggRogue Source Code Guide"
+description = "Design and source code breakdown of a simple roguelike"
+authors = ["Tung Nguyen"]
+src = "book"
+language = "en"
+multilingual = false
+
+[build]
+build-dir = "target/book/"
