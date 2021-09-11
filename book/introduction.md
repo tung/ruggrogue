@@ -9,6 +9,13 @@ However, most people interested in making their own roguelike are already too bu
 For those want to learn from the RuggRogue source code, this guide should make it easier to approach.
 For those who are just curious about how a simple roguelike works, this guide also covers how the game solves various problems such as rendering, word wrapping, map generation and auto-run.
 
+Before getting into this, there's one last thing I'd like to mention.
+RuggRogue is my first non-trivial Rust project, and I was fairly new to Rust when I started, with little more than the [Rust Book](https://doc.rust-lang.org/book/) and part of the [Rust Roguelike Tutorial](bfnightly.bracketproductions.com/) under my belt.
+Despite going to the effort of writing this source code guide, RuggRogue is not a model of what a perfect Rust project should look like.
+It is the product of my desire to create a complete game with a scope larger than a tutorial or a tech demo.
+As such, there are places where the code and structure are technically functional but awkward, which had to be left as-is in the name of finishing the project without burning extra months on it.
+The code could be better, but then it also wouldn't be complete or released either.
+
 ## Overview
 
 Here's a sneak peak at what this guide covers:
