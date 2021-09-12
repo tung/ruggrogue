@@ -24,7 +24,6 @@
   - *The mode stack*
     - Avoiding the all-encompassing state machine from the Rust roguelike tutorial.
     - ModeResults, or how to handle responses from menus and dialog boxes.
-    - Design approach to UI, or why is there so much UI code?
   - *Input queue*
   - *Rendering and display using TileGrids*
     - The phases of output: draw, render, upload, display.
