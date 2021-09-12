@@ -23,7 +23,7 @@ Here's a sneak peak at what this guide covers:
 - **Dependencies** talks about the stuff that RuggRogue leans on to do things outside of its development scope, but still need to be handled.
 - **Source Code Layout** gives a brief overview of why each file exists.
 - **Overall Game Flow** provides a bird's eye view of how the game goes from launch to its game loop, managing control flow through what I refer to as a "mode stack".
-- **Input Queue** describes how and why the game handles input the way that it does.
+- **Input Handling** describes how and why the game handles input the way that it does.
 - **Rendering** covers how the game displays graphical output using a home-grown system of tile grids, as well as making it all run fast enough to not feel terrible to play.
 - **User interface** goes over the game's approach to keeping controls simple, menus and dialogs and how options are changed in real-time.
 - **Word Wrapping** is about how to break any line of more than a couple of words into multiple lines that fit within a given width.

@@ -6,7 +6,7 @@
 - [Dependencies](dependencies.md)
 - [Source Code Layout](source-code-layout.md)
 - [Overall Game Flow](overall-game-flow.md)
-- [Input Queue]()
+- [Input Handling](input-handling.md)
 - [Rendering]()
     - [TileGrids]()
     - [Improving Rendering Performance]()
