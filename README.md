@@ -40,7 +40,7 @@ Item menus also support navigation keys like home, end, page up and page down.
 
 ## How to build the game
 
-First, get the source code at https://github.com/tung/ruggrogue
+First, get the source code at <https://github.com/tung/ruggrogue>
 
 To compile any version of the game, you'll need to [install Rust](https://www.rust-lang.org/tools/install).
 
