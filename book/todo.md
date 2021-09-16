@@ -26,16 +26,26 @@
     - ModeResults, or how to handle responses from menus and dialog boxes.
   - *Input queue*
   - *Rendering and display using TileGrids*
-    - The phases of output: draw, render, upload, display.
-    - The hybrid software-hardware rendering scheme
-      - Core idea: Render to TileGrids, display TileGrids on screen.
-      - TileGrids update at different rates; only render and upload when they change, e.g. TileGrids of top mode update a lot, but lower modes are mostly static.
-      - Decent performance and high portability with SDL2 without having access to a programmable shader pipeline.
-    - A primitive scene graph using TileGrid, TileGridLayer and Vec\<TileGridLayer\>.
-    - TileGrid breakdown: RawTileGrids, SdlSurface, SdlTexture, TileGridView.
-    - Improving render performance
-      - Using RawTileGrids to render only changed tiles.
-      - Minimizing changed tiles with wrapped offset rendering.
+    - Overarching rendering strategy
+      - Describe software rendering for tile-based graphics.
+      - Describe hardware rendering of tile-based graphics with a texture altassing approach.
+      - Describe RuggRogue's choice: hybrid rendering.
+        - Reasons:
+          - Separates drawing tile grid contents from how it's displayed on screen (easier positioning + zoom).
+          - Pure SDL-based drawing lets SDL choose the best graphics API for its environment.
+        - Probably not the fastest it could be, but it seems reasonably fast compared to naive per-tile drawing.
+    - TileGrids and TileGridLayers
+      - Everything shown by RuggRogue is a TileGrid.
+      - Main game loop inits and draws TileGridLayers; essentially a scene graph.
+      - Mode stack ensures that each mode gets its own fresh TileGridLayer.
+      - Modes can create as many TileGrids as they need within their TileGridLayer.
+    - Tilesets: black-and-white conversion, tall vertical surface for cache-friendliness during rendering.
+    - The phases of drawing: draw, render, upload, display.
+      - Draw: The TileGrid drawing API, implementations mostly passed off to RawTileGrid.
+      - Render: Check for changed tiles with RawTileGrids, draw changed tiles.
+      - Upload: Single SDL call to do this.
+      - Display: Each TileGrid copies itself to the canvas, while main game loop uses SDL to present it all.
+    - Improving render performance with wrapped offset rendering.
     - Improving map draw performance with chunked drawing.
   - *User interface*
     - Keeping controls simple with judicious use of menus.
