@@ -60,6 +60,17 @@ use yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult};
 
 // /////////////////////////////////////////////////////////////////////////////
 
+/// Helper macro to convert a type into an enum variant with the same name.
+macro_rules! impl_from {
+    ($to:ty, $from:ident) => {
+        impl From<$from> for $to {
+            fn from(f: $from) -> Self {
+                Self::$from(f)
+            }
+        }
+    };
+}
+
 /// All possible modes that can be added to the mode stack.  Add new modes here.
 #[allow(clippy::enum_variant_names)]
 pub enum Mode {
@@ -79,89 +90,20 @@ pub enum Mode {
     YesNoDialogMode(YesNoDialogMode),
 }
 
-impl From<AppQuitDialogMode> for Mode {
-    fn from(mode: AppQuitDialogMode) -> Self {
-        Self::AppQuitDialogMode(mode)
-    }
-}
-
-impl From<DungeonMode> for Mode {
-    fn from(mode: DungeonMode) -> Self {
-        Self::DungeonMode(mode)
-    }
-}
-
-impl From<EquipmentActionMode> for Mode {
-    fn from(mode: EquipmentActionMode) -> Self {
-        Self::EquipmentActionMode(mode)
-    }
-}
-
-impl From<EquipmentShortcutMode> for Mode {
-    fn from(mode: EquipmentShortcutMode) -> Self {
-        Self::EquipmentShortcutMode(mode)
-    }
-}
-
-impl From<GameOverMode> for Mode {
-    fn from(mode: GameOverMode) -> Self {
-        Self::GameOverMode(mode)
-    }
-}
-
-impl From<InventoryMode> for Mode {
-    fn from(mode: InventoryMode) -> Self {
-        Self::InventoryMode(mode)
-    }
-}
-
-impl From<InventoryActionMode> for Mode {
-    fn from(mode: InventoryActionMode) -> Self {
-        Self::InventoryActionMode(mode)
-    }
-}
-
-impl From<InventoryShortcutMode> for Mode {
-    fn from(mode: InventoryShortcutMode) -> Self {
-        Self::InventoryShortcutMode(mode)
-    }
-}
-
-impl From<OptionsMenuMode> for Mode {
-    fn from(mode: OptionsMenuMode) -> Self {
-        Self::OptionsMenuMode(mode)
-    }
-}
-
-impl From<PickUpMenuMode> for Mode {
-    fn from(mode: PickUpMenuMode) -> Self {
-        Self::PickUpMenuMode(mode)
-    }
-}
-
-impl From<TargetMode> for Mode {
-    fn from(mode: TargetMode) -> Self {
-        Self::TargetMode(mode)
-    }
-}
-
-impl From<TitleMode> for Mode {
-    fn from(mode: TitleMode) -> Self {
-        Self::TitleMode(mode)
-    }
-}
-
-impl From<ViewMapMode> for Mode {
-    fn from(mode: ViewMapMode) -> Self {
-        Self::ViewMapMode(mode)
-    }
-}
-
-impl From<YesNoDialogMode> for Mode {
-    fn from(mode: YesNoDialogMode) -> Self {
-        Self::YesNoDialogMode(mode)
-    }
-}
+impl_from!(Mode, AppQuitDialogMode);
+impl_from!(Mode, DungeonMode);
+impl_from!(Mode, EquipmentActionMode);
+impl_from!(Mode, EquipmentShortcutMode);
+impl_from!(Mode, GameOverMode);
+impl_from!(Mode, InventoryMode);
+impl_from!(Mode, InventoryActionMode);
+impl_from!(Mode, InventoryShortcutMode);
+impl_from!(Mode, OptionsMenuMode);
+impl_from!(Mode, PickUpMenuMode);
+impl_from!(Mode, TargetMode);
+impl_from!(Mode, TitleMode);
+impl_from!(Mode, ViewMapMode);
+impl_from!(Mode, YesNoDialogMode);
 
 // /////////////////////////////////////////////////////////////////////////////
 
@@ -185,89 +127,20 @@ pub enum ModeResult {
     YesNoDialogModeResult(YesNoDialogModeResult),
 }
 
-impl From<AppQuitDialogModeResult> for ModeResult {
-    fn from(result: AppQuitDialogModeResult) -> Self {
-        Self::AppQuitDialogModeResult(result)
-    }
-}
-
-impl From<DungeonModeResult> for ModeResult {
-    fn from(result: DungeonModeResult) -> Self {
-        Self::DungeonModeResult(result)
-    }
-}
-
-impl From<EquipmentActionModeResult> for ModeResult {
-    fn from(result: EquipmentActionModeResult) -> Self {
-        Self::EquipmentActionModeResult(result)
-    }
-}
-
-impl From<EquipmentShortcutModeResult> for ModeResult {
-    fn from(result: EquipmentShortcutModeResult) -> Self {
-        Self::EquipmentShortcutModeResult(result)
-    }
-}
-
-impl From<GameOverModeResult> for ModeResult {
-    fn from(result: GameOverModeResult) -> Self {
-        Self::GameOverModeResult(result)
-    }
-}
-
-impl From<InventoryModeResult> for ModeResult {
-    fn from(result: InventoryModeResult) -> Self {
-        Self::InventoryModeResult(result)
-    }
-}
-
-impl From<InventoryActionModeResult> for ModeResult {
-    fn from(result: InventoryActionModeResult) -> Self {
-        Self::InventoryActionModeResult(result)
-    }
-}
-
-impl From<InventoryShortcutModeResult> for ModeResult {
-    fn from(result: InventoryShortcutModeResult) -> Self {
-        Self::InventoryShortcutModeResult(result)
-    }
-}
-
-impl From<OptionsMenuModeResult> for ModeResult {
-    fn from(result: OptionsMenuModeResult) -> Self {
-        Self::OptionsMenuModeResult(result)
-    }
-}
-
-impl From<PickUpMenuModeResult> for ModeResult {
-    fn from(result: PickUpMenuModeResult) -> Self {
-        Self::PickUpMenuModeResult(result)
-    }
-}
-
-impl From<TargetModeResult> for ModeResult {
-    fn from(result: TargetModeResult) -> Self {
-        Self::TargetModeResult(result)
-    }
-}
-
-impl From<TitleModeResult> for ModeResult {
-    fn from(result: TitleModeResult) -> Self {
-        Self::TitleModeResult(result)
-    }
-}
-
-impl From<ViewMapModeResult> for ModeResult {
-    fn from(result: ViewMapModeResult) -> Self {
-        Self::ViewMapModeResult(result)
-    }
-}
-
-impl From<YesNoDialogModeResult> for ModeResult {
-    fn from(result: YesNoDialogModeResult) -> Self {
-        Self::YesNoDialogModeResult(result)
-    }
-}
+impl_from!(ModeResult, AppQuitDialogModeResult);
+impl_from!(ModeResult, DungeonModeResult);
+impl_from!(ModeResult, EquipmentActionModeResult);
+impl_from!(ModeResult, EquipmentShortcutModeResult);
+impl_from!(ModeResult, GameOverModeResult);
+impl_from!(ModeResult, InventoryModeResult);
+impl_from!(ModeResult, InventoryActionModeResult);
+impl_from!(ModeResult, InventoryShortcutModeResult);
+impl_from!(ModeResult, OptionsMenuModeResult);
+impl_from!(ModeResult, PickUpMenuModeResult);
+impl_from!(ModeResult, TargetModeResult);
+impl_from!(ModeResult, TitleModeResult);
+impl_from!(ModeResult, ViewMapModeResult);
+impl_from!(ModeResult, YesNoDialogModeResult);
 
 // /////////////////////////////////////////////////////////////////////////////
 
