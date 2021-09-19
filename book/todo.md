@@ -48,10 +48,9 @@
     - Improving render performance with wrapped offset rendering.
     - Improving map draw performance with chunked drawing.
   - *User interface*
-    - Keeping controls simple with judicious use of menus.
-    - Drawing and handling input for menus and dialogs.
-    - Changing graphics and zoom options in real-time.
-    - Inventory and equipment shortcut menus.
+    - Mode breakdown with YesNoDialogMode as an example.
+    - Layout and drawing of the main game screen.
+    - The AppQuit event.
   - *Word wrapping*
   - *Managing data* (Entity life cycle)
     - The world, and which entities exist and when.

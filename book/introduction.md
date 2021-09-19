@@ -25,7 +25,7 @@ Here's a sneak peak at what this guide covers:
 - **Overall Game Flow** provides a bird's eye view of how the game goes from launch to its game loop, managing control flow through what I refer to as a "mode stack".
 - **Input Handling** describes how and why the game handles input the way that it does.
 - **Rendering** covers how the game displays graphical output using a home-grown system of tile grids, as well as making it all run fast enough to not feel terrible to play.
-- **User interface** goes over the game's approach to keeping controls simple, menus and dialogs and how options are changed in real-time.
+- **User interface** explains how menus and dialogs work, how the main game screen is drawn and how a request to close the application is handled.
 - **Word Wrapping** is about how to break any line of more than a couple of words into multiple lines that fit within a given width.
 - **Managing Data** discusses what data the game stores and how it's created, accessed and freed.
 - **Saving and Loading** talks about the save file format and approach to loading.
