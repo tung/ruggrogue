@@ -44,7 +44,7 @@ First, get the source code at <https://github.com/tung/ruggrogue>
 
 To compile any version of the game, you'll need to [install Rust](https://www.rust-lang.org/tools/install).
 
-On Linux, install the development libraries for [SDL2 (`libsdl2-dev`)](https://libsdl.org/) and [SDL2\_image (`libsdl2-image-dev`)](https://www.libsdl.org/projects/SDL_image/), then run `cargo build --release` to build the game, and `cargo run --release` to start playing.
+On Linux, install the development libraries for [SDL2](https://libsdl.org/) (`libsdl2-dev`) and [SDL2\_image](https://www.libsdl.org/projects/SDL_image/) (`libsdl2-image-dev`), then run `cargo build --release` to build the game, and `cargo run --release` to start playing.
 
 There's no support for building a native version of the game for Windows out of the box.
 The easiest way would probably be to alter `Cargo.toml` to fetch and build SDL2 and SDL2\_image into a static binary using cargo-vcpkg according to the [rust-sdl2 instructions](https://github.com/Rust-SDL2/rust-sdl2#windows-linux-and-macos-with-vcpkg).
