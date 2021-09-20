@@ -229,6 +229,7 @@ where
     Y: Symbol,
 {
     let messages = world.borrow::<UniqueView<Messages>>();
+    let width = grid.width().saturating_sub(2).max(1) as usize;
     let mut y = min_y;
     let (fg, highlight_fg) = if active {
         (Color::GRAY, Color::WHITE)
@@ -244,7 +245,7 @@ where
         let msg_fg = if highlighted { highlight_fg } else { fg };
 
         grid.put_char_color((0, y), '>', msg_fg, None);
-        for line in ruggrogue::word_wrap(message, 32) {
+        for line in ruggrogue::word_wrap(message, width) {
             grid.print_color((2, y), line, true, msg_fg, None);
             y += 1;
         }
