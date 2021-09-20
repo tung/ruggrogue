@@ -2,7 +2,7 @@
 ///
 /// Leading and trailing whitespace is preserved.  Accounts for multi-byte UTF-8 encoded
 /// characters, but not combining characters or characters whose width != 1.
-pub fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = &str> + '_ {
+pub fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = &str> {
     assert!(max_length > 0);
 
     input.lines().flat_map(move |line| {
