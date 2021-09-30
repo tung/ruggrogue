@@ -74,32 +74,32 @@ We'll also need the byte offsets of each of these characters, which can be large
 The byte offsets will be used to create the final string slices that refer back to the original input string data; we don't want to allocate string storage to replicate parts of strings that already exist!
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = (usize, char)> + '_ {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = (usize, char)> + '_ {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
     })
-#}
+# }
 ```
 
 Running the above sample should print a long list of characters and their byte offsets.
@@ -120,34 +120,34 @@ We'll then use [`Iterator::chain`](https://doc.rust-lang.org/std/iter/trait.Iter
 Putting it together gives us something that looks like this:
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = (usize, Option<char>)> + '_ {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = (usize, Option<char>)> + '_ {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
             .map(|(pos, ch)| (pos, Some(ch)))
             .chain(std::iter::once((line.len(), None))) // character sentinel
     })
-#}
+# }
 ```
 
 Running the code sample should produce the same characters and offsets wrapped with `Some`, with a single `None` representing the end of each line.
@@ -162,27 +162,27 @@ We also treat hyphens as the end of a word, and break any words that exceed the 
 Every time we detect the end of a word, we need to emit data with `Some`, otherwise we'll emit a `None` to indicate that we're still processing characters.
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = Option<(usize, usize, usize, bool)>> + '_ {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = Option<(usize, usize, usize, bool)>> + '_ {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
@@ -239,7 +239,7 @@ Every time we detect the end of a word, we need to emit data with `Some`, otherw
                 }
             })
     })
-#}
+# }
 ```
 
 If you run the above code, you'll see that the output is a mixture of `Some` and `None` variants.
@@ -261,27 +261,27 @@ We're going to use [`iter::filter`](https://doc.rust-lang.org/std/iter/trait.Ite
 We'd also like to re-add that single `None` value to mark the end of the line again to handle the final word or whitespace after we perform line scanning.
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = Option<(usize, usize, usize, bool)>> + '_ {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = Option<(usize, usize, usize, bool)>> + '_ {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
@@ -290,58 +290,58 @@ We'd also like to re-add that single `None` value to mark the end of the line ag
             .scan(None, move |state, (pos, ch)| {
                 // Break into words and single spaces.
                 // ...
-#                if let Some(ch) = ch {
-#                    if let Some((in_word, start_pos, char_count, last_char)) = state {
-#                        if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
-#                            // Line-length or hyphen-divided word, or mid-line whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = !ch.is_whitespace();
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        } else if *in_word {
-#                            // Word continuation.
-#                            *char_count += 1;
-#                            *last_char = ch;
-#                            Some(None)
-#                        } else {
-#                            // Entering a word after whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = true;
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        }
-#                    } else {
-#                        // Start of the line.
-#                        let in_word = !ch.is_whitespace();
-#                        let start_pos = pos;
-#                        let char_count = 1;
-#                        let last_char = ch;
-#                        *state = Some((in_word, start_pos, char_count, last_char));
-#                        Some(None)
-#                    }
-#                } else {
-#                    // End of the line.
-#                    if let Some((in_word, start_pos, char_count, _)) = state {
-#                        // Finish the final word or whitespace.
-#                        Some(Some((*start_pos, pos, *char_count, *in_word)))
-#                    } else {
-#                        // Empty line.
-#                        Some(Some((pos, pos, 0, false)))
-#                    }
-#                }
+#                 if let Some(ch) = ch {
+#                     if let Some((in_word, start_pos, char_count, last_char)) = state {
+#                         if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
+#                             // Line-length or hyphen-divided word, or mid-line whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = !ch.is_whitespace();
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         } else if *in_word {
+#                             // Word continuation.
+#                             *char_count += 1;
+#                             *last_char = ch;
+#                             Some(None)
+#                         } else {
+#                             // Entering a word after whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = true;
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         }
+#                     } else {
+#                         // Start of the line.
+#                         let in_word = !ch.is_whitespace();
+#                         let start_pos = pos;
+#                         let char_count = 1;
+#                         let last_char = ch;
+#                         *state = Some((in_word, start_pos, char_count, last_char));
+#                         Some(None)
+#                     }
+#                 } else {
+#                     // End of the line.
+#                     if let Some((in_word, start_pos, char_count, _)) = state {
+#                         // Finish the final word or whitespace.
+#                         Some(Some((*start_pos, pos, *char_count, *in_word)))
+#                     } else {
+#                         // Empty line.
+#                         Some(Some((pos, pos, 0, false)))
+#                     }
+#                 }
             })
             .filter(Option::is_some)
             .chain(Some(None)) // word sentinel
     })
-#}
+# }
 ```
 
 The output should be the same as before, but with all of the `None` values gone, except for a final `None` to mark the end of each line.
@@ -354,27 +354,27 @@ If the sum of the character counts of that sequence and the existing line fits i
 If not, we'll emit the line as-is, and start a new line *without* the preceeding whitespace characters.
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = Option<(usize, usize)>> + '_ {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = Option<(usize, usize)>> + '_ {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
@@ -383,53 +383,53 @@ If not, we'll emit the line as-is, and start a new line *without* the preceeding
             .scan(None, move |state, (pos, ch)| {
                 // Break into words and single spaces.
                 // ...
-#                if let Some(ch) = ch {
-#                    if let Some((in_word, start_pos, char_count, last_char)) = state {
-#                        if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
-#                            // Line-length or hyphen-divided word, or mid-line whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = !ch.is_whitespace();
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        } else if *in_word {
-#                            // Word continuation.
-#                            *char_count += 1;
-#                            *last_char = ch;
-#                            Some(None)
-#                        } else {
-#                            // Entering a word after whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = true;
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        }
-#                    } else {
-#                        // Start of the line.
-#                        let in_word = !ch.is_whitespace();
-#                        let start_pos = pos;
-#                        let char_count = 1;
-#                        let last_char = ch;
-#                        *state = Some((in_word, start_pos, char_count, last_char));
-#                        Some(None)
-#                    }
-#                } else {
-#                    // End of the line.
-#                    if let Some((in_word, start_pos, char_count, _)) = state {
-#                        // Finish the final word or whitespace.
-#                        Some(Some((*start_pos, pos, *char_count, *in_word)))
-#                    } else {
-#                        // Empty line.
-#                        Some(Some((pos, pos, 0, false)))
-#                    }
-#                }
+#                 if let Some(ch) = ch {
+#                     if let Some((in_word, start_pos, char_count, last_char)) = state {
+#                         if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
+#                             // Line-length or hyphen-divided word, or mid-line whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = !ch.is_whitespace();
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         } else if *in_word {
+#                             // Word continuation.
+#                             *char_count += 1;
+#                             *last_char = ch;
+#                             Some(None)
+#                         } else {
+#                             // Entering a word after whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = true;
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         }
+#                     } else {
+#                         // Start of the line.
+#                         let in_word = !ch.is_whitespace();
+#                         let start_pos = pos;
+#                         let char_count = 1;
+#                         let last_char = ch;
+#                         *state = Some((in_word, start_pos, char_count, last_char));
+#                         Some(None)
+#                     }
+#                 } else {
+#                     // End of the line.
+#                     if let Some((in_word, start_pos, char_count, _)) = state {
+#                         // Finish the final word or whitespace.
+#                         Some(Some((*start_pos, pos, *char_count, *in_word)))
+#                     } else {
+#                         // Empty line.
+#                         Some(Some((pos, pos, 0, false)))
+#                     }
+#                 }
             })
             .filter(Option::is_some)
             .chain(Some(None)) // word sentinel
@@ -483,7 +483,7 @@ If not, we'll emit the line as-is, and start a new line *without* the preceeding
                 }
             })
     })
-#}
+# }
 ```
 
 Running the above sample code will output just the byte offsets of the start (inclusive) and end (exclusive) of each wrapped line.
@@ -493,27 +493,27 @@ What's more, Rust can convert an `Option` into an iterator, so if we squint hard
 We can therefore use the `iter::flatten` function to clean out the `None` values and extract the data from the `Some` variants in one fell swoop!
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
@@ -522,109 +522,109 @@ We can therefore use the `iter::flatten` function to clean out the `None` values
             .scan(None, move |state, (pos, ch)| {
                 // Break into words and single spaces.
                 // ...
-#                if let Some(ch) = ch {
-#                    if let Some((in_word, start_pos, char_count, last_char)) = state {
-#                        if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
-#                            // Line-length or hyphen-divided word, or mid-line whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = !ch.is_whitespace();
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        } else if *in_word {
-#                            // Word continuation.
-#                            *char_count += 1;
-#                            *last_char = ch;
-#                            Some(None)
-#                        } else {
-#                            // Entering a word after whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = true;
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        }
-#                    } else {
-#                        // Start of the line.
-#                        let in_word = !ch.is_whitespace();
-#                        let start_pos = pos;
-#                        let char_count = 1;
-#                        let last_char = ch;
-#                        *state = Some((in_word, start_pos, char_count, last_char));
-#                        Some(None)
-#                    }
-#                } else {
-#                    // End of the line.
-#                    if let Some((in_word, start_pos, char_count, _)) = state {
-#                        // Finish the final word or whitespace.
-#                        Some(Some((*start_pos, pos, *char_count, *in_word)))
-#                    } else {
-#                        // Empty line.
-#                        Some(Some((pos, pos, 0, false)))
-#                    }
-#                }
+#                 if let Some(ch) = ch {
+#                     if let Some((in_word, start_pos, char_count, last_char)) = state {
+#                         if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
+#                             // Line-length or hyphen-divided word, or mid-line whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = !ch.is_whitespace();
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         } else if *in_word {
+#                             // Word continuation.
+#                             *char_count += 1;
+#                             *last_char = ch;
+#                             Some(None)
+#                         } else {
+#                             // Entering a word after whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = true;
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         }
+#                     } else {
+#                         // Start of the line.
+#                         let in_word = !ch.is_whitespace();
+#                         let start_pos = pos;
+#                         let char_count = 1;
+#                         let last_char = ch;
+#                         *state = Some((in_word, start_pos, char_count, last_char));
+#                         Some(None)
+#                     }
+#                 } else {
+#                     // End of the line.
+#                     if let Some((in_word, start_pos, char_count, _)) = state {
+#                         // Finish the final word or whitespace.
+#                         Some(Some((*start_pos, pos, *char_count, *in_word)))
+#                     } else {
+#                         // Empty line.
+#                         Some(Some((pos, pos, 0, false)))
+#                     }
+#                 }
             })
             .filter(Option::is_some)
             .chain(Some(None)) // word sentinel
             .scan(None, move |state, word_data| {
                 // Build up lines up to max_length.
                 // ...
-#                if let Some((word_start, word_end, word_char_count, is_word)) = word_data {
-#                    if let Some((line_start, line_end, final_end, line_char_count)) = state {
-#                        if is_word {
-#                            if *line_char_count + word_char_count <= max_length {
-#                                // Word fits on line, so include it.
-#                                *line_end = word_end;
-#                                *final_end = word_end;
-#                                *line_char_count += word_char_count;
-#                                Some(None)
-#                            } else {
-#                                // Word exceeds line, so start a new line with it instead.
-#                                let last_line_start = *line_start;
-#                                let last_line_end = *line_end;
-#                                *line_start = word_start;
-#                                *line_end = word_end;
-#                                *final_end = word_end;
-#                                *line_char_count = word_char_count;
-#                                Some(Some((last_line_start, last_line_end)))
-#                            }
-#                        } else {
-#                            if *line_char_count + word_char_count <= max_length {
-#                                // Whitespace fits on line, so include it when finishing words.
-#                                *final_end = word_end;
-#                            }
-#                            *line_char_count += word_char_count;
-#                            Some(None)
-#                        }
-#                    } else {
-#                        // The first word.
-#                        let line_start = word_start;
-#                        let line_end = if is_word { word_end } else { word_start };
-#                        let final_end = word_end;
-#                        let line_char_count = word_char_count;
-#                        *state = Some((line_start, line_end, final_end, line_char_count));
-#                        Some(None)
-#                    }
-#                } else {
-#                    // End of words.
-#                    if let Some((line_start, _, final_end, _)) = state {
-#                        // Finish the line.
-#                        Some(Some((*line_start, *final_end)))
-#                    } else {
-#                        // Empty line.
-#                        Some(Some((0, 0)))
-#                    }
-#                }
+#                 if let Some((word_start, word_end, word_char_count, is_word)) = word_data {
+#                     if let Some((line_start, line_end, final_end, line_char_count)) = state {
+#                         if is_word {
+#                             if *line_char_count + word_char_count <= max_length {
+#                                 // Word fits on line, so include it.
+#                                 *line_end = word_end;
+#                                 *final_end = word_end;
+#                                 *line_char_count += word_char_count;
+#                                 Some(None)
+#                             } else {
+#                                 // Word exceeds line, so start a new line with it instead.
+#                                 let last_line_start = *line_start;
+#                                 let last_line_end = *line_end;
+#                                 *line_start = word_start;
+#                                 *line_end = word_end;
+#                                 *final_end = word_end;
+#                                 *line_char_count = word_char_count;
+#                                 Some(Some((last_line_start, last_line_end)))
+#                             }
+#                         } else {
+#                             if *line_char_count + word_char_count <= max_length {
+#                                 // Whitespace fits on line, so include it when finishing words.
+#                                 *final_end = word_end;
+#                             }
+#                             *line_char_count += word_char_count;
+#                             Some(None)
+#                         }
+#                     } else {
+#                         // The first word.
+#                         let line_start = word_start;
+#                         let line_end = if is_word { word_end } else { word_start };
+#                         let final_end = word_end;
+#                         let line_char_count = word_char_count;
+#                         *state = Some((line_start, line_end, final_end, line_char_count));
+#                         Some(None)
+#                     }
+#                 } else {
+#                     // End of words.
+#                     if let Some((line_start, _, final_end, _)) = state {
+#                         // Finish the line.
+#                         Some(Some((*line_start, *final_end)))
+#                     } else {
+#                         // Empty line.
+#                         Some(Some((0, 0)))
+#                     }
+#                 }
             })
             .flatten()
     })
-#}
+# }
 ```
 
 Running the above code sample should produce a cleaned-up version of the output from the previous code sample.
@@ -634,27 +634,27 @@ Running the above code sample should produce a cleaned-up version of the output 
 We originally wanted string slices of word-wrapped lines, which trivially builds on the work that's been done up to this point.
 
 ```rust
-#fn main() {
-#    let max_length = 15;
-#    let msg = "  I'm nöbödy!  Whö are yöu?
-#Are yöu nöbödy, töö?
-#Then there's a pair of us - don't tell!
-#They'd banish us, you know.
+# fn main() {
+#     let max_length = 15;
+#     let msg = "  I'm nöbödy!  Whö are yöu?
+# Are yöu nöbödy, töö?
+# Then there's a pair of us - don't tell!
+# They'd banish us, you know.
 #
-#  How dreary to be somebody!
-#How public, li-ke a ƒrog
-#To tell your name the live-long day
-#To an admiring bog!
+#   How dreary to be somebody!
+# How public, li-ke a ƒrog
+# To tell your name the live-long day
+# To an admiring bog!
 #
-#  - nobody";
+#   - nobody";
 #
-#    for tmp in word_wrap(msg, max_length) {
-#        println!("{:?}", tmp);
-#    }
-#}
+#     for tmp in word_wrap(msg, max_length) {
+#         println!("{:?}", tmp);
+#     }
+# }
 #
-#fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = &str> {
-#    assert!(max_length > 0);
+# fn word_wrap(input: &str, max_length: usize) -> impl Iterator<Item = &str> {
+#     assert!(max_length > 0);
 #
     input.lines().flat_map(move |line| {
         line.char_indices()
@@ -663,110 +663,110 @@ We originally wanted string slices of word-wrapped lines, which trivially builds
             .scan(None, move |state, (pos, ch)| {
                 // Break into words and single spaces.
                 // ...
-#                if let Some(ch) = ch {
-#                    if let Some((in_word, start_pos, char_count, last_char)) = state {
-#                        if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
-#                            // Line-length or hyphen-divided word, or mid-line whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = !ch.is_whitespace();
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        } else if *in_word {
-#                            // Word continuation.
-#                            *char_count += 1;
-#                            *last_char = ch;
-#                            Some(None)
-#                        } else {
-#                            // Entering a word after whitespace.
-#                            let was_word = *in_word;
-#                            let last_start_pos = *start_pos;
-#                            let last_char_count = *char_count;
-#                            *in_word = true;
-#                            *start_pos = pos;
-#                            *char_count = 1;
-#                            *last_char = ch;
-#                            Some(Some((last_start_pos, pos, last_char_count, was_word)))
-#                        }
-#                    } else {
-#                        // Start of the line.
-#                        let in_word = !ch.is_whitespace();
-#                        let start_pos = pos;
-#                        let char_count = 1;
-#                        let last_char = ch;
-#                        *state = Some((in_word, start_pos, char_count, last_char));
-#                        Some(None)
-#                    }
-#                } else {
-#                    // End of the line.
-#                    if let Some((in_word, start_pos, char_count, _)) = state {
-#                        // Finish the final word or whitespace.
-#                        Some(Some((*start_pos, pos, *char_count, *in_word)))
-#                    } else {
-#                        // Empty line.
-#                        Some(Some((pos, pos, 0, false)))
-#                    }
-#                }
+#                 if let Some(ch) = ch {
+#                     if let Some((in_word, start_pos, char_count, last_char)) = state {
+#                         if *char_count >= max_length || *last_char == '-' || ch.is_whitespace() {
+#                             // Line-length or hyphen-divided word, or mid-line whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = !ch.is_whitespace();
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         } else if *in_word {
+#                             // Word continuation.
+#                             *char_count += 1;
+#                             *last_char = ch;
+#                             Some(None)
+#                         } else {
+#                             // Entering a word after whitespace.
+#                             let was_word = *in_word;
+#                             let last_start_pos = *start_pos;
+#                             let last_char_count = *char_count;
+#                             *in_word = true;
+#                             *start_pos = pos;
+#                             *char_count = 1;
+#                             *last_char = ch;
+#                             Some(Some((last_start_pos, pos, last_char_count, was_word)))
+#                         }
+#                     } else {
+#                         // Start of the line.
+#                         let in_word = !ch.is_whitespace();
+#                         let start_pos = pos;
+#                         let char_count = 1;
+#                         let last_char = ch;
+#                         *state = Some((in_word, start_pos, char_count, last_char));
+#                         Some(None)
+#                     }
+#                 } else {
+#                     // End of the line.
+#                     if let Some((in_word, start_pos, char_count, _)) = state {
+#                         // Finish the final word or whitespace.
+#                         Some(Some((*start_pos, pos, *char_count, *in_word)))
+#                     } else {
+#                         // Empty line.
+#                         Some(Some((pos, pos, 0, false)))
+#                     }
+#                 }
             })
             .filter(Option::is_some)
             .chain(Some(None)) // word sentinel
             .scan(None, move |state, word_data| {
                 // Build up lines up to max_length.
                 // ...
-#                if let Some((word_start, word_end, word_char_count, is_word)) = word_data {
-#                    if let Some((line_start, line_end, final_end, line_char_count)) = state {
-#                        if is_word {
-#                            if *line_char_count + word_char_count <= max_length {
-#                                // Word fits on line, so include it.
-#                                *line_end = word_end;
-#                                *final_end = word_end;
-#                                *line_char_count += word_char_count;
-#                                Some(None)
-#                            } else {
-#                                // Word exceeds line, so start a new line with it instead.
-#                                let last_line_start = *line_start;
-#                                let last_line_end = *line_end;
-#                                *line_start = word_start;
-#                                *line_end = word_end;
-#                                *final_end = word_end;
-#                                *line_char_count = word_char_count;
-#                                Some(Some((last_line_start, last_line_end)))
-#                            }
-#                        } else {
-#                            if *line_char_count + word_char_count <= max_length {
-#                                // Whitespace fits on line, so include it when finishing words.
-#                                *final_end = word_end;
-#                            }
-#                            *line_char_count += word_char_count;
-#                            Some(None)
-#                        }
-#                    } else {
-#                        // The first word.
-#                        let line_start = word_start;
-#                        let line_end = if is_word { word_end } else { word_start };
-#                        let final_end = word_end;
-#                        let line_char_count = word_char_count;
-#                        *state = Some((line_start, line_end, final_end, line_char_count));
-#                        Some(None)
-#                    }
-#                } else {
-#                    // End of words.
-#                    if let Some((line_start, _, final_end, _)) = state {
-#                        // Finish the line.
-#                        Some(Some((*line_start, *final_end)))
-#                    } else {
-#                        // Empty line.
-#                        Some(Some((0, 0)))
-#                    }
-#                }
+#                 if let Some((word_start, word_end, word_char_count, is_word)) = word_data {
+#                     if let Some((line_start, line_end, final_end, line_char_count)) = state {
+#                         if is_word {
+#                             if *line_char_count + word_char_count <= max_length {
+#                                 // Word fits on line, so include it.
+#                                 *line_end = word_end;
+#                                 *final_end = word_end;
+#                                 *line_char_count += word_char_count;
+#                                 Some(None)
+#                             } else {
+#                                 // Word exceeds line, so start a new line with it instead.
+#                                 let last_line_start = *line_start;
+#                                 let last_line_end = *line_end;
+#                                 *line_start = word_start;
+#                                 *line_end = word_end;
+#                                 *final_end = word_end;
+#                                 *line_char_count = word_char_count;
+#                                 Some(Some((last_line_start, last_line_end)))
+#                             }
+#                         } else {
+#                             if *line_char_count + word_char_count <= max_length {
+#                                 // Whitespace fits on line, so include it when finishing words.
+#                                 *final_end = word_end;
+#                             }
+#                             *line_char_count += word_char_count;
+#                             Some(None)
+#                         }
+#                     } else {
+#                         // The first word.
+#                         let line_start = word_start;
+#                         let line_end = if is_word { word_end } else { word_start };
+#                         let final_end = word_end;
+#                         let line_char_count = word_char_count;
+#                         *state = Some((line_start, line_end, final_end, line_char_count));
+#                         Some(None)
+#                     }
+#                 } else {
+#                     // End of words.
+#                     if let Some((line_start, _, final_end, _)) = state {
+#                         // Finish the line.
+#                         Some(Some((*line_start, *final_end)))
+#                     } else {
+#                         // Empty line.
+#                         Some(Some((0, 0)))
+#                     }
+#                 }
             })
             .flatten()
             .map(move |(start, end)| &line[start..end])
     })
-#}
+# }
 ```
 
 And that's it!
