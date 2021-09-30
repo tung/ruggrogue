@@ -52,7 +52,45 @@
     - Layout and drawing of the main game screen.
     - The AppQuit event.
   - *Word wrapping*
-  - *Managing data* (Entity life cycle)
+  - *Entity Component System*
+    - How Shipyard is used.
+    - RuggRogue uses Shipyard 0.4:
+      - Couldn't use Shipyard 0.5 since a transitive dependency broke the web build.
+      - 0.4 API differs from 0.5, so it needs to be covered, since 0.4 docs are no longer online.
+    - The World
+      - Worlds hold uniques and entities with attached components.
+      - Creating a world: `World::new`
+    - Uniques
+      - What is a unique?
+      - Adding a unique to the world: `World::add_unique`
+      - Accessing uniques: `UniqueView` and `UniqueViewMut`, with examples using `World::borrow`
+      - Shipyard 0.4 has no way to delete or replace uniques.
+    - Entities and Components
+      - What are entities and components?
+      - Creating entities: `EntitiesViewMut` and `EntitiesViewMut::add_entity`
+      - Removing entities: `AllStoragesViewMut` and `AllStoragesViewMut::delete`
+      - Adding components to entities: `EntitiesView` and `EntitiesView::add_component`
+      - Deleting components from entities: `ViewMut::delete`
+      - Accessing components of a single entity: `View` and `ViewMut` with the `Shipyard::Get` trait
+      - Iterating entities that share components: `Shipyard::IntoIter::iter` and `Shipyard::Shiperator::with_id`
+      - Using `EntityId` as a handle to an entity
+      - Checking if an entity has a component: `View::contains` and `View::try_get`
+    - Avoiding systems
+      - `World::run` sometimes appears instead of `World::borrow`
+      - RuggRogue prefers `World::borrow` for fine-grained control over references.
+        - Rust: One mutable reference or multiple immutable references only.
+          - Why it helps: data consistency, use screen tearing as an analogy.
+      - Shipyard grants references and checks rules at runtime.
+        - Lifetimes of most game data depends on player actions, so many of these checks must be at runtime.
+          - Leaf functions still use Rust's compile-time checking.
+      - Problem: can't `World::run` within `World::run`.
+      - Problem: calling a system within a system, using simplified player spawning as an example.
+      - Problem: views claimed too early, causing helper functions to panic.
+      - All of these problems are from calling functions within functions.
+        - Personal style.
+        - Using Shipyard's *workloads* runs systems without nesting, embracing the full ECS style.
+          - Couldn't use workloads because runs multi-threaded only, which doesn't work in the web build.
+  - *Game data* (Entity life cycle)
     - The world, and which entities exist and when.
     - Despawning entities, including entities they refer to.
   - *Save and load*
