@@ -28,7 +28,7 @@ Here's a sneak peak at what this guide covers:
 - **User interface** explains how menus and dialogs work, how the main game screen is drawn and how a request to close the application is handled.
 - **Word Wrapping** is about how to break any line of more than a couple of words into multiple lines that fit within a given width.
 - **Entity Component System** describes Shipyard and how RuggRogue uses it to store and access its game data.
-- **Game Data** discusses what data the game stores and how it's created, accessed and freed.
+- **Game Data** provides a run-down of the data that constitutes the game and how it's managed.
 - **Saving and Loading** talks about the save file format and approach to loading.
 - **Field of View** goes over the fundamental trade-offs of picking a field of view algorithm, as well as the game's approach to high performance field of view calculation.
 - **Pathfinding** is exactly as it says on the tin, but also covers mitigations and fallback pathfinding if a direct path can't be found in a reasonable amount of time.
