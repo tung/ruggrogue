@@ -71,13 +71,13 @@ pub fn delete_save_file() {
     }
 }
 
-/// Save a unique as its type, a space and its serialized data in a single line.
+/// Save a unique as an asterisk, a tab, its type, a tab and its serialized data in a single line.
 fn save_named_unique<W, T>(world: &World, mut writer: &mut W, name: &str) -> Result<(), BoxedError>
 where
     T: 'static + Send + Sync + Serialize,
     W: Write,
 {
-    write!(writer, "{} ", name)?;
+    write!(writer, "*\t{}\t", name)?;
     world
         .borrow::<UniqueView<T>>()
         .serialize(&mut Serializer::new(&mut writer))?;
@@ -91,7 +91,7 @@ macro_rules! save_unique {
     };
 }
 
-/// Save components of a storage as an entity ID, a tab, its type, a space and its serialized data,
+/// Save components of a storage as an entity ID, a tab, its type, a tab and its serialized data,
 /// one per line.
 fn save_named_storage<W, T>(world: &World, mut writer: &mut W, name: &str) -> Result<(), BoxedError>
 where
@@ -100,7 +100,7 @@ where
 {
     for (id, component) in world.borrow::<View<T>>().iter().with_id() {
         id.serialize(&mut Serializer::new(&mut writer))?;
-        write!(writer, "\t{} ", name)?;
+        write!(writer, "\t{}\t", name)?;
         component.serialize(&mut Serializer::new(&mut writer))?;
         writer.write_all(b"\n")?;
     }
@@ -182,8 +182,11 @@ fn deserialize_named_unique<'a, T>(
 where
     T: Deserialize<'a>,
 {
-    let line = if let Some(unprefixed) = line.strip_prefix(name).and_then(|s| s.strip_prefix(' ')) {
-        unprefixed
+    let line = if let Some(unprefixed) = line
+        .strip_prefix(name)
+        .and_then(|s| s.strip_prefix(char::is_whitespace))
+    {
+        unprefixed.trim_start()
     } else {
         return Ok(false);
     };
@@ -229,9 +232,9 @@ where
 {
     let maybe_data = if let Some(unprefixed) = maybe_data
         .strip_prefix(name)
-        .and_then(|s| s.strip_prefix(' '))
+        .and_then(|s| s.strip_prefix(char::is_whitespace))
     {
-        unprefixed
+        unprefixed.trim_start()
     } else {
         return Ok(false);
     };
@@ -290,8 +293,35 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
         let line_num = line_num + 1;
         let line = line_bytes?;
 
-        // A line with a tab should contain component data for an entity.
-        if let Some((maybe_id, maybe_data)) = line.split_once('\t') {
+        // A line starting with an asterisk should hold data for a unique.
+        if let Some(maybe_unique) = line
+            .strip_prefix('*')
+            .and_then(|s| s.strip_prefix(char::is_whitespace))
+        {
+            let maybe_unique = maybe_unique.trim_start();
+
+            // Try parsing the line as a unique.
+            if deserialize_unique!(GameSeed, maybe_unique, line_num, &mut game_seed)?
+                || deserialize_unique!(TurnCount, maybe_unique, line_num, &mut turn_count)?
+                || deserialize_unique!(Wins, maybe_unique, line_num, &mut wins)?
+                || deserialize_unique!(
+                    BaseEquipmentLevel,
+                    maybe_unique,
+                    line_num,
+                    &mut base_equipment_level
+                )?
+                || deserialize_unique!(Difficulty, maybe_unique, line_num, &mut difficulty)?
+                || deserialize_unique!(Messages, maybe_unique, line_num, &mut messages)?
+                || deserialize_unique!(PlayerAlive, maybe_unique, line_num, &mut player_alive)?
+                || deserialize_unique!(PlayerId, maybe_unique, line_num, &mut player_id)?
+                || deserialize_unique!(Map, maybe_unique, line_num, &mut map)?
+            {
+                continue;
+            }
+        }
+
+        // Most lines should contain component data for an entity.
+        if let Some((maybe_id, maybe_data)) = line.split_once(char::is_whitespace) {
             let save_id = EntityId::deserialize(&mut Deserializer::from_str(maybe_id))?;
 
             // Map entity_id into the current world, creating a new entity if needed.
@@ -304,6 +334,8 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
                 old_to_new_ids.insert(save_id, new_id);
                 new_id
             };
+
+            let maybe_data = maybe_data.trim_start();
 
             // Try parsing maybe_data and add it to the entity on success.
             if deserialize_component!(AreaOfEffect, world, maybe_data, line_num, live_id)?
@@ -338,27 +370,8 @@ fn load_save_file(world: &World, despawn_ids: &mut Vec<EntityId>) -> Result<(), 
                 continue;
             }
 
-            // No other kinds of lines with a tab present are valid.
+            // No other kinds of lines are valid.
             return Err(Box::new(LoadError::UnrecognizedLine(line_num)));
-        }
-
-        // Try parsing the line as a unique.
-        if deserialize_unique!(GameSeed, &line, line_num, &mut game_seed)?
-            || deserialize_unique!(TurnCount, &line, line_num, &mut turn_count)?
-            || deserialize_unique!(Wins, &line, line_num, &mut wins)?
-            || deserialize_unique!(
-                BaseEquipmentLevel,
-                &line,
-                line_num,
-                &mut base_equipment_level
-            )?
-            || deserialize_unique!(Difficulty, &line, line_num, &mut difficulty)?
-            || deserialize_unique!(Messages, &line, line_num, &mut messages)?
-            || deserialize_unique!(PlayerAlive, &line, line_num, &mut player_alive)?
-            || deserialize_unique!(PlayerId, &line, line_num, &mut player_id)?
-            || deserialize_unique!(Map, &line, line_num, &mut map)?
-        {
-            continue;
         }
 
         return Err(Box::new(LoadError::UnrecognizedLine(line_num)));
