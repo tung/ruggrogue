@@ -94,10 +94,11 @@
     - The world, and which entities exist and when.
     - Despawning entities, including entities they refer to.
   - *Save and load*
-    - The data to save: uniques and components.
-    - The save file format.
+    - Overview of saving and loading in the context of the rest of the game.
+    - The save file format, with a simple example.
     - Handling of EntityIds during saving and loading.
     - Run-length encoding, used to compress map tile data and field of view bits.
+    - Save support for the web version.
   - *Field of view*
   - *Pathfinding using A-star*
     - Fallback path target, similar to NetHack.
