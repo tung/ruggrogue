@@ -30,7 +30,7 @@ Here's a sneak peak at what this guide covers:
 - **Entity Component System** describes Shipyard and how RuggRogue uses it to store and access its game data.
 - **Game Data** provides a run-down of the data that constitutes the game and how it's managed.
 - **Saving and Loading** talks about the save file format, the game's approach to loading and save persistence for the web version.
-- **Field of View** goes over the fundamental trade-offs of picking a field of view algorithm, as well as the game's approach to high performance field of view calculation.
+- **Field of View** goes over the game's approach to high performance field of view calculation.
 - **Pathfinding** is exactly as it says on the tin, but also covers mitigations and fallback pathfinding if a direct path can't be found in a reasonable amount of time.
 - **Random Number Generator** is *not* about calculating random numbers, but how and why the game uses seeds, magic numbers and hashing to leverage RNGs that seem random but aren't.
 - **Map Generation** is sort of simple, but it does talk about a simple way to minimize excessive corridor criss-crossing that plagues many roguelike tutorials.

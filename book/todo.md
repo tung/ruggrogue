@@ -100,6 +100,116 @@
     - Run-length encoding, used to compress map tile data and field of view bits.
     - Save support for the web version.
   - *Field of view*
+    - Introduction to vision:
+      - Player only sees their immediate surroundings and can't see through walls.
+      - As player moves, game maintains memory of previously seen tiles.
+      - This is field of view.
+      - Main purpose: Create a sense of exploring the unknown.
+    - Applications of field of view:
+      - Vision for the player and monsters with the `FieldOfView` component.
+      - Determining valid target tiles when using an item at range.
+      - Calculating affected tiles from the epicenter of an item used with an `AreaOfEffect` component.
+    - Shadow Casting
+      - Definition: Starting from a center tile, visit only visible tiles while skipping tiles in shadows created by obstructing tiles closer to the center tile.
+      - Faster than ray casting (briefly define ray casting).
+      - Distinct from permissive field of view (link RogueBasin) in that shadow casting considers visibility only from the center of the starting tile and not any point inside of it.
+      - Why write a shadow casting implementation from scratch?
+        - Saw many claims about shadow casting that made downside claims about it that were actually due to implementation quirks.
+          - <http://roguebasin.com/index.php/Shadow_casting#Disadvantages>
+            - "Some artifacts (corners of rooms)": RuggRogue's implementation handles room corners without no special casing.
+            - "Non-symmetric":
+              - *Back-and-forth* symmetry is preserved for open tiles in RuggRogue.
+              - *Line-of-sight* symmetry is preserved by ensuring LOS algorithm shares the same view of the world as FOV algorithm; RuggRogue doesn't use LOS.
+          - <http://roguebasin.com/index.php/Comparative_study_of_field_of_view_algorithms_for_2D_grid_based_worlds>
+            - "Pillar behavior" and "Diagonal walls" are due to wall shape, which is an implementation detail and is not inherent to shadow casting.
+          - <http://www.adammil.net/blog/v125_Roguelike_Vision_Algorithms.html>
+            - Also claims shadow casting is asymmetric, even though this is an implementation detail and not inherent to shadow casting.
+        - Learning: Algorithms and techniques that people don't practice perpetuate confusion over implementation quirks and genuine properties of shadow casting.
+    - RuggRogue's approach
+      - Shadow casting with symmetric center-to-center visibility for open tiles and asymmetric center-to-mid-line visibility to diamond-shaped walls.
+      - Most similar to [Adam Milazzo's description of diamond walls](http://www.adammil.net/blog/v125_Roguelike_Vision_Algorithms.html#diamondwalls), with no zero-width beams.
+      - y increases upwards for words like "low" and "high".
+      - We'll use "wall" and "floor" to refer to "vision-blocking tile" and "open tile", but tiles don't literally have to be walls and floors.
+      - Create an iterator that gets called repeatedly to return visible tile and symmetry information.
+        - Many shadow casting implementations use asymmetric vision exclusively to get expansive walls.
+        - Smarter implementations apply symmetric vision for floor tiles as a hard-coded special case.
+        - RuggRogue returns symmetry information during iteration to let the caller decide.
+          - In practice, it uses symmetric floors and asymmetric walls for vision, just without hard-coding.
+      - The algorithm:
+        1. Visit the starting center tile.
+        2. For each of eight octants surrounding the center tile:
+            1. Initialize two lists of *sights* (pair of slopes representing visible area): one with a single sight covering the whole octant, the other empty.
+            2. For each column (or row) of tiles from the cardinal to diagonal axes extending out from the center tile:
+                1. Designate *current* and *next* lists from the two lists in an even-odd manner based on distance from the center tile.
+                    - The list of current sights will be used to iterate over visible tiles in the current column of tiles.
+                    - The list of next sights will be filled for the next column of tiles based on walls detected in the current column of tiles.
+                2. For each sight in the current list for the column:
+                    1. Yield the coordinates of each tile in the sight, along with a symmetry check flag.
+                    2. Scan for runs of consecutive walls and floors to build up the list of sights for the next column.
+        - Nested iteration in four layers: octants, columns, sights and tiles.
+        - Compared to *recursive* shadow casting:
+          - Breadth-first instead of depth-first.
+          - Maintains sight data explicitly in lists instead of implicitly in stack frames.
+          - Should be faster; most real-world recursive algorithms tend to be slower than their non-recursive counterparts.
+      - How the map is viewed by the algorithm
+        - Place grid origin at the *center* of the starting tile.
+          - Ensures symmetry when flipping and transposing the map for octants other than the first.
+          - *Diagram of grid centered on an at-sign with some walls.*
+        - Diamond-shaped walls are identical to plus-shaped walls, which further reduce to a single mid-line for each wall: vertical for columns, horizontal for rows.
+          - *Diagram of centered at-sign with scatter walls with mid-lines highlighted.*
+    - `ruggrogue::field_of_view` function:
+      - `BoundedMap` and `ViewableField` map traits
+      - `FovShape` and distance checking with `FovShape::CirclePlus` and `range * (range + 1)`
+    - `FovIter` struct:
+      - `map`, `start_pos`, `range`: basic FOV inputs
+      - `fov_shape`: shape of the FOV
+      - `octant`, `x`, `s`, `y`: octant, column/row, sight index, tile in column/row
+      - `bounds`: map bounds
+      - `max_dist2`: maximum distance squared, used with `fov_shape` for circular FOVs
+      - `sights_even`, `sights_odd`: lists of sights for each column/row
+      - `low_y`, `high_y`: the low and high values for `y` in the current sight
+      - `low_sight_angle`: tracking of the slope of the lowest floor tile if we're in a run of floor tiles
+    - `FovIter::next` function calls `FovIter::advance` repeatedly and filters out-of-bounds tiles.
+    - `FovIter::advance` function:
+      - Using `Option` for `octant`, `x`, `s`, `y`
+        - `None` means the value needs initialization
+        - `Some(...)` protects against repeat initializations
+      - `out_pos` and `out_symmetric` used to yield tile coordinates and symmetry information
+      - Rough code outline that shows where `octant`, `x`, `s` and `y` change when `FovIter::advance` is called repeatedly.
+      - `FovIter::low_y` and `FovIter::high_y`:
+        - The range of values `y` should iterate over.
+        - Calculate where the sight slopes intersect the current column.
+          - Must add half a tile before rounding down since grid origin is the center of starting tile, not its bottom-left corner.
+            - *Diagrams of intersect values with and without grid offset correction.*
+          - Example of intersecting values for a non-full octant sight:
+            - *Diagram of a sight and the intersection values for a column.*
+      - Using `octant_data`:
+        - Flip and transpose view of the map with `real_x_from_x`, `real_x_from_y`, `real_y_from_x` and `real_y_from_y`.
+        - Real map coords only used to check if in bounds and if current tile is a wall.
+        - Only visit shared octant edges if `include_edges` is `true`.
+      - Scanning for walls and floors with `FovIter::low_sight_angle`:
+        - `None` value means we're not looking at a floor.
+        - Gets set to `Some(...)` where the value is the slope of the first floor in a consecutive run of floor tiles.
+        - Push a new sight into the next sight list if `low_sight_angle` is `Some(...)` and we hit a wall or the end of the current sight.
+        - Calculating `low_mid_angle`, the center of the bottom edge of the tile:
+          - Double `y` and `x` to avoid the use of floating point variables.
+            - Doesn't change relative steepness order of slopes.
+          - *Diagram of the slope to the bottom-center of a tile.*
+          - Need to use the higher of `low_angle` and `low_mid_angle` to avoid accidentally creating an expanded sight.
+            - *Diagram of the first tile of a sight, with an incorrect slope through the center of its bottom edge, and a correct slope following `low_angle` of the current sight.*
+          - Using `angle_lt_or_eq` to compare slopes
+            - Derive inequality, explaining numerators and denominators.
+      - Visiting visible tiles happens at the same time as scanning for walls and floors.
+        - Symmetry just uses `angle_lt_or_eq` to check if the slope of the center of the tile lies between the low and high slopes of the current sight.
+    - Conclusion
+      - Field of view code is some of the earliest Rust code written for the game.
+      - Would change some things to simplify the code, e.g. use Rust's iterator adaptors, like filtering.
+      - Logic would be much easier to follow if Rust had generators.
+      - Pleased with performance.
+      - Good results:
+        - symmetric vision with floor tiles
+        - no room corner artifacts
+        - diamond-shaped walls creates nice vision angles around corners and pillars
   - *Pathfinding using A-star*
     - Fallback path target, similar to NetHack.
     - Tweaking the heuristic to make monsters line up cardinally with the player.
