@@ -31,7 +31,7 @@ Here's a sneak peak at what this guide covers:
 - **Game Data** provides a run-down of the data that constitutes the game and how it's managed.
 - **Saving and Loading** talks about the save file format, the game's approach to loading and save persistence for the web version.
 - **Field of View** goes over the game's approach to high performance field of view calculation.
-- **Pathfinding** is exactly as it says on the tin, but also covers mitigations and fallback pathfinding if a direct path can't be found in a reasonable amount of time.
+- **Pathfinding** is exactly as it says on the tin, but also covers mitigations and fallback pathfinding if a direct path can't be found in a reasonable number of steps.
 - **Random Number Generator** is *not* about calculating random numbers, but how and why the game uses seeds, magic numbers and hashing to leverage RNGs that seem random but aren't.
 - **Map Generation** is sort of simple, but it does talk about a simple way to minimize excessive corridor criss-crossing that plagues many roguelike tutorials.
 - **Auto-Run** goes over how the game figures out how to run along corridors and hook into the same places as player input to automatically issue commands to follow them.

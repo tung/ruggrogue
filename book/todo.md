@@ -211,8 +211,28 @@
         - no room corner artifacts
         - diamond-shaped walls creates nice vision angles around corners and pillars
   - *Pathfinding using A-star*
-    - Fallback path target, similar to NetHack.
-    - Tweaking the heuristic to make monsters line up cardinally with the player.
+    - What pathfinding is used for: monster AI.
+    - Pathfinding using the A\* algorithm
+      - Link to [Red Blob Games article](https://www.redblobgames.com/pathfinding/a-star/introduction.html).
+      - Very briefly describe A\* algorithm.
+    - Defining map obstructions with the `PathableMap` trait.
+      - `is_blocked` function for `Map` struct.
+      - `Map::tile_entities`: the entity spatial cache.
+    - The `ruggrogue::find_path` function.
+      - Describe where it's used.
+      - Limiting degenerate pathfinding with exploration bounds using the `bound_pad` parameter.
+      - Fallback pathing with the `fallback_closest` parameter.
+      - Reversing the raw output of the A\* implementation.
+    - The `a_star` function.
+      - Implementation of the A\* algorithm.
+      - Storing pathfinding results in the `came_from` argument.
+      - `frontier` and `cost_so_far` data structures.
+      - Define bounds of exploration with padding with `min_x`, `min_y`, `max_x` and `max_y`.
+      - `dist100`: our distance heuristic.
+        - Euclidean distance estimation to mimic human perception of distance on the map.
+        - Underestimating cardinal movement (99 vs. 100) to line monsters up cardinally with the player.
+      - Tracking the closest tile to the goal with `closest`, `closest_cost` and `closest_dist`.
+      - The rest is just managing `frontier`, `came_from` and `cost_so_far` according to the A\* algorithm.
   - *Random number generator*
     - No global RNG.
     - Instead, hash game seed, input values and magic number to seed termporary RNGs.

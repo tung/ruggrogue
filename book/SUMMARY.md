@@ -14,7 +14,7 @@
 - [Game Data](game-data.md)
 - [Saving and Loading](saving-and-loading.md)
 - [Field of View](field-of-view.md)
-- [Pathfinding]()
+- [Pathfinding](pathfinding.md)
 - [Random Number Generator]()
 - [Map Generation]()
 - [Auto-Run]()
