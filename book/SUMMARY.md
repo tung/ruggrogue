@@ -15,7 +15,7 @@
 - [Saving and Loading](saving-and-loading.md)
 - [Field of View](field-of-view.md)
 - [Pathfinding](pathfinding.md)
-- [Random Number Generator]()
+- [Randomness](randomness.md)
 - [Map Generation]()
 - [Auto-Run]()
 - [Turn Order and Combat]()

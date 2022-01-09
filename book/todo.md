@@ -233,10 +233,22 @@
         - Underestimating cardinal movement (99 vs. 100) to line monsters up cardinally with the player.
       - Tracking the closest tile to the goal with `closest`, `closest_cost` and `closest_dist`.
       - The rest is just managing `frontier`, `came_from` and `cost_so_far` according to the A\* algorithm.
-  - *Random number generator*
+  - *Randomness*
+    - Random numbers needed to generate and populate levels as well as determine melee attack accuracy and damage.
     - No global RNG.
-    - Instead, hash game seed, input values and magic number to seed termporary RNGs.
-    - Makes testing way easier, especially map generation (used to fix diff map gen between native vs. web).
+      - Many other roguelikes create a single RNG and use it everywhere.
+      - RuggRogue instead creates temporary RNGs seeded with relevant inputs as necessary.
+      - Initializing an RNG:
+        1. Create a hasher that takes input values in order to produce an RNG seed.
+        2. Input a magic number into the hasher (explain what the magic number is for).
+        3. Input other values into the hasher (provide an example to illustrate how values are chosen for this purpose).
+        4. Generate the final hash value and use it to seed an RNG.
+      - This makes RNGs *reproducible*, which helps for debugging and allows for seeded play (explain further).
+    - Where RNGs are used:
+      - Map generation.
+      - Spawning of items and monsters.
+      - Melee combat.
+    - Avoiding RNG divergence between native vs. web (i.e. the `usize` problem).
   - *Map generation*
     - Prim's algorithm for connecting rooms.
     - Monster and item spawning.
