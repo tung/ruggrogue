@@ -79,6 +79,7 @@ impl From<i32> for HungerState {
 }
 
 /// Checks if the given entity can or cannot regenerate with a specific reason.
+#[allow(clippy::question_mark)]
 pub fn can_regen(world: &World, entity_id: EntityId) -> CanRegenResult {
     let (combat_stats, stomachs) = world.borrow::<(View<CombatStats>, View<Stomach>)>();
     let stats = if let Ok(stats) = combat_stats.try_get(entity_id) {
