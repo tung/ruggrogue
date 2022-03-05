@@ -250,9 +250,72 @@
       - Melee combat.
     - Avoiding RNG divergence between native vs. web (i.e. the `usize` problem).
   - *Map generation*
-    - Prim's algorithm for connecting rooms.
-    - Monster and item spawning.
-    - Place downstairs or spawn victory item?
+    - Map data
+      - `Map` struct in `src/map.rs`
+      - Explain `depth`, `width`, `height`, `tiles` and `rooms` fields.
+      - Single `Map` instance is created as a unique in the `main` function in `src/main.rs`
+        - cleared before generating new maps
+        - 80-by-50 tile size assigned here sets the size for all maps for the entire game
+    - When levels are generated
+      - Starting a new game: `new_game_setup` function in `src/modes/title.rs`
+      - Player descends: `player_do_descend` function in `src/player.rs`
+    - `generate_rooms_and_corridors` function in `src/map.rs`
+      - Creates a map with rooms connected with corridors.
+      - Fills the whole map with wall tiles.
+      - Rooms and corridors are placed randomly; RNG is created as per the Randomness chapter.
+      - Room placement
+        - Make a rectangle with a random width and height.
+        - Pick a random position on the map.
+        - If the rectangle doesn't intersect any existing room, draw floor tiles and add it to the map's room list.
+        - Random position avoids placing the rectangle flush with the map edges.
+        - `Rect::intersect` function checks one extra tile around to avoid placing rooms flush with one another.
+        - Repeated 30 times, usually places 12-15 rooms.
+      - Joining rooms with corridors
+        - Goal: ensure that all rooms can be reached via corridors.
+        - Method:
+          1. Add first room to a `connected` list and the rest to a `disconnected` list.
+          2. While `disconnected` list still has rooms:
+            - Pick the `disconnected` room closest to the `connected` rooms.
+            - Join the rooms with a corridor.
+            - Move the room from the `disconnected` list to the `connected` list.
+        - Explain code for finding closest rooms with code sample.
+        - Explain code for drawing corridor tiles: `connect_rooms`.
+        - Prim's algorithm: rooms = nodes, corridors = edges.
+        - Avoid making player backtrack too often: pick 3 more pairs of rooms and connect them to allow for loops.
+      - Finishing touches
+        - Place a downstairs in the last room in the room list, or coords to place the victory item if player is deep enough.
+  - *Map population*
+    - Placing the player
+      - Player is placed in the first room in the map's room list.
+        - Ensures player and downstairs are placed in different rooms.
+      - `player::add_coords_to_players` and `map::place_player_in_first_room` functions.
+    - Placing monsters
+      - `spawn::fill_room_with_spawns`
+      - `fill_room_with_spawns`
+      - `spawn_random_monster_at`
+      - `spawn_monster`
+    - Placing items
+      - Randomly-spawned items
+        - `spawn::fill_room_with_spawns`
+        - `fill_room_with_spawns`
+        - `spawn_random_item_at`
+        - Item-spawning functions:
+          - `spawn_weapon`
+          - `spawn_armor`
+          - `spawn_health_potion`
+          - `spawn_magic_missile_scroll`
+          - `spawn_fireball_scroll`
+          - `spawn_sleep_scroll`
+        - `spawn_item` helper function
+      - Guaranteed ration (`spawn_guaranteed_ration`)
+      - Guaranteed equipment (`spawn_guaranteed_equipment`)
+        - Starting equipment (hard-coded)
+        - Periodic equipment
+          - Periodic weapon RNG seeding
+            - Idea: Give every set of four levels the same RNG seed, roll a number from 0 to 2 and spawn weapon in that level of the set.
+            - 0-2 vs. 0-3 to guarantee a gap level.
+            - Use low bits of game seed to shift the offset.
+          - Periodic armor RNG seeding is the same, but shifts with the high bits of the game seed instead.
   - *Auto-run*
     - Idea: rotate world, check tiles, pick direction, unrotate world.
     - Checked tile patterns are hard-coded, but work well in practice.

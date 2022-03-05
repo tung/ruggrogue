@@ -33,7 +33,8 @@ Here's a sneak peak at what this guide covers:
 - **Field of View** goes over the game's approach to high performance field of view calculation.
 - **Pathfinding** is exactly as it says on the tin, but also covers mitigations and fallback pathfinding if a direct path can't be found in a reasonable number of steps.
 - **Randomness** is about how the game uses seeds, magic numbers and hashing to leverage RNGs that seem random but aren't.
-- **Map Generation** is sort of simple, but it does talk about a simple way to minimize excessive corridor criss-crossing that plagues many roguelike tutorials.
+- **Map Generation** discusses the placement of rooms and corridors in maps.
+- **Map Population** follows on from map generation with the topic of filling empty maps with things like monsters and items.
 - **Auto-Run** goes over how the game figures out how to run along corridors and hook into the same places as player input to automatically issue commands to follow them.
 - **Turn Order and Combat** covers how the player and monsters take turns, as well as damage and in particular avoiding the zero damage problem.
 - **Items** provides an overview of how items like consumables and equipment work.
