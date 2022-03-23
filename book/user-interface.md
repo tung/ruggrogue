@@ -17,7 +17,7 @@ Sometimes this selection will be accompanied by a `subsection` field for more co
 Above the definition of `YesNoDialogMode` is the `YesNoDialogModeResult` enum.
 When the `YesNoDialogMode` is closed, it returns an instance of `YesNoDialogModeResult` to the mode immediately below it in the mode stack.
 There are three variants: `Yes`, `No` and `AppQuit`.
-The first two variants should be obvious; the `AppQuit` variant will be explained later.
+The first two variants should be obvious; the `AppQuit` variant is explained in the [Event Handling chapter](event-handling.md#the-appquit-event).
 
 If the game wants to show a yes-or-no prompt, it has to create a `YesNoDialogMode` using the `YesNoDialogMode::new` function.
 There's an example of this when the player chooses to "save and exit" in the options menu.
@@ -109,18 +109,3 @@ Apart from `DungeonMode`, there are two other modes that also draw the main game
 `TargetMode` is defined in `src/modes/target.rs` and allows the player to pick a target tile when using an item that needs a target.
 `ViewMapMode` is defined in `src/modes/view_map.rs` and allows the player to pan the camera while describing map tiles.
 Both of these modes show dynamically updating text in the message area by filling in the optional `prompt` parameter when calling the `ui::draw_ui` function.
-
-## The AppQuit Event
-
-Back when we were looking at the `YesNoDialogModeResult` enum, there was an `AppQuit` variant alongside the usual `Yes` and `No` variants; what's up with that?
-In the native build of RuggRogue, when the player attempts to close the application window, an `AppQuit` event is inserted into the input queue.
-Different modes handle this `AppQuit` event in their corresponding `update` function in different ways:
-
-- Most modes pop themselves off the mode stack with their own `AppQuit` result.
-- `DungeonMode` pushes an instance of `AppQuitDialogMode`, both in response to the `AppQuit` event and to `AppQuit` mode results.
-- `AppQuitDialogMode` ignores the `AppQuit` event.
-
-The `AppQuitDialogMode`, defined in `src/modes/app_quit_dialog.rs`, is just a thin wrapper around the `YesNoDialogMode` with a set prompt and custom `update` handling.
-Its job is to ask the player to confirm if they want to quit, which causes `DungeonMode` to save and quit the game if they confirm the action.
-The idea is that if the `DungeonMode` is in the mode stack, it will catch the `AppQuit` event directly or indirectly to show this quit confirmation dialog to the player.
-If it isn't present, the mode stack will empty itself out, which automatically closes the game.
