@@ -24,7 +24,6 @@
   - *The mode stack*
     - Avoiding the all-encompassing state machine from the Rust roguelike tutorial.
     - ModeResults, or how to handle responses from menus and dialog boxes.
-  - *Input queue*
   - *Event Handling*
     - Receiving events
       - `ruggrogue::run` function in `src/lib/run.rs`

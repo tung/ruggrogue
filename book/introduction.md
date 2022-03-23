@@ -23,7 +23,6 @@ Here's a sneak peak at what this guide covers:
 - **Dependencies** talks about the stuff that RuggRogue leans on to do things outside of its development scope, but still need to be handled.
 - **Source Code Layout** gives a brief overview of why each file exists.
 - **Overall Game Flow** provides a bird's eye view of how the game goes from launch to its game loop, managing control flow through what I refer to as a "mode stack".
-- **Input Handling** describes how and why the game handles input the way that it does.
 - **Event Handling** describes how the game reacts to events such as keyboard input and the game window being resized or closed.
 - **Rendering** covers how the game displays graphical output using a home-grown system of tile grids, as well as making it all run fast enough to not feel terrible to play.
 - **User interface** explains how menus and dialogs work, how the main game screen is drawn and how a request to close the application is handled.
