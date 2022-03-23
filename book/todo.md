@@ -25,6 +25,46 @@
     - Avoiding the all-encompassing state machine from the Rust roguelike tutorial.
     - ModeResults, or how to handle responses from menus and dialog boxes.
   - *Input queue*
+  - *Event Handling*
+    - Receiving events
+      - `ruggrogue::run` function in `src/lib/run.rs`
+      - SDL event pump in the main loop
+    - Direct event handling
+      - Window resizing
+      - Showing and hiding the mouse cursor
+      - `Event::RenderTargetsReset` and `Event::RenderDeviceReset`
+    - The input buffer
+      - `InputBuffer` struct in `src/lib/input_buffer.rs`
+      - Queue for events that should be handled during game logic updates
+      - Usage:
+        1. `InputBuffer::prepare_input` function called by mode update logic to pull one input from the queue.
+        2. `InputBuffer::get_input` function called to check prepared input as often as needed.
+        3. End of main loop calls `InputBuffer::clear_input` so next `InputBuffer::prepare_input` call can get the next input.
+      - `InputBuffer` tracks press and release of modifier keys, which can be checked for with `InputBuffer::get_mods` function.
+    - Player input
+      - Most of the gameplay takes place in the context of `DungeonMode::update` function in `src/modes/dungeon.rs`.
+      - `DungeonMode::update` calls `player::player_input` to handle player inputs.
+      - Returns a value to control how `DungeonMode::update` should react:
+        - `PlayerInputResult::NoResult` == do nothing
+        - `PlayerInputResult::TurnDone` == finish player turn and give monsters their turn
+        - most other options == do something to the mode stack, like show a dialog
+      - `player::player_input` function lives in `src/player.rs`.
+        - Prepares input with `InputBuffer::prepare_input`.
+        - Special handling for player afflicted with sleep status and autorunning.
+        - Gets input and active modifiers with `InputBuffer::get_input` and `InputBuffer::get_mods`.
+        - Converts raw input key code and modifiers into `GameKey` values.
+          - Can map multiple keys to a single action for simulataneous cursor, numpad and vi-keys support.
+        - `GameKey` determines player action
+          - `try_move_player` function for movement and melee combat
+          - `wait_player` function for player waiting a single turn
+          - most other keys pass a value back to `DungeonMode::update` to show a dialog or menu
+    - The `AppQuit` event
+      - Generated from SDL's quit event and added to the `InputBuffer` when the player tries to close the game window.
+      - Update logic of every mode reacts in one of three ways:
+        1. Most modes immediately remove themselves from the mode stack with an `AppQuit` result.
+        2. `DungeonMode` pushes an `AppQuitDialogMode` onto the mode stack to show a save-and-exit confirm dialog.
+        3. `AppQuitDialogMode` ignores `AppQuit` events while waiting for the player to pick a response.
+      - This overall logic backs out of all menus and dialogs and either quits the game outright or asks the player to save and exit.
   - *Rendering and display using TileGrids*
     - Overarching rendering strategy
       - Describe software rendering for tile-based graphics.

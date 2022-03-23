@@ -7,6 +7,7 @@
 - [Source Code Layout](source-code-layout.md)
 - [Overall Game Flow](overall-game-flow.md)
 - [Input Handling](input-handling.md)
+- [Event Handling](event-handling.md)
 - [Rendering](rendering.md)
 - [User Interface](user-interface.md)
 - [Word Wrapping](word-wrapping.md)
