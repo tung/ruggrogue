@@ -177,141 +177,122 @@ fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i
     let real_x = |dx, dy| player_x + dx * real_x_from_x + dy * real_x_from_y;
     let real_y = |dx, dy| player_y + dx * real_y_from_x + dy * real_y_from_y;
 
-    let (down_left, down, down_right, left, right, up_left, up, up_right) =
-        world.run(|map: UniqueView<Map>| {
-            let check_wall = |dx, dy| map.wall_or_oob(real_x(dx, dy), real_y(dx, dy));
-            (
-                check_wall(-1, -1),
-                check_wall(0, -1),
-                check_wall(1, -1),
-                check_wall(-1, 0),
-                check_wall(1, 0),
-                check_wall(-1, 1),
-                check_wall(0, 1),
-                check_wall(1, 1),
-            )
-        });
+    const UP_LEFT: u16 = 1;
+    const UP: u16 = 1 << 1;
+    const UP_RIGHT: u16 = 1 << 2;
+    const LEFT: u16 = 1 << 3;
+    const RIGHT: u16 = 1 << 4;
+    const DOWN_LEFT: u16 = 1 << 5;
+    const DOWN: u16 = 1 << 6;
+    const DOWN_RIGHT: u16 = 1 << 7;
 
-    // These are needed to decide if we should auto run into the corner of a corridor.
-    let (
-        up_up_left,
-        up_up,
-        up_up_right,
-        up_right_right,
-        right_right,
-        down_right_right,
-        down_down_left,
-        down_down,
-        down_down_right,
-    ) = world.run(
+    const UP_UP_LEFT: u16 = 1 << 8;
+    const UP_UP: u16 = 1 << 9;
+    const UP_UP_RIGHT: u16 = 1 << 10;
+    const UP_RIGHT_RIGHT: u16 = 1 << 11;
+    const RIGHT_RIGHT: u16 = 1 << 12;
+    const DOWN_RIGHT_RIGHT: u16 = 1 << 13;
+    const DOWN_DOWN_LEFT: u16 = 1 << 14;
+    const DOWN_DOWN: u16 = 1 << 15;
+
+    let mut nearby_walls: u16 = 0;
+
+    // Check nearby tiles for walls.
+    world.run(
         |map: UniqueView<Map>, player_id: UniqueView<PlayerId>, fovs: View<FieldOfView>| {
             let player_fov = fovs.get(player_id.0);
             let check_unknown_or_wall = |dx, dy| {
                 !player_fov.get((real_x(dx, dy), real_y(dx, dy)))
                     || map.wall_or_oob(real_x(dx, dy), real_y(dx, dy))
             };
-            (
-                check_unknown_or_wall(-1, 2),
-                check_unknown_or_wall(0, 2),
-                check_unknown_or_wall(1, 2),
-                check_unknown_or_wall(2, 1),
-                check_unknown_or_wall(2, 0),
-                check_unknown_or_wall(2, -1),
-                check_unknown_or_wall(-1, -2),
-                check_unknown_or_wall(0, -2),
-                check_unknown_or_wall(1, -2),
-            )
+
+            // (dx, dy, wall bit to set in nearby_walls)
+            const NEARBY_TILES: [(i32, i32, u16); 16] = [
+                (-1, 1, UP_LEFT),
+                (0, 1, UP),
+                (1, 1, UP_RIGHT),
+                (-1, 0, LEFT),
+                (1, 0, RIGHT),
+                (-1, -1, DOWN_LEFT),
+                (0, -1, DOWN),
+                (1, -1, DOWN_RIGHT),
+                (-1, 2, UP_UP_LEFT),
+                (0, 2, UP_UP),
+                (1, 2, UP_UP_RIGHT),
+                (2, 1, UP_RIGHT_RIGHT),
+                (2, 0, RIGHT_RIGHT),
+                (2, -1, DOWN_RIGHT_RIGHT),
+                (-1, -2, DOWN_DOWN_LEFT),
+                (0, -2, DOWN_DOWN),
+            ];
+
+            for (dx, dy, wall_bit) in NEARBY_TILES {
+                if check_unknown_or_wall(dx, dy) {
+                    nearby_walls |= wall_bit;
+                }
+            }
         },
     );
 
     if run_dx != 0 && run_dy != 0 {
         // Arrived here diagonally (moved up-right post-transform).
+        const UP_RIGHT_ARC: u16 = UP_LEFT | UP | UP_RIGHT | RIGHT | DOWN_RIGHT;
 
-        // Check for a single space bordered with walls to advance forward or turn up to 90 degrees
-        // left or right.
-        //
-        // ```
-        // 1##  #2#  ##3  ###  ###
-        // #@#  .@#  .@#  .@4  .@#
-        // ..#  ..#  ..#  ..#  .#5
-        // ```
-        {
-            let mut single_dir = None;
-            let mut too_many = false;
-
-            if !up_left && left && up && up_right && right && down_right {
-                single_dir = Some((-1, 1));
-            }
-            if !up && up_left && up_right && right && down_right {
-                if single_dir.is_none() {
-                    single_dir = Some((0, 1));
-                } else {
-                    too_many = true;
-                }
-            }
-            if !too_many && !up_right && up_left && up && right && down_right {
-                if single_dir.is_none() {
-                    single_dir = Some((1, 1));
-                } else {
-                    too_many = true;
-                }
-            }
-            if !too_many && !right && up_left && up && up_right && down_right {
-                if single_dir.is_none() {
-                    single_dir = Some((1, 0));
-                } else {
-                    too_many = true;
-                }
-            }
-            if !too_many && !down_right && up_left && up && up_right && right && down {
-                if single_dir.is_none() {
-                    single_dir = Some((1, -1));
-                } else {
-                    too_many = true;
-                }
-            }
-
-            if let Some((dx, dy)) = single_dir {
-                if !too_many {
-                    // Found a single space to advance into.
-                    return Some((
-                        dx * real_x_from_x + dy * real_x_from_y,
-                        dx * real_y_from_x + dy * real_y_from_y,
-                    ));
-                }
-            }
-        }
-
-        // Cardinal directions may lead into the corner of a corridor...
-        if !up && right {
-            // ... like this going up:
+        // (move dx, move dy, tiles that must be open, tiles to check)
+        const DIRS_AND_CHECKS: [(i32, i32, u16, u16); 9] = [
+            // Check for a single space bordered with walls to advance forward or turn up to 90
+            // degrees left or right.
+            //
+            // ```
+            // 1##  #2#  ##3  ###  ###
+            // #@#  .@#  .@#  .@4  .@#
+            // ..#  ..#  ..#  ..#  .#5
+            // ```
+            (-1, 1, UP_LEFT, UP_RIGHT_ARC | LEFT),
+            (0, 1, UP, UP_RIGHT_ARC),
+            (1, 1, UP_RIGHT, UP_RIGHT_ARC),
+            (1, 0, RIGHT, UP_RIGHT_ARC),
+            (1, -1, DOWN_RIGHT, UP_RIGHT_ARC | DOWN),
+            // Cardinal directions may lead into the corner of a corridor.
             //
             // ```
             //  ##  ##
-            // ..#  #..
-            // #@    @#
+            // 66#  #77  #8   ###
+            // #@#   @#  @8#  @9#
+            //            ##  #9
             // ```
-            let up_left_corner = !up_left && left && up_right && up_up_right;
-            let up_right_corner = !up_right && up_left && up_up_left;
+            (
+                0,
+                1,
+                UP_LEFT | UP,
+                UP_UP | UP_UP_RIGHT | UP_LEFT | UP | UP_RIGHT | LEFT | RIGHT,
+            ),
+            (
+                0,
+                1,
+                UP | UP_RIGHT,
+                UP_UP_LEFT | UP_UP | UP_LEFT | UP | UP_RIGHT | RIGHT,
+            ),
+            (
+                1,
+                0,
+                UP_RIGHT | RIGHT,
+                UP | UP_RIGHT | RIGHT | RIGHT_RIGHT | DOWN_RIGHT | DOWN_RIGHT_RIGHT,
+            ),
+            (
+                1,
+                0,
+                RIGHT | DOWN_RIGHT,
+                UP | UP_RIGHT | UP_RIGHT_RIGHT | RIGHT | RIGHT_RIGHT | DOWN | DOWN_RIGHT,
+            ),
+        ];
 
-            if up_up && (up_left_corner || up_right_corner) {
-                // Go up into the corridor corner.
-                return Some((real_x_from_y, real_y_from_y));
-            }
-        } else if !right && up {
-            // ... like this going right:
-            //
-            // ```
-            // #.    ##
-            // @.#  @.#
-            //  ##  #.
-            // ```
-            let right_up_corner = !up_right && down_right && down_right_right;
-            let right_down_corner = !down_right && down && up_right && up_right_right;
-
-            if right_right && (right_up_corner || right_down_corner) {
-                // Go right into the corridor corner.
-                return Some((real_x_from_x, real_y_from_x));
+        for (move_dx, move_dy, open_bits, mask_bits) in DIRS_AND_CHECKS {
+            if nearby_walls & mask_bits == mask_bits & !open_bits {
+                return Some((
+                    move_dx * real_x_from_x + move_dy * real_x_from_y,
+                    move_dx * real_y_from_x + move_dy * real_y_from_y,
+                ));
             }
         }
 
@@ -319,107 +300,64 @@ fn auto_run_corridor_check(world: &World, run_dx: i32, run_dy: i32) -> Option<(i
         None
     } else {
         // Arrived here cardinally (moved right post-transform).
+        const RIGHT_ARC: u16 = UP | UP_RIGHT | RIGHT | DOWN | DOWN_RIGHT;
 
-        // Check for a single space bordered with walls to advance forward or turn up to 90 degrees
-        // left or right.
-        //
-        // ```
-        // #1#  .#2  .##  .##  .##
-        // .@#  .@#  .@3  .@#  .@#
-        // .##  .##  .##  .#4  #5#
-        // ```
-        {
-            let mut single_dir = None;
-            let mut too_many = false;
-
-            if !up && up_left && up_right && right && down_right && down {
-                single_dir = Some((0, 1));
-            }
-            if !up_right && up && right && down_right && down {
-                if single_dir.is_none() {
-                    single_dir = Some((1, 1));
-                } else {
-                    too_many = true;
-                }
-            }
-            if !too_many && !right && up && up_right && down_right && down {
-                if single_dir.is_none() {
-                    single_dir = Some((1, 0));
-                } else {
-                    too_many = true;
-                }
-            }
-            if !too_many && !down_right && up && up_right && right && down {
-                if single_dir.is_none() {
-                    single_dir = Some((1, -1));
-                } else {
-                    too_many = true;
-                }
-            }
-            if !too_many && !down && up && up_right && right && down_right && down_left {
-                if single_dir.is_none() {
-                    single_dir = Some((0, -1));
-                } else {
-                    too_many = true;
-                }
-            }
-
-            if let Some((dx, dy)) = single_dir {
-                if !too_many {
-                    // Found a single space to advance into.
-                    return Some((
-                        dx * real_x_from_x + dy * real_x_from_y,
-                        dx * real_y_from_x + dy * real_y_from_y,
-                    ));
-                }
-            }
-        }
-
-        // Cardinal directions may lead into the corner of a corridor...
-        if !up && down && right {
-            // ... like this going up:
+        // (move dx, move dy, tiles that must be open, tiles to check)
+        const DIRS_AND_CHECKS: [(i32, i32, u16, u16); 9] = [
+            // Check for a single space bordered with walls to advance forward or turn up to 90
+            // degrees left or right.
             //
             // ```
-            //  ##  ##
-            // ..#  #..
-            // #@    @#
+            // #1#  .#2  .##  .##  .##
+            // .@#  .@#  .@3  .@#  .@#
+            // .##  .##  .##  .#4  #5#
             // ```
-            let up_left_corner = !up_left && left && up_right && up_up_right;
-            let up_right_corner = !up_right && up_left && up_up_left;
-
-            if up_up && (up_left_corner || up_right_corner) {
-                // Go up into the corridor corner.
-                return Some((real_x_from_y, real_y_from_y));
-            }
-        } else if !right && up && down {
-            // ... like this going right:
+            (0, 1, UP, RIGHT_ARC | UP_LEFT),
+            (1, 1, UP_RIGHT, RIGHT_ARC),
+            (1, 0, RIGHT, RIGHT_ARC),
+            (1, -1, DOWN_RIGHT, RIGHT_ARC),
+            (0, -1, DOWN, RIGHT_ARC | DOWN_LEFT),
+            // Cardinal directions may lead into the corner of a corridor.
             //
             // ```
-            // #.    ##
-            // @.#  @.#
-            //  ##  #.
+            // ##
+            // #66  #7   ###   ##
+            //  @#  @7#  @8#   @#
+            //  ##  ###  #8   #99
+            //                ##
             // ```
-            let right_up_corner = !up_right && down_right && down_right_right;
-            let right_down_corner = !down_right && up_right && up_right_right;
+            (
+                0,
+                1,
+                UP | UP_RIGHT,
+                UP_UP_LEFT | UP_UP | UP_LEFT | UP | UP_RIGHT | RIGHT | DOWN | DOWN_RIGHT,
+            ),
+            (
+                1,
+                0,
+                UP_RIGHT | RIGHT,
+                UP | UP_RIGHT | RIGHT | RIGHT_RIGHT | DOWN | DOWN_RIGHT | DOWN_RIGHT_RIGHT,
+            ),
+            (
+                1,
+                0,
+                RIGHT | DOWN_RIGHT,
+                UP | UP_RIGHT | UP_RIGHT_RIGHT | RIGHT | RIGHT_RIGHT | DOWN | DOWN_RIGHT,
+            ),
+            (
+                0,
+                -1,
+                DOWN | DOWN_RIGHT,
+                UP | UP_RIGHT | RIGHT | DOWN_LEFT | DOWN | DOWN_RIGHT | DOWN_DOWN_LEFT | DOWN_DOWN,
+            ),
+        ];
 
-            if right_right && (right_up_corner || right_down_corner) {
-                // Go right into the corridor corner.
-                return Some((real_x_from_x, real_y_from_x));
-            }
-        } else if !down && up && right {
-            // ... like this going down:
-            //
-            // ```
-            // #@    @#
-            // ..#  #..
-            //  ##  ##
-            // ```
-            let down_left_corner = !down_left && left && down_right && down_down_right;
-            let down_right_corner = !down_right && down_left && down_down_left;
-
-            if down_down && (down_left_corner || down_right_corner) {
-                // Go down into the corridor corner.
-                return Some((-real_x_from_y, -real_y_from_y));
+        for (move_dx, move_dy, open_bits, mask_bits) in DIRS_AND_CHECKS {
+            if nearby_walls & mask_bits == mask_bits & !open_bits {
+                return Some((
+                    move_dx * real_x_from_x + move_dy * real_x_from_y,
+                    move_dx * real_y_from_x + move_dy * real_y_from_y,
+                ));
             }
         }
 
