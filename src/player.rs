@@ -485,12 +485,13 @@ fn auto_run_next_step(world: &World) -> Option<(i32, i32)> {
     if let Some((run_type, dx, dy)) = auto_run {
         match run_type {
             AutoRunType::RestInPlace => {
-                let (player_id, combat_stats) =
-                    world.borrow::<(UniqueView<PlayerId>, View<CombatStats>)>();
-                let CombatStats { hp, max_hp, .. } = combat_stats.get(player_id.0);
+                let player_id = world.borrow::<UniqueView<PlayerId>>();
 
-                // Rest until player is healed.
-                if hp < max_hp {
+                // Rest while player can regenerate hit points.
+                if matches!(
+                    hunger::can_regen(world, player_id.0),
+                    CanRegenResult::CanRegen
+                ) {
                     Some((0, 0))
                 } else {
                     None
@@ -630,16 +631,16 @@ fn wait_player(world: &World, rest_in_place: bool) -> PlayerInputResult {
             }
             return PlayerInputResult::NoResult;
         }
-    }
 
-    // Rest in place if requested.
-    if rest_in_place && matches!(player_can_regen, CanRegenResult::CanRegen) {
-        msgs.add("You tend to your wounds.".into());
-        (&mut players).get(player_id.0).auto_run = Some(AutoRun {
-            limit: 400,
-            dir: (0, 0),
-            run_type: AutoRunType::RestInPlace,
-        });
+        // Rest in place if requested.
+        if matches!(player_can_regen, CanRegenResult::CanRegen) {
+            msgs.add("You tend to your wounds.".into());
+            (&mut players).get(player_id.0).auto_run = Some(AutoRun {
+                limit: 400,
+                dir: (0, 0),
+                run_type: AutoRunType::RestInPlace,
+            });
+        }
     }
 
     PlayerInputResult::TurnDone
