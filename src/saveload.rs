@@ -516,8 +516,7 @@ pub mod run_length_encoded {
     {
         Ok(Vec::<(T, u32)>::deserialize(d)?
             .iter()
-            .map(|(it, n)| std::iter::repeat(*it).take(*n as usize))
-            .flatten()
+            .flat_map(|(it, n)| std::iter::repeat(*it).take(*n as usize))
             .collect::<Vec<T>>())
     }
 }

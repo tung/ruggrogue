@@ -73,9 +73,7 @@ impl EquipmentActionMode {
             EquipmentAction::RemoveEquipment,
             EquipmentAction::DropEquipment,
         ]
-        .iter()
-        .copied()
-        .collect::<Vec<_>>();
+        .to_vec();
         let subsection = if actions.is_empty() {
             SubSection::Cancel
         } else {
