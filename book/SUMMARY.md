@@ -18,7 +18,7 @@
 - [Randomness](randomness.md)
 - [Map Generation](map-generation.md)
 - [Map Population](map-population.md)
-- [Auto-Run]()
+- [Auto-Run](auto-run.md)
 - [Turn Order and Combat]()
 - [Items]()
 - [Hunger and Regeneration]()

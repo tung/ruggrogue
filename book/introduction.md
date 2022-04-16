@@ -35,7 +35,7 @@ Here's a sneak peak at what this guide covers:
 - **Randomness** is about how the game uses seeds, magic numbers and hashing to leverage RNGs that seem random but aren't.
 - **Map Generation** discusses the placement of rooms and corridors in maps.
 - **Map Population** follows on from map generation with the topic of filling empty maps with things like monsters and items.
-- **Auto-Run** goes over how the game figures out how to run along corridors and hook into the same places as player input to automatically issue commands to follow them.
+- **Auto-Run** goes over how the game moves automatically for the player when they hold Shift and press a direction.
 - **Turn Order and Combat** covers how the player and monsters take turns, as well as damage and in particular avoiding the zero damage problem.
 - **Items** provides an overview of how items like consumables and equipment work.
 - **Hunger and Regeneration** discusses how the game tracks hunger and the book-keeping it does to gradually restore health over time.

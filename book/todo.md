@@ -356,9 +356,123 @@
             - Use low bits of game seed to shift the offset.
           - Periodic armor RNG seeding is the same, but shifts with the high bits of the game seed instead.
   - *Auto-run*
-    - Idea: rotate world, check tiles, pick direction, unrotate world.
-    - Checked tile patterns are hard-coded, but work well in practice.
-    - Integrated to act like real player inputs with additional checks to interrupt it, e.g. monster appears or player presses a key.
+    - Most of the time playing RuggRogue is spent moving from place to place.
+    - Instead of repeatedly pressing movement keys, the player can tell the game to move in a direction until something interesting is seen.
+    - This feature is known as *auto-running*.
+    - Auto-Run Basics
+      - Integrated to act like real player inputs with additional checks to interrupt it, e.g. monster appears or player presses a key.
+      - Hold shift and press movement key to auto-run in that direction.
+      - Three kinds of auto-run:
+        1. *Rest in place*: Shift+Space to rest until fully healed.
+        2. *Straight auto-run*: Shift+direction in open space or against a wall on one side to move in one direction until terrain changes.
+        3. *Corridor auto-run*: Shift+direction in a corridor to follow the corridor until it branches or opens up.
+      - Once auto-run starts it issues movement commands until interrupted by:
+        - the player presses a key
+        - a monster appears in the player's field of view
+        - the player moves next to an item or downstairs tile
+    - Auto-Run Data Structures
+      - `auto_run` field in `Player` struct in `src/components.rs`
+      - `AutoRun` struct in `src/player.rs`
+      - `AutoRunType` enum in `src/player.rs`
+      - `AutoRunWallSide` enum in `src/player.rs`
+    - Automatic Inputs
+      - If Shift is held when a movement key is pressed, the turn is mostly handled as usual, but `auto_run` in `Player` is set to begin auto-running process.
+      - `player_input` fn in `src/player.rs`
+        - checks for interruption from key press, adjacent items or stairs or enemies in sight
+        - decrements `auto_run.limit` and stops auto-running when it reaches zero
+        - calls `auto_run_next_step` fn for next direction to move
+        - with a step, calls `try_move_player` or `wait_player` fns like normal player input
+        - without a step, stops auto-running
+      - bottom of `DungeonMode::update` fn returns `ModeUpdate::Update` if auto-run is active
+        - breaks away from game's usual post-update behavior of waiting for an event before updating
+        - (include code skeleton here)
+    - Resting in Place
+      - Detect auto-run input
+        - Normal input logic in `player::player_input` fn checks for Shift key, passes it on to `wait_player` fn as `rest_in_place` arg
+      - Check that resting in place can start, if not, exit early with message why
+      - Start resting in place by setting `auto_run` field of `Player` struct with `run_type` of `AutoRunType::RestInPlace`
+      - On next frame, `player::player_input` fn runs auto-run logic instead of normal input logic
+      - Check if auto-run should stop for:
+        - `AppQuit` event
+        - key press
+        - any monster in field of view (`player_sees_foes` fn)
+        - auto-run turn limit (decremented and checked)
+      - Check main auto-run condition with `auto_run_next_step` fn
+        - returns `Some(...)` to continue or `None` to stop auto-run
+      - If auto-run should stop, call `player_stop_auto_run` fn to unset `auto_run` field of `Player` struct
+      - Otherwise, perform one step of auto-run with `wait_player` fn
+    - Straight Auto-Run
+      - Straight auto-run is triggered with Shift+dir in open space on both sides of their direction of movement, or open space on one side and a closed wall on the other side.
+        - Closed walls on both sides should be handled with corridor auto-run logic instead.
+        - Straight auto-run stops when the state of walls around the player changes, or the player steps next to items or the downstairs tile.
+      - Wall and space checking is handled by `auto_run_straight_check` fn, adjacent tile check is handled by `player_check_frontier` fn, both in `src/player.rs` file.
+        - Tiles checked by these functions differs based on the direction the player is moving.
+        - The player can move in eight directions, but we don't want to repeat similar code for every direction.
+        - Instead, RuggRogue checks tiles for the player moving straight right and diagonally up-right, then *rotates* these logical tiles to match the player's movement direction.
+      - Rotating by Movement Direction
+        - Rotation in the `auto_run_straight_check` fn starts by reading the player's movement direction into the `run_dx` and `run_dy` variables.
+        - `run_dx` and `run_dy` are fed into the `rotate_view` fn to retrieve rotation parameters: `real_x_from_x`, `real_x_from_y`, `real_y_from_x`, `real_y_from_y`.
+        - Aside: Consider increases to `y` as up by convention.
+        - To rotate, we need to think about how the real map `x` and `y` change when `run_dx` and `run_dy` change.
+        - e.g. Rotating logical coordinates 90 degrees anti-clockwise
+          - when `run_dx` increases (+1), real map `x` remains stationary (`real_x_from_x` == 0) while real map `y` increases (`real_y_from_x` == 1)
+          - when `run_dy` increases (+1), real map `x` decreases (`real_x_from_y` == -1) while real map `y` remains stationary (`real_y_from_y` == 0)
+        - (post full table of parameters from `rotate_view` fn here)
+        - (post and describe `real_x` and `real_y` helper closures from `auto_run_straight_check` fn here)
+      - Checking for Walls and Open Space
+        - To decide if straight auto-run should start or continue, the tiles around the player need to be looked at.
+        - `auto_run_straight_check` fn does this and returns:
+          - `Some(AutoRunWallSide::Left)` == complete wall on left and completely open tiles on right
+          - `Some(AutoRunWallSide::Right)` == complete wall on right and completely open tiles on left
+          - `Some(AutoRunWallSide::Neither)` == completely open tiles on left and right
+          - `None` == anything else, including wall in front
+        - (post tiles checked for player moving right; relate `real_x`, `real_y` and possible return values)
+        - (post tiles checked for player moving up-right)
+      - Checking for Items and Downstairs
+        - Auto-run can also stop for items and downstairs; checked with `player_check_frontier` fn.
+        - Checks current player position as well as newly-adjacent tiles in the player's movement direction.
+        - (post tiles checked for player moving right)
+        - (post tiles checked for player moving up-right)
+      - Putting It All Together
+        - Like resting in place, normal input logic in `player::player_input` fn checks for Shift, but sends result to `try_move_player` fn as `start_run` arg
+        - In `try_move_player` fn, run attempt is stopped if any monsters are in the player's field of view.
+        - If movement occurred, game decides if corridor auto-run or straight auto-run should begin.
+        - If `auto_run_straight_check` fn succeeds, store the `AutoRunType` value returned in the `run_type` field of player's `AutoRun` struct
+        - On subsequent frames, continue straight auto-run in the `player::player_input` fn until:
+          1. `player_check_frontier` fn finds something next to the player
+          2. `auto_run_straight_check` fn (called via `auto_run_next_step` fn) returns a different `AutoRunType` value at the player's current position to the one stored in the `run_type` field
+    - Corridor Auto-Run
+      - Corridor auto-run follows single-tile-wide corridors until they fork, open up or end.
+      - Corridor auto-run is nearly identical to straight auto-run with three key differences:
+        1. The check to start or continue auto-running is performed by the `auto_run_corridor_check` fn instead of the `auto_run_straight_check` fn.
+        2. The `auto_run_corridor_check` fn returns the direction of the next step along the corridor instead of the state of surrounding walls and open spaces.
+        3. The auto-run direction is constantly *updated* to follow the corridor.
+      - The `auto_run_corridor_check` fn takes the player's movement direction, checks surrounding tiles and returns `Some((dx, dy))`, the dir of the next step
+      - The player's corridor auto-run direction is updated at each step in the `auto_run_next_step` fn.
+      - The `auto_run_corridor_check` fn rotates the tiles it checks to the player's movement direction with the help of the `rotate_view` fn, much like the `auto_run_straight_check` fn.
+        - Also used to rotate the returned direction of the next corridor auto-run step.
+      - Tiles around the player are checked for walls.
+        - The tiles chosen depend on the player's movement direction.
+        - Each wall sets an individual bit in a 16-bit unsigned integer variable named `nearby_walls`.
+      - The bits of the `nearby_walls` variable are matched against patterns of wall and non-wall tiles stored in tables.
+        - A successful match returns the next direction for corridor auto-run to follow, adjusted for rotation.
+        - There are separate tables for the player moving right and up-right; rotation collapses all other directions into just those two.
+      - (Provide simplified 8-bit example of pattern matching using first case after cardinal player move.)
+      - (List basic cardinal patterns here.)
+        - Wants one open tile with a 90-degree change in direction at most.
+        - That one open tile must have walls on both sides.
+      - (List cardinal corner patterns here.)
+        - Corridor corners put two open tiles next to the player instead of one.
+        - Needs to check some tiles two steps away from the player; treat unseen tiles like walls for testing purposes.
+        - Player can step into either open tile; game chooses to step into the corner instead of cutting the corner.
+      - (List basic diagonal patterns here.)
+      - (List diagonal corner patterns here.)
+    - Interrupting Auto-Run for Hunger
+      - The game has a hunger mechanic where the player gets hungry over time and must eat to ward it off.
+      - Hunger level is shown in the side bar, e.g. "Full", "Normal", "Hungry", "Very Hungry", "Famished" or "Starving".
+        - Auto-run stops when hunger drops from one level to another below "Normal", e.g. "Normal" to "Hungry" or "Hungry" to "Very Hungry".
+      - When player's hunger level is "Starving" they'll periodically lose hit points, which also stops auto-run.
+      - All of this happens in the `hunger::tick_hunger` fn in the `src/hunger.rs` file.
   - *Turn order and combat*
     - The damage formula.
     - Avoiding zero damage using tanh.
