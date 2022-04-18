@@ -71,17 +71,21 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
                 .map(|b| b.defense)
                 .sum()
         });
-    let mut damage = attack_value - defense_value;
-
-    // Average incoming damage should equal defense; buff it if it falls short.
-    if damage < defense_value && defense_value.abs() > f32::EPSILON {
-        // Ease damage towards zero using tanh, so e.g. what would have been zero damage before is
-        // now ~24% of defense_value worth of damage instead.
-        damage = defense_value * (1.0 + ((damage - defense_value) / defense_value).tanh());
-    }
+    // Average incoming damage should equal defense.
+    let mut damage = if attack_value >= defense_value * 2.0 {
+        attack_value - defense_value
+    } else {
+        attack_value * 0.5
+    };
 
     // Fluctuate damage by a random amount.
-    damage = rng.gen_range::<f32, _>(damage * 0.8..damage * 1.2);
+    if rng.gen() {
+        if rng.gen() {
+            damage *= 1.5;
+        } else {
+            damage *= 0.5;
+        }
+    }
 
     // Randomly round to nearest integer, e.g. 3.1 damage has a 10% chance to round to 4.
     let damage = damage.trunc() as i32
