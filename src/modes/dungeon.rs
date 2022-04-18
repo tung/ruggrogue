@@ -332,23 +332,22 @@ impl DungeonMode {
                 world.run(vision::recalculate_fields_of_view);
                 world.run(monster::enqueue_monster_turns);
 
-                while world.run(player::player_is_alive) && !world.run(monster::monster_turns_empty)
-                {
-                    monster::do_monster_turns(world);
-                    world.run(damage::handle_dead_entities);
-                    world.run(experience::gain_levels);
-                    world.run(vision::recalculate_fields_of_view);
-                }
-
                 if world.run(player::player_is_alive) {
-                    world.run(hunger::tick_hunger);
+                    monster::do_monster_turns(world);
                     world.run(damage::handle_dead_entities);
                     world.run(experience::gain_levels);
                     world.run(vision::recalculate_fields_of_view);
 
                     if world.run(player::player_is_alive) {
-                        world.run(damage::clear_hurt_bys);
-                        world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
+                        world.run(hunger::tick_hunger);
+                        world.run(damage::handle_dead_entities);
+                        world.run(experience::gain_levels);
+                        world.run(vision::recalculate_fields_of_view);
+
+                        if world.run(player::player_is_alive) {
+                            world.run(damage::clear_hurt_bys);
+                            world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
+                        }
                     }
                 }
 

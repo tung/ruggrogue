@@ -25,10 +25,6 @@ impl Default for MonsterTurns {
     }
 }
 
-pub fn monster_turns_empty(monster_turns: UniqueView<MonsterTurns>) -> bool {
-    monster_turns.0.is_empty()
-}
-
 pub fn enqueue_monster_turns(
     mut monster_turns: UniqueViewMut<MonsterTurns>,
     player_id: UniqueView<PlayerId>,
