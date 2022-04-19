@@ -71,12 +71,9 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
                 .map(|b| b.defense)
                 .sum()
         });
-    // Average incoming damage should equal defense.
-    let mut damage = if attack_value >= defense_value * 2.0 {
-        attack_value - defense_value
-    } else {
-        attack_value * 0.5
-    };
+    // Attack is twice defense most of the time.
+    let mut damage = (attack_value - defense_value)
+        .max(attack_value * (0.25 + 0.25_f32.min(0.125 * attack_value / defense_value)));
 
     // Fluctuate damage by a random amount.
     if rng.gen() {
