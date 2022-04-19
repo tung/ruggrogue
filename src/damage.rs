@@ -76,11 +76,14 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
         .max(attack_value * (0.25 + 0.25_f32.min(0.125 * attack_value / defense_value)));
 
     // Fluctuate damage by a random amount.
+    let mut suffix = '!';
     if rng.gen() {
         if rng.gen() {
             damage *= 1.5;
+            suffix = '‼';
         } else {
             damage *= 0.5;
+            suffix = '.';
         }
     }
 
@@ -103,7 +106,10 @@ pub fn melee_attack(world: &World, attacker: EntityId, defender: EntityId) {
         if let Ok(def_tally) = (&mut tallies).try_get(defender) {
             def_tally.damage_taken += damage.max(0) as u64;
         }
-        msgs.add(format!("{} hits {} for {} hp.", att_name, def_name, damage));
+        msgs.add(format!(
+            "{} hits {} for {} hp{}",
+            att_name, def_name, damage, suffix
+        ));
     } else {
         msgs.add(format!(
             "{} hits {}, but does no damage.",
