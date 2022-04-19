@@ -354,7 +354,7 @@ pub fn use_item(
                             item_name, target_name, heal_amount,
                         ));
                     } else {
-                        let amount = 5;
+                        let amount = 2;
                         stats.hp += amount;
                         stats.max_hp += amount;
                         msgs.add(format!(
