@@ -199,7 +199,7 @@ impl TargetMode {
                         ModeUpdate::Immediate,
                     )
                 }
-                GameKey::Confirm => {
+                GameKey::Confirm | GameKey::UseItem => {
                     if self.valid.contains(&self.cursor) {
                         let result = if self.warn_self
                             && dist2(self.cursor, self.center) <= self.radius * (self.radius + 1)
