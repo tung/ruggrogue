@@ -212,7 +212,7 @@ fn draw_item_info(world: &World, grid: &mut TileGrid<GameSym>) {
     }
 }
 
-pub fn draw_msg_frame<Y: Symbol>(msg_frame_grid: &mut TileGrid<Y>) {
+pub fn draw_msg_frame<Y: Symbol>(msg_frame_grid: &mut TileGrid<Y>, view_mode: bool) {
     msg_frame_grid.draw_box(
         (0, 0),
         (msg_frame_grid.width(), msg_frame_grid.height()),
@@ -221,7 +221,23 @@ pub fn draw_msg_frame<Y: Symbol>(msg_frame_grid: &mut TileGrid<Y>) {
     );
     msg_frame_grid.put_char_color((0, 0), '├', None, None);
     msg_frame_grid.put_char_color((msg_frame_grid.width() as i32 - 1, 0), '┤', None, None);
-    msg_frame_grid.print((2, 0), " Messages ");
+
+    msg_frame_grid.print_color(
+        (2, 0),
+        " Messages ",
+        true,
+        if view_mode { Color::GRAY } else { Color::WHITE },
+        Color::BLACK,
+    );
+
+    msg_frame_grid.print_color(
+        (msg_frame_grid.width() as i32 - 17, 0),
+        " [v] View Mode ",
+        true,
+        if view_mode { Color::WHITE } else { Color::GRAY },
+        Color::BLACK,
+    );
+    msg_frame_grid.recolor_pos((msg_frame_grid.width() as i32 - 15, 0), Color::YELLOW, None);
 }
 
 fn draw_messages<Y>(world: &World, grid: &mut TileGrid<Y>, active: bool, min_y: i32, max_y: i32)

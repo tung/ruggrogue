@@ -326,7 +326,7 @@ impl TargetMode {
         };
 
         if self.redraw_msg_frame_grid {
-            ui::draw_msg_frame(msg_frame_grid);
+            ui::draw_msg_frame(msg_frame_grid, false);
         }
 
         msg_grid.clear();

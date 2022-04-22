@@ -220,7 +220,7 @@ impl ViewMapMode {
         let (desc, recalled) = map.describe_pos(world, camera.0.x, camera.0.y, false, false, false);
 
         if self.redraw_msg_frame_grid {
-            ui::draw_msg_frame(msg_frame_grid);
+            ui::draw_msg_frame(msg_frame_grid, true);
         }
 
         msg_grid.clear();
