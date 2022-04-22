@@ -767,19 +767,21 @@ pub fn describe_player_pos(world: &World) {
         && map
             .iter_entities_at(x, y)
             .any(|id| world.borrow::<View<Item>>().contains(id));
-    let interesting_tile = !matches!(map.get_tile(x, y), Tile::Floor | Tile::Wall);
+    let tile = map.get_tile(x, y);
 
-    if more_than_player || interesting_tile {
+    if more_than_player || !matches!(tile, Tile::Floor | Tile::Wall) {
         let (desc, recalled) = map.describe_pos(world, x, y, false, true, true);
+        let downstairs = matches!(tile, Tile::DownStairs) && map.depth == 1;
 
         world.borrow::<UniqueViewMut<Messages>>().add(format!(
             "You {} {} here.{}",
             if recalled { "recall" } else { "see" },
             desc,
-            if pick_up_hint {
-                " (Press 'g' to pick up.)"
-            } else {
-                ""
+            match (pick_up_hint, downstairs) {
+                (true, true) => " (Press 'g' to pick up, 'Enter' to descend.)",
+                (true, false) => " (Press 'g' to pick up.)",
+                (false, true) => " (Press 'Enter' to descend.)",
+                _ => "",
             },
         ));
     }
