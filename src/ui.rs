@@ -231,6 +231,7 @@ where
     let messages = world.borrow::<UniqueView<Messages>>();
     let width = grid.width().saturating_sub(2).max(1) as usize;
     let mut y = min_y;
+    let mut skip_y = min_y;
     let (fg, highlight_fg) = if active {
         (Color::GRAY, Color::WHITE)
     } else {
@@ -246,8 +247,15 @@ where
 
         grid.put_char_color((0, y), '>', msg_fg, None);
         for line in ruggrogue::word_wrap(message, width) {
+            if skip_y > 0 {
+                skip_y -= 1;
+                continue;
+            }
             grid.print_color((2, y), line, true, msg_fg, None);
             y += 1;
+            if y > max_y {
+                break;
+            }
         }
     }
 }
