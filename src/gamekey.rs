@@ -51,7 +51,7 @@ pub fn from_keycode(key: Keycode, shift: bool) -> GameKey {
         }
         Keycode::Greater | Keycode::KpGreater => GameKey::Descend,
         Keycode::Escape => GameKey::Cancel,
-        Keycode::Return => GameKey::Confirm,
+        Keycode::Return | Keycode::KpEnter => GameKey::Confirm,
         Keycode::V => GameKey::ViewMap,
         Keycode::Comma | Keycode::G => GameKey::PickUp,
         Keycode::I => GameKey::Inventory,
