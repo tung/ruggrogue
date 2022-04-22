@@ -474,8 +474,12 @@
       - When player's hunger level is "Starving" they'll periodically lose hit points, which also stops auto-run.
       - All of this happens in the `hunger::tick_hunger` fn in the `src/hunger.rs` file.
   - *Turn order and combat*
-    - The damage formula.
-    - Avoiding zero damage using tanh.
+    - The structure of `DungeonMode::update` and the `time_passed` variable.
+    - `MonsterTurns`, `monster::enqueue_monster_turns` and `monster::do_monster_turns`.
+    - `damage::melee_attack` and the damage formula.
+    - `damage::handle_dead_entities`
+      - Monster death
+      - Player death, the `PlayerAlive` flag and moving from `DungeonMode` to `GameOverMode`.
   - *Items*
   - *Hunger and regeneration*
     - Stomach component and the basics of hunger: ticks down over time, fills when eating, regen when above threshold, starving when zero.

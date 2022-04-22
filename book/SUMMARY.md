@@ -19,7 +19,7 @@
 - [Map Generation](map-generation.md)
 - [Map Population](map-population.md)
 - [Auto-Run](auto-run.md)
-- [Turn Order and Combat]()
+- [Turn Order and Combat](turn-order-and-combat.md)
 - [Items]()
 - [Hunger and Regeneration]()
 - [Experience and Difficulty]()
