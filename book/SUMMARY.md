@@ -20,7 +20,7 @@
 - [Map Population](map-population.md)
 - [Auto-Run](auto-run.md)
 - [Turn Order and Combat](turn-order-and-combat.md)
-- [Items]()
+- [Items](items.md)
 - [Hunger and Regeneration]()
 - [Experience and Difficulty]()
 - [New Game Plus]()

@@ -481,6 +481,76 @@
       - Monster death
       - Player death, the `PlayerAlive` flag and moving from `DungeonMode` to `GameOverMode`.
   - *Items*
+    - List of items:
+      - Present (`spawn_present`)
+      - Ration (`spawn_ration`)
+      - Health Potion (`spawn_health_potion`)
+      - Magic Missile Scroll (`spawn_magic_missile_scroll`)
+      - Fireball Scroll (`spawn_fireball_scroll`)
+      - Sleep Scroll (`spawn_sleep_scroll`)
+      - Weapon (`spawn_weapon`)
+      - Armor (`spawn_armor`)
+    - Spawning Items
+      - Randomly in 25% of rooms (`spawn_random_item_at`):
+        - 1/11 - weapon or armor with extra +1 to +3 power bonus
+        - 3/11 - Health Potion
+        - 3/11 - Magic Missile Scroll
+        - 2/11 - Fireball Scroll
+        - 2/11 - Sleep Scroll
+      - One Ration per level
+      - Depth-appropriate weapon and armor at irregular intervals
+      - Starting weapon and armor
+      - See "Map Population" chapter for details.
+    - Inventory and Equipment
+      - `Inventory` and `Item` components
+      - `Equipment` and `EquipSlot` components
+      - Inventory Screen and Item Actions
+        - `InventoryMode` and `InventoryActionMode`
+        - `TargetMode` if item needs ranged target tile
+        - Only lets the player pick an item and an action; effects are handled by `DungeonMode::update`
+        - Shortcut keys
+      - Shortcut Menus
+        - `InventoryShortcutMode` and `EquipmentShortcutMode`
+        - `InventoryAction` enum in `src/modes/inventory_action.rs`
+      - Menu Memory
+        - Menu positions remembered in `MenuMemory` struct in `src/menu_memory.rs`
+        - `PickUpMenuMode` memory is reset if brought up at different map coordinates
+    - Picking Up Items
+      - `player::player_pick_up_item`
+      - `item::remove_item_from_map`
+      - `item::add_item_to_inventory`
+    - Dropping Items
+      - `player::player_drop_item`
+      - `item::remove_item_from_inventory`
+      - `item::add_item_to_map`
+      - `item::drop_equipment` for equipment
+    - Equipping Weapons and Armor
+      - `item::equip_item`
+      - `item::remove_item_from_inventory`
+    - Using Items
+      - `item::use_item` fn in `src/item.rs`
+      - Victory
+        - `GameOverMode` but player is alive so it's a win screen
+      - Picking a Target
+        - Self targeting vs. ranged
+          - Ranged items have a target tile chosen for them by `TargetMode` in advance
+        - Area of effect
+        - Reusing field of view for valid target tile and area of effect
+          - Area of effect preview ignores it to hide unseen terrain, but actual effect considers it
+      - Effects
+        - Effects apply to all targets
+        - Nutrition
+        - Healing
+        - Damage
+        - Sleep
+          - `Asleep` component
+          - `item::handle_sleep_turn`
+            - Called by `player::player_input`; most keys except menu (Esc) pass a turn
+            - Called by `do_turn_for_one_monster` in `src/monster.rs` for sleeping monsters
+          - Sleep counter decrements:
+            - -1 per turn
+            - -1 if player can see the monster or vice versa
+            - -10 if hit points were lost since the last turn
   - *Hunger and regeneration*
     - Stomach component and the basics of hunger: ticks down over time, fills when eating, regen when above threshold, starving when zero.
     - Sub-HP and turns to regen to max HP.
