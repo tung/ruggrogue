@@ -27,7 +27,7 @@ Here is an example of the contents of a small, complete save file:
 *	Messages	{"capacity":100,"msg_queue":["This is a test save!"],"num_highlighted":0}
 *	PlayerAlive	true
 *	PlayerId	[5,0]
-*	Map	{"depth":1,"width":80,"height":50,"tiles":[["W",2176],["F",64],["W",2240]],"rooms":[{"x1":32,"y1":24,"x2":39,"y2":31}],"seen":{"width":80,"height":50,"bv":[[1,4480]]}}
+*	Map	{"depth":1,"width":80,"height":50,"tiles":[["W",1952],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",1760]],"rooms":[{"x1":32,"y1":24,"x2":39,"y2":31}],"seen":{"width":80,"height":50,"bv":[[1,4000]]}}
 [2,0]	BlocksTile	null
 [3,0]	CombatBonus	{"attack":0.0,"defense":1.4}
 [4,0]	CombatBonus	{"attack":3.2,"defense":0.0}
@@ -90,7 +90,7 @@ We can break down this example save data, starting with the top lines:
 *	Messages	{"capacity":100,"msg_queue":["This is a test save!"],"num_highlighted":0}
 *	PlayerAlive	true
 *	PlayerId	[5,0]
-*	Map	{"depth":1,"width":80,"height":50,"tiles":[["W",2176],["F",64],["W",2240]],"rooms":[{"x1":32,"y1":24,"x2":39,"y2":31}],"seen":{"width":80,"height":50,"bv":[[1,4480]]}}
+*	Map	{"depth":1,"width":80,"height":50,"tiles":[["W",1952],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",72],["F",8],["W",1760]],"rooms":[{"x1":32,"y1":24,"x2":39,"y2":31}],"seen":{"width":80,"height":50,"bv":[[1,4000]]}}
 ```
 
 All of these lines represent uniques, since they all start with an asterisk character.
