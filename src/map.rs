@@ -7,7 +7,6 @@ use wyhash::WyHash;
 
 use crate::{
     bitgrid::BitGrid,
-    chunked,
     components::{Coord, Experience, FieldOfView, Item, Monster, Name, Player},
     experience::Difficulty,
     gamesym::GameSym,
@@ -107,16 +106,11 @@ impl Map {
     pub fn new(width: i32, height: i32) -> Self {
         assert!(width > 0 && height > 0);
 
-        let padded_width = (width + chunked::CHUNK_TILE_WIDTH - 1) / chunked::CHUNK_TILE_WIDTH
-            * chunked::CHUNK_TILE_WIDTH;
-        let padded_height = (height + chunked::CHUNK_TILE_HEIGHT - 1) / chunked::CHUNK_TILE_HEIGHT
-            * chunked::CHUNK_TILE_HEIGHT;
-
         Self {
             depth: 0,
             width,
             height,
-            tiles: vec![Tile::Floor; (padded_width * padded_height) as usize],
+            tiles: vec![Tile::Floor; (width * height) as usize],
             rooms: Vec::new(),
             seen: BitGrid::new(width, height),
             tile_entities: HashMap::new(),
@@ -136,15 +130,8 @@ impl Map {
     }
 
     pub fn clear(&mut self) {
-        let padded_width = (self.width + chunked::CHUNK_TILE_WIDTH - 1) / chunked::CHUNK_TILE_WIDTH
-            * chunked::CHUNK_TILE_WIDTH;
-        let padded_height = (self.height + chunked::CHUNK_TILE_HEIGHT - 1)
-            / chunked::CHUNK_TILE_HEIGHT
-            * chunked::CHUNK_TILE_HEIGHT;
-
         self.tiles.clear();
-        self.tiles
-            .resize((padded_width * padded_height) as usize, Tile::Floor);
+        self.tiles.resize((self.width * self.height) as usize, Tile::Floor);
         self.rooms.clear();
         self.seen.zero_out_bits();
         self.tile_entities.clear();
@@ -152,18 +139,7 @@ impl Map {
 
     #[inline]
     fn index(&self, x: i32, y: i32) -> usize {
-        let chunks_across =
-            (self.width + chunked::CHUNK_TILE_WIDTH - 1) / chunked::CHUNK_TILE_WIDTH;
-        let chunk_x = x / chunked::CHUNK_TILE_WIDTH;
-        let chunk_y = y / chunked::CHUNK_TILE_HEIGHT;
-        let sub_x = x % chunked::CHUNK_TILE_WIDTH;
-        let sub_y = y % chunked::CHUNK_TILE_HEIGHT;
-
-        ((chunk_y * chunks_across + chunk_x)
-            * chunked::CHUNK_TILE_WIDTH
-            * chunked::CHUNK_TILE_HEIGHT
-            + sub_y * chunked::CHUNK_TILE_WIDTH
-            + sub_x) as usize
+        (y * self.width + x) as usize
     }
 
     #[inline]
