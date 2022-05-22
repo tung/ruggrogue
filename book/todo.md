@@ -552,9 +552,32 @@
             - -1 if player can see the monster or vice versa
             - -10 if hit points were lost since the last turn
   - *Hunger and regeneration*
-    - Stomach component and the basics of hunger: ticks down over time, fills when eating, regen when above threshold, starving when zero.
-    - Sub-HP and turns to regen to max HP.
-    - Implication: higher max HP means faster regen.
+    - RuggRogue has a hunger mechanic: player gradually regens HP while well-fed, but loses HP while starving.
+    - Player becomes hungrier with the passage of time, but can eat rations found on each level to ward it off.
+    - Hunger mechanic rewards the player for exploring to find rations and acts as pressure to keep the player moving lest they starve.
+    - Stomach and Nutrition
+      - `Stomach` and `Nutrition` components
+      - Eating Rations in `item::use_item` fn in `src/item.rs`
+    - Hunger States
+      - `HungerState` component
+      - Conversion from `Stomach` fullness for visible hunger effects
+      - Discrete hunger levels
+    - Sidebar Hunger Display
+      - `hunger::player_hunger_label` fn called from `draw_status` fn in `src/ui.rs` file
+    - Regeneration and Starvation
+      - Per-turn effects: `hunger::tick_hunger` fn called from `DungeonMode::update` in `src/modes/dungeon.rs` file.
+      - Regeneration: `HungerState::turns_to_regen_to_max_hp`
+      - Starvation: `HungerState::turns_to_starve_from_max_hp`
+      - Explain `sub_hp` field of `Stomach` component, with examples
+      - Implication: higher max HP means faster regen.
+    - Hunger Messages
+      - Hunger state changes provoke a message saying as much.
+      - Message composed with `HungerState::reduced_to` fn.
+    - Effects of Hunger on Auto-Run
+      - Stomach must be full enough to start waiting in place: `hunger::can_regen` fn checked in `wait_player` fn in `src/player.rs` file.
+      - Stomach must be full enough to continue waiting in place: same fn consulted in `auto_run_next_step` fn in `src/player.rs` file.
+      - Getting a hunger message in `hunger::tick_hunger` fn interrupts all forms of auto-run.
+      - Losing HP due to hunger interrupts all forms of auto-run.
   - *Experience and difficulty progression*
     - Experience formula
     - The level factor, which determines everything else.

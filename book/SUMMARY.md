@@ -21,6 +21,6 @@
 - [Auto-Run](auto-run.md)
 - [Turn Order and Combat](turn-order-and-combat.md)
 - [Items](items.md)
-- [Hunger and Regeneration]()
+- [Hunger and Regeneration](hunger-and-regeneration.md)
 - [Experience and Difficulty]()
 - [New Game Plus]()
