@@ -131,7 +131,8 @@ impl Map {
 
     pub fn clear(&mut self) {
         self.tiles.clear();
-        self.tiles.resize((self.width * self.height) as usize, Tile::Floor);
+        self.tiles
+            .resize((self.width * self.height) as usize, Tile::Floor);
         self.rooms.clear();
         self.seen.zero_out_bits();
         self.tile_entities.clear();
