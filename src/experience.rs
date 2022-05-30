@@ -131,7 +131,7 @@ pub fn calc_weapon_attack(level: i32) -> f32 {
 }
 
 pub fn calc_armor_defense(level: i32) -> f32 {
-    level_factor(level) * 1.4
+    level_factor(level) * 1.6
 }
 
 pub fn gain_levels(
