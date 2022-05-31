@@ -22,5 +22,5 @@
 - [Turn Order and Combat](turn-order-and-combat.md)
 - [Items](items.md)
 - [Hunger and Regeneration](hunger-and-regeneration.md)
-- [Experience and Difficulty]()
+- [Experience and Difficulty](experience-and-difficulty.md)
 - [New Game Plus]()

@@ -579,9 +579,78 @@
       - Getting a hunger message in `hunger::tick_hunger` fn interrupts all forms of auto-run.
       - Losing HP due to hunger interrupts all forms of auto-run.
   - *Experience and difficulty progression*
-    - Experience formula
-    - The level factor, which determines everything else.
-    - The difficulty tracker, which determines the spawn level of monsters and equipment.
+    - Combat between player and monsters are at the core of RuggRogue.
+    - Damage formula from Turn Order and Combat chapter not enough; needs firm numbers e.g. HP/att/def for player/monsters.
+    - Numbers need to be picked to answer questions like "how many hits are needed for player to kill monster at equal level?"
+    - Another problem: As player kills monsters they grow more powerful; how does the game avoid becoming easier over time?
+    - Game Balance
+      - `level_factor` fn in `src/experience.rs`; don't use level directly!
+        - `experience::calc_player_max_hp`
+        - `experience::calc_player_attack`
+        - `experience::calc_player_defense`
+        - `experience::calc_monster_max_hp`
+        - `experience::calc_monster_attack`
+        - `experience::calc_monster_defense`
+        - `experience::calc_monster_exp`
+        - `experience::calc_weapon_attack`
+        - `experience::calc_armor_defense`
+      - Establishes *numeric relationships* between equal-level player/equipment/monsters, e.g.:
+        - Player attack: p.atk. (4.8) + wep (3.2) = 8.0 vs. m.def. (4.0) does 4.0 dmg (re. damage formula) to m.hp. 14, killing it in 3.5 hits
+        - Monster attack: m.atk. (8.0) vs p.def. (2.4) + arm (1.6) = 4.0 does 4.0 dmg to p.hp. 40, killing them in 10 hits
+    - Player Experience
+      - `Experience` component in `src/components.rs`
+        - `base` + `next` fields is experience number in sidebar
+        - Player is spawned at level 1 with 50 exp pts to next level in `spawn::spawn_player` fn in `src/spawn.rs`
+      - `GivesExperience` component attached to monster entities
+      - On player attack `HurtBy` component credits player for damaging monster in `damage::melee_attack` fn in `src/damage.rs`
+      - When monster dies, `damage::handle_dead_entities` fn in `src/damage.rs` awards exp set in `GivesExperience` to player's `Experience`
+    - Gaining Levels
+      - Experience pts checked when `DungeonMode::update` in `src/modes/dungeon.rs` calls `experience::gain_levels` fn in `src/experience.rs`
+      - `experience::gain_levels` fn raises experience level if `exp` field of `Experience` component reaches `next` field
+      - Each level requires 10% more experience pts
+      - If entity has `CombatStats` component, Attack, defense and hit points recalculated for the new level
+        - Hit point gain is calculated specially to preserve any max hit points gained from health potions
+      - Finally, player level gain logs a message saying so.
+    - Difficulty Tracker
+      - If player gained power from experience levels while dungeon stayed the same, the game would get easier over time!
+      - Game needs to increase the level of monsters over time to counteract this, but at what rate?
+        - Too slow: Still gets easier over time.
+        - Too fast: Player will be overwhelmed.
+      - Solution: Difficulty Tracker entity
+        - Gains experience and levels, but has no `CombatStats` component
+          - Created by the `spawn::spawn_difficulty` fn in `src/spawn.rs`
+        - Gains experience slightly differently to the player:
+          - After map population, `experience::calc_exp_for_next_depth` fn in `src/experience.rs` is called
+            - Counts all experience that every monster on the map can grant and saves it to `exp_for_next_depth` field of `Difficulty` unique
+          - When player descends, experience in `exp_for_next_depth` is given to difficulty tracker and any levels gained via `experience::gain_levels` fn
+      - The level of the difficulty tracker decides:
+        - Max level of monsters to spawn
+        - Base power level of weapons and armor spawned
+      - Experience between levels act like partial levels
+        - `Difficulty::get_round_random` and `Difficulty::as_f32` fns
+        - `experience::f32_round_random` helper fn
+    - Monster Selection
+      - Names and appearances for monsters are defined in the `MONSTERS` array in `src/spawn.rs`
+      - `spawn_random_monster_at` fn in `src/spawn.rs` picks from `MONSTERS` array based on difficulty tracker level
+        - 20% for level-matching monster
+        - 40% for monster 1 to 3 levels lower
+        - 40% for an even lower level monster
+      - `spawn_monster` fn is called to create the monster with the right numbers for the desired level:
+        - `experience::calc_monster_max_hp`
+        - `experience::calc_monster_attack`
+        - `experience::calc_monster_defense`
+        - `experience::calc_monster_exp`
+    - Weapon and Armor Selection
+      - Power level of randomly-spawned weapons and armor decided by `spawn_random_item_at` fn in `src/spawn.rs`
+        - Base power decided by difficulty tracker level, but also gets a random +1 to +3 bonus
+      - `spawn_weapon` fn in `src/spawn.rs` picks a weapon name and appearance from `WEAPONS` array in same file
+        - Name and appearance picked according to *base* level determined from the difficulty tracker, not counting random bonus
+        - `spawn_armor` fn does the same thing using the `ARMORS` array instead
+    - Picking the Final Dungeon Level
+      - The `MONSTERS` array has 25 different monster names and appearances
+      - Once the difficulty tracker has allowed them all to spawn, the player has no new monsters to see
+      - `map::generate_rooms_and_corridors` fn in `src/map.rs` checks if difficulty tracker level has reached 25
+        - If so, downstairs is replaced with the location to place the victory item that ends the game.
   - *New game plus*
     - Increases monster and item spawns in rooms per win.
     - Resetting difficulty, but still spawning more powerful equipment.
