@@ -37,7 +37,7 @@ The formulas are described as functions in the `src/experience.rs` file:
 
 Function Name | Formula (f = level factor) | Description
 ------------- | ------- | -----------
-`calc_player_max_hp` | (f * 40.0).round() as i32 | Player maximum hit points
+`calc_player_max_hp` | (f * 30.0).round() as i32 | Player maximum hit points
 `calc_player_attack` | f * 4.8 | Player base attack
 `calc_player_defense` | f * 2.4 | Player base defense
 `calc_monster_max_hp` | (f * 14.0).round() as i32 | Monster maximum hit points
@@ -49,7 +49,7 @@ Function Name | Formula (f = level factor) | Description
 
 For example, consider a player at experience level 6.
 The level factor at level 6 is `(1.0 + (6 - 1) as f32 * 0.1).max(0.1) = 1.5`.
-Such a player thus has `(1.5 * 40.0).round() as i32 = 60` maximum hit points, `1.5 * 4.8 = 7.2` base attack and `1.5 * 2.4 = 3.6` base defense.
+Such a player thus has `(1.5 * 30.0).round() as i32 = 45` maximum hit points, `1.5 * 4.8 = 7.2` base attack and `1.5 * 2.4 = 3.6` base defense.
 Note that attack and defense values are internally stored and handled as floating point values; the interface rounds them to whole numbers for display purposes.
 
 Defining numbers in terms of the level factor like this allows us to make statements about things when their experience levels are equal:
@@ -61,7 +61,7 @@ According to the damage formula described in the [Turn Order and Combat](turn-or
 A melee hit of 8.0 attack versus 4.0 defense causes 4.0 damage.
 This allows us to talk about how tough the player and monsters are:
 
-- A player with 40 maximum hit points is defeated by 4.0 damage monster attacks in 10 turns.
+- A player with 30 maximum hit points is defeated by 4.0 damage monster attacks in 7.5 turns.
 - A monster with 14 maximum hit points is defeated by 4.0 damage player attacks in 3.5 turns.
 
 Statements like this establish numeric relationships that form the foundation of game balance in RuggRogue.
