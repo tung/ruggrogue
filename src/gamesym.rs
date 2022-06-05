@@ -61,7 +61,7 @@ pub enum GameSym {
     Orc,
     Unicorn,
     Pirate,
-    Lizardon,
+    Lizardman,
     Ghost,
     Skeleton,
     Ogre,
@@ -139,7 +139,7 @@ impl Symbol for GameSym {
             Orc => 'o',
             Unicorn => 'u',
             Pirate => 'P',
-            Lizardon => 'L',
+            Lizardman => 'L',
             Ghost => 'G',
             Skeleton => 'Z',
             Ogre => 'O',
@@ -277,7 +277,7 @@ pub fn urizen_tileset_info() -> TilesetInfo<GameSym> {
         symbol_map.insert(Orc, (26, 4));
         symbol_map.insert(Unicorn, (38, 10));
         symbol_map.insert(Pirate, (25, 10));
-        symbol_map.insert(Lizardon, (33, 6));
+        symbol_map.insert(Lizardman, (33, 6));
         symbol_map.insert(Ghost, (43, 10));
         symbol_map.insert(Skeleton, (41, 5));
         symbol_map.insert(Ogre, (33, 10));

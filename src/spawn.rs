@@ -33,7 +33,7 @@ const MONSTERS: [(GameSym, &str, (u8, u8, u8)); 25] = [
     (GameSym::Orc, "Orc", (202, 100, 39)),
     (GameSym::Unicorn, "Unicorn", (255, 150, 255)),
     (GameSym::Pirate, "Pirate", (0, 134, 255)),
-    (GameSym::Lizardon, "Lizardon", (89, 153, 175)),
+    (GameSym::Lizardman, "Lizardman", (89, 153, 175)),
     (GameSym::Ghost, "Ghost", (254, 255, 255)),
     (GameSym::Skeleton, "Skeleton", (222, 211, 195)),
     (GameSym::Ogre, "Ogre", (202, 101, 39)),
