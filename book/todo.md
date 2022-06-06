@@ -652,6 +652,23 @@
       - `map::generate_rooms_and_corridors` fn in `src/map.rs` checks if difficulty tracker level has reached 25
         - If so, downstairs is replaced with the location to place the victory item that ends the game.
   - *New game plus*
-    - Increases monster and item spawns in rooms per win.
-    - Resetting difficulty, but still spawning more powerful equipment.
-    - Safety save before using victory item, and why.
+    - How New Game Plus plays
+      - After the player wins the game, they're fully healed and placed into the top of a fresh dungeon.
+      - They get to keep their level, experience, stats and all of their equipment and items apart from the victory item.
+      - The game will allow more monsters and items to spawn for each successive win.
+      - The power of weapons and armor spawned will continue to increase from the end of the last game.
+      - Intended to be a victory lap to collect ever more powerful equipment and not a proper challenge.
+    - New Game versus New Game Plus
+      - Game over sequence
+        - `GameOverMode::update` fn in `src/modes/game_over.rs`
+        - `title::post_game_cleanup` and `title::new_game_setup` fns in `src/modes/title.rs`
+          - Carrying over the player entity
+    - Win Counter
+      - `Wins` unique
+      - Shown on the game over screen from the second victory onward.
+      - Increases maximum number of items and monsters spawned per room by one.
+        - `fill_room_with_spawns` fn in `src/spawn.rs`
+    - Base Equipment Level
+      - New Game Plus needs to continue increasing the power of weapons and armor, but `title::new_game_setup` fn always resets difficulty tracker.
+      - `BaseEquipmentLevel` unique
+        - Remembers the level of the difficulty tracker at the end of the last game and adds it to spawned weapons and armor in the next.
