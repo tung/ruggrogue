@@ -6,7 +6,7 @@ This chapter is all about *what* that data actually is.
 
 As mentioned in the entity component system chapter, game data is divided into two kinds:
 
-1. *Uniques* that are independent of any one entity.
+1. *Uniques* that are independent of entities.
 2. *Components* that are associated with an entity.
 
 All game data is stored in a world that's passed pretty much everywhere throughout the code of RuggRogue.
