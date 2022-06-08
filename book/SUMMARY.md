@@ -23,5 +23,6 @@
 - [Items](items.md)
 - [Hunger and Regeneration](hunger-and-regeneration.md)
 - [Experience and Difficulty](experience-and-difficulty.md)
+- [Monsters](monsters.md)
 - [New Game Plus](new-game-plus.md)
 - [Options](options.md)
