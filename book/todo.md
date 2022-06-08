@@ -672,3 +672,37 @@
       - New Game Plus needs to continue increasing the power of weapons and armor, but `title::new_game_setup` fn always resets difficulty tracker.
       - `BaseEquipmentLevel` unique
         - Remembers the level of the difficulty tracker at the end of the last game and adds it to spawned weapons and armor in the next.
+  - *Options*
+    - Player can bring up *options dialog* by pressing Esc key during play or choosing "Options" at the title screen.
+    - Allows player the choice of UI font, tiles or ASCII for the main play area, and 1x or 2x zoom for both of these display elements.
+    - Options Data
+      - `Options` struct in `src/ui.rs`
+      - Default options set in `main` fn in `src/main.rs`
+      - The meaning of tileset indices (`tileset_infos` field in `RunSettings` set in `main` fn)
+        - Fonts come before tilesets
+    - Options Dialog
+      - `OptionsMenuMode` in `src/modes/options_menu.rs`
+      - Shows "Save and Exit" if brought up during play via `prompt_to_save` arg sent to `Options::new` fn
+      - Fields of `Options` struct modified by `OptionMenuMode::update` fn
+      - `NUM_FONTS` constant limits font choice to font-like tilesets at the beginning of the list of tilesets
+    - Real-Time Options Updates
+      - Rendering system directly consults option values so they'll update in real time.
+      - Recap of concepts from Rendering chapter:
+        - Displayed tile grid
+        - `TileGridView`
+        - GPU-side tile grid texture
+        - CPU-side tile grid pixel buffer
+        - `tileset_index` field of `TileGrid`
+        - tile data of `TileGrid`
+      - Dependencies:
+        - Displayed tile grid: `TileGridView` + texture
+        - texture: pixel buffer
+        - pixel buffer: `tileset_index` + tile data
+      - Changes to tileset and font in Options dialog affect `tileset_index`
+        - Invalidates pixel buffer -> texture -> displayed tile grid
+        - `TileGrid::set_tileset` fn in `src/lib/tilegrid.rs`
+      - Changes to zoom affect `TileGridView` -> displayed tile grid
+        - `text_zoom` field of `Options` struct read out directly `prepare_grids` fns of most modes
+          - Used to calculate size, position and zoom for `TileGridView` of each `TileGrid`
+          - Common case of screen-centered tile grid handled by `TileGrid::view_centered` fn
+        - `map_zoom` field read out by `ChunkedMapGrid::prepare_grid` fn in `src/chunked.rs` for the main map grid
