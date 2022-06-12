@@ -259,6 +259,11 @@ where
             break;
         }
 
+        if message.is_empty() {
+            y += 1;
+            continue;
+        }
+
         let msg_fg = if highlighted { highlight_fg } else { fg };
 
         grid.put_char_color((0, y), '>', msg_fg, None);

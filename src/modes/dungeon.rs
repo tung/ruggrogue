@@ -7,6 +7,7 @@ use crate::{
     gamesym::GameSym,
     hunger, item,
     map::Map,
+    message::Messages,
     monster,
     player::{self, PlayerId, PlayerInputResult},
     render, saveload, ui, vision, TurnCount,
@@ -347,6 +348,7 @@ impl DungeonMode {
                         if world.run(player::player_is_alive) {
                             world.run(damage::clear_hurt_bys);
                             world.borrow::<UniqueViewMut<TurnCount>>().0 += 1;
+                            world.borrow::<UniqueViewMut<Messages>>().separator();
                         }
                     }
                 }
