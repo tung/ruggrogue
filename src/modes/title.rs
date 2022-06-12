@@ -27,10 +27,12 @@ use super::{
 };
 
 const LOGO_GRID: usize = 0;
-const SOURCE_GRID: usize = 1;
-const MENU_GRID: usize = 2;
+const VERSION_GRID: usize = 1;
+const SOURCE_GRID: usize = 2;
+const MENU_GRID: usize = 3;
 
 const SOURCE_STR: &str = "github.com/tung/ruggrogue";
+const VERSION_STR: &str = "v0.0.1";
 const LOGO_STR: &str = "░░░░░░  ░░  ░░   ░░░░    ░░░░
  ▒▒  ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒
  ▓▓  ▓▓ ▓▓  ▓▓ ▓▓      ▓▓
@@ -239,6 +241,10 @@ impl TitleMode {
                 .unwrap_or(1) as u32,
             h: LOGO_STR.chars().filter(|c| *c == '\n').count() as u32,
         };
+        let new_version_size = Size {
+            w: VERSION_STR.len() as u32,
+            h: 1,
+        };
         let new_source_size = Size {
             w: SOURCE_STR.len() as u32,
             h: 1,
@@ -250,23 +256,28 @@ impl TitleMode {
 
         if !grids.is_empty() {
             grids[LOGO_GRID].resize(new_logo_size);
+            grids[VERSION_GRID].resize(new_version_size);
             grids[SOURCE_GRID].resize(new_source_size);
             grids[MENU_GRID].resize(new_menu_size);
         } else {
             grids.push(TileGrid::new(new_logo_size, tilesets, font as usize));
+            grids.push(TileGrid::new(new_version_size, tilesets, font as usize));
             grids.push(TileGrid::new(new_source_size, tilesets, font as usize));
             grids.push(TileGrid::new(new_menu_size, tilesets, font as usize));
             grids[LOGO_GRID].view.clear_color = None;
+            grids[VERSION_GRID].view.clear_color = None;
             grids[SOURCE_GRID].view.clear_color = None;
             grids[MENU_GRID].view.clear_color = None;
         }
 
         let (logo_grid, grids) = grids.split_first_mut().unwrap(); // LOGO_GRID
+        let (version_grid, grids) = grids.split_first_mut().unwrap(); // VERSION_GRID
         let (source_grid, grids) = grids.split_first_mut().unwrap(); // SOURCE_GRID
         let (menu_grid, _) = grids.split_first_mut().unwrap(); // MENU_GRID
 
         // Set fonts.
         logo_grid.set_tileset(tilesets, font as usize);
+        version_grid.set_tileset(tilesets, font as usize);
         source_grid.set_tileset(tilesets, font as usize);
         menu_grid.set_tileset(tilesets, font as usize);
 
@@ -287,6 +298,12 @@ impl TitleMode {
             (logo_grid.view.size.h + window_size.h.saturating_sub(combined_px_height) * 2 / 3)
                 .min(window_size.h.saturating_sub(menu_grid.view.size.h)) as i32;
 
+        // Version goes in the bottom left corner of the screen.
+        version_grid.view.size.w = new_version_size.w * tileset.tile_width() * text_zoom;
+        version_grid.view.size.h = new_version_size.h * tileset.tile_height() * text_zoom;
+        version_grid.view.pos.x = 0;
+        version_grid.view.pos.y = (window_size.h - version_grid.view.size.h) as i32;
+
         // Source goes in the bottom right corner of the screen.
         source_grid.view.size.w = new_source_size.w * tileset.tile_width() * text_zoom;
         source_grid.view.size.h = new_source_size.h * tileset.tile_height() * text_zoom;
@@ -295,6 +312,7 @@ impl TitleMode {
 
         // Set all grids to current text zoom.
         logo_grid.view.zoom = text_zoom;
+        version_grid.view.zoom = text_zoom;
         source_grid.view.zoom = text_zoom;
         menu_grid.view.zoom = text_zoom;
     }
@@ -452,6 +470,7 @@ impl TitleMode {
 
     pub fn draw(&self, _world: &World, grids: &mut [TileGrid<GameSym>], active: bool) {
         let (logo_grid, grids) = grids.split_first_mut().unwrap(); // LOGO_GRID
+        let (version_grid, grids) = grids.split_first_mut().unwrap(); // VERSION_GRID
         let (source_grid, grids) = grids.split_first_mut().unwrap(); // SOURCE_GRID
         let (menu_grid, _) = grids.split_first_mut().unwrap(); // MENU_GRID
         let fg = Color::WHITE;
@@ -460,10 +479,12 @@ impl TitleMode {
 
         if active {
             logo_grid.view.color_mod = Color::WHITE;
+            version_grid.view.color_mod = Color::WHITE;
             source_grid.view.color_mod = Color::WHITE;
             menu_grid.view.color_mod = Color::WHITE;
         } else {
             logo_grid.view.color_mod = Color::GRAY;
+            version_grid.view.color_mod = Color::GRAY;
             source_grid.view.color_mod = Color::GRAY;
             menu_grid.view.color_mod = Color::GRAY;
         }
@@ -471,6 +492,8 @@ impl TitleMode {
         for (i, logo_line) in LOGO_STR.lines().enumerate() {
             logo_grid.print_color((0, i as i32), logo_line, true, Color::ORANGE, bg);
         }
+
+        version_grid.print_color((0, 0), VERSION_STR, true, Color::GRAY, bg);
 
         source_grid.print_color((0, 0), SOURCE_STR, true, Color::GRAY, bg);
 
