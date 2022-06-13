@@ -781,5 +781,5 @@ Writing lots of nested loops by hand means extra code and lots of extra small bo
 Using iterators also encapsulates all of these tracking variables into a single bundle inside the iterator: calling the `ruggrogue::word_wrap` function returns an iterator *immediately* so a `for` loop can process it all at its own pace.
 
 However, I still don't feel like this iterator approach is the easiest code to read.
-But in order to write a simpler version, Rust would need a language feature known as *generators*; look them up if you're curious.
+But in order to write a simpler version, stable Rust would need a language feature known as *generators*; look them up if you're curious.
 Still, this word wrapping code manages to perform its work on demand, avoid memory allocations and is fast enough to run every frame, so all-in-all it worked out pretty well for RuggRogue.
