@@ -88,21 +88,19 @@ RuggRogue uses wyhash to create seeds for temporary random number generators tha
 
 ## The Web Support: Emscripten
 
-Oh Emscripten, where do I begin?
-
-So the way that RuggRogue runs on the web is by telling Cargo (Rust's main build tool) to build for the `wasm32-unknown-emscripten` target.
+The way that RuggRogue runs on the web is by telling Cargo (Rust's main build tool) to build for the `wasm32-unknown-emscripten` target.
 If we ignore the `unknown`, `wasm32` is the target architecture (this would be something like `x86_64` for native), while `emscripten` is the target OS (that's `linux` if I build the game natively for myself).
 `wasm32` is the 32-bit flavor of [WebAssembly](https://webassembly.org/), which is a machine-code-like binary format that web browsers can run in a sandbox as an alternative to JavaScript.
 But WebAssembly can only muck about with memory and numbers; it has to call *host functions* to do interesting things, e.g. JavaScript functions in a web browser.
 
 This is where [Emscripten](https://emscripten.org/) enters the picture.
-Emscripten provides a whole bunch of host functions that make a WebAssembly blob believe it's running in an almost desktop-OS-like environment.
+Emscripten provides a whole bunch of host functions that make a WebAssembly blob believe it's running in a classic desktop-like environment.
 For example, Emscripten provides POSIX-like file system APIs that enable the same file system code to compile and run unmodified in a web browser as it does natively.
 Critically for RuggRogue, Emscripten implements the SDL API, so the windowing, input event handling and rendering all work in a web browser with minimal changes.
 When Emscripten works, it's like magic.
 
-But like Cinderella's pumpkin carriage reverting back into a pumpkin at the stroke of midnight, Emscripten's magic is imperfect.
-A part of it is differences imposed by the browser environment that Emscripten operates in, and isn't Emscripten's fault.
+But Emscripten's magic is imperfect.
+A part of it is differences imposed by the browser environment that Emscripten operates in, which is not its fault.
 In a native application, processes automatically share access to the CPU due to pre-emptive multi-processing managed by the operating system.
 In a browser, a tab has a single main thread, and if, say, a game runs its own main loop that never yields control back to the tab, that tab will just lock up.
 The game that wants to run in a tab can't have a real main loop.
@@ -111,7 +109,7 @@ Emscripten then runs this loop at around 60 FPS on the game's behalf.
 So everything is good, right?
 
 Unfortunately, RuggRogue has a special requirement for its own game loop.
-You see, when RuggRogue isn't handling an input event or animating something, it waits for an event, acting more like a GUI program than a game.
+When RuggRogue isn't handling an input event or animating something, it waits for an event, acting more like a GUI program than a game.
 I pored over a lot of documentation, but for the life of me I could not find a good way to get Emscripten to support this kind of execution flow.
 In order for RuggRogue to keep its own game loop while running in a browser tab without locking it up, I had to reach for a transformation known as [Asyncify](https://emscripten.org/docs/porting/asyncify.html).
 The link explains what it does better than I can here.
@@ -125,33 +123,25 @@ The result?
 RuggRogue suffers unavoidable stutter in the web version.
 There's no way around it without redoing its approach to web support entirely.
 
-Stutter is an issue, but Emscripten has a bigger one: it's versioning is, uh... interesting?
-Emscripten is made of a whole bunch of big, complex, moving parts.
+As well as the stutter, Emscripten is tricky to use with Rust in general.
 In particular, it relies on the output format of [LLVM](https://llvm.org/) tools.
-These formats are *not* stable across versions, so naturally Emscripten relies on the most recent revision of LLVM at the time of development.
-Meanwhile, Rust runs its own version of LLVM which is definitely not the most recent revision of LLVM at any given time.
-In order to correctly build an program with Rust and Emscripten, they essentially both have to be using matching versions of LLVM.
-You can get the LLVM version that Rust is using with a simple `rustc --version --verbose`.
-Funny question time: How do you get the version of LLVM that Emscripten wants?
-I don't know, and I can't find anybody else that knows either.
+These formats are *not* stable across versions, so Emscripten relies on the most recent revision of LLVM at the time of development.
+Meanwhile, Rust runs its own version of LLVM which is *not* the most recent revision of LLVM at any given time.
+In order to correctly build an program with Rust and Emscripten, they usually have to use matching versions of LLVM.
+The LLVM version used by Rust can be found using `rustc --version --verbose`, but I couldn't find how to do the same for Emscripten anywhere I searched.
 The use of version **1.39.20** is from [Therocode's blog](https://blog.therocode.net/2020/10/a-guide-to-rust-sdl2-emscripten), who I can only assume did a deep dive into the release histories of Emscripten and LLVM to discover the version number.
-Don't attempt to use the newest version of Emscripten with Rust: it most likely will not work.
+Using the newest version of Emscripten with Rust will likely not work.
 
-This doesn't even go into the weekend I spent trying to get *one* symbol to link properly due to a change in a transitive dependency.
-If you ever want to use Rust on the web, you should strongly consider taking the extra time [Rust and WebAssembly](https://rustwasm.github.io/docs.html) without the Emscripten bit.
-I don't know if it gains results any quicker, but it would dodge a lot of the headaches I mentioned above that I had to deal with.
-In Emscripten's defense, it's a toolchain designed for C and C++, and not necessarily Rust, but overall, it's a mixed bag: when it works, it's magic, but when it doesn't, it's a complete mystery.
+I would strongly consider taking the extra time to learn [Rust and WebAssembly](https://rustwasm.github.io/docs.html) without the Emscripten bit in the future.
+I don't know if it would have gained results any quicker, but it seems like it would have dodged a lot of the headaches mentioned above.
 
 ## The Migrated Off Of: Piston
 
 RuggRogue did not begin life as an SDL game; it began life as a Piston game.
-What the heck is Piston?
 [Piston](https://crates.io/crates/piston) is one of the earliest Rust game engines that existed, if not the earliest.
 I initially chose it because it seemed like the only game engine that would let me write my own game loop, and because I didn't know any better.
-RuggRogue no longer uses Piston.
 
-I'll keep this short: Don't use Piston.
-It spreads itself over dozens of sub-crates, which makes navigating its documentation a perpetual exercise in frustration.
-Just trying to figure out if what you want to do is possible in Piston is like a full-on investigation.
-It advertises access to hardware-accelerated graphics, but note that this is *not* the same as fast graphics.
-Switching from Piston to plain SDL both drastically dropped the compile time and boosted the performance of RuggRogue by *a lot* (a migration I sometimes refer to as "Operation Turbine" in retrospect).
+RuggRogue no longer uses Piston.
+Using Piston to draw a grid of characters onto the screen in the most obvious way led to extremely poor performance.
+Trawling through documentation spread out across Piston's many sub-crates did not reveal any way to improve performance, so eventually it was just dropped entirely.
+Switching from Piston to plain SDL both drastically dropped the compile time and boosted the performance of RuggRogue by *a lot*.
