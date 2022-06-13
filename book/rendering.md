@@ -5,11 +5,11 @@ This will cover the game's overall rendering strategy, the use of tile grids to 
 
 ## Rendering Strategy
 
-For a 2D tile-based roguelike game like RuggRogue, there are two common strategies to getting pixels onto the screen when considering modern video hardware.
+For a 2D tile-based roguelike game such as RuggRogue, there are two common strategies to getting pixels onto the screen when considering modern video hardware.
 There's *software rendering*, where the CPU decides what each pixel on screen should look like, then uploads the whole screen as a texture for the GPU to ultimately display.
 This is simple, but slow, especially considering that the CPU also has to deal with game logic.
 On the other hand, there's the *hardware rendering* approach using *texture atlasses*, where tilesets are uploaded for the GPU in advance and the CPU feeds data buffers that describe where said tiles should be displayed on screen for the GPU.
-This is much faster than the software approach, but a fair bit more complex, on top of of requiring an API that provides the ability to graphics pipelines with custom shaders.
+This is much faster than the software approach, but a fair bit more complex, on top of of requiring an API that can create graphics pipelines with custom shaders.
 
 Instead of either of those things, RuggRogue adopts a *hybrid rendering* strategy that combines elements of both software and hardware rendering.
 The game breaks down what it wants to display on screen into tile grids whose contents are rendered by the CPU in a software rendering fashion.
@@ -18,19 +18,19 @@ It then uses SDL's drawing API to arrange those tile grids on screen, which is a
 So why hybrid rendering?
 Early in development, RuggRogue rendered its grids by drawing the background of each cell as a colored rectangle, followed by the contents of the cell in the foreground color.
 This approach was unplayably slow, to the point that transitioning to pure software rendering was a noticeable performance improvement.
-The source of this slowness is fundamental approach to drawing used by many 2D games graphics libraries and engines that advertise "hardware-accelerated graphics".
+The source of this slowness is the approach to drawing used by many 2D graphics libraries and game engines that advertise "hardware-accelerated graphics".
 These libraries and engines provide ad-hoc drawing APIs where, at any time, the CPU can tell the GPU to draw something.
-This ad-hoc drawing approach is also known as *immediate mode drawing*, which is impossible for accelerated graphics hardware to handle quickly.
+This approach is known as *immediate mode drawing*, which is impossible for accelerated graphics hardware to handle quickly.
 Any 2D drawing API that doesn't use or allow the creation of a graphics pipeline to feed data into shaders will be slow in this way.
 SDL's bundled drawing API, like many others, falls in this performance pit.
-SDL provides an OpenGL escape hatch, but OpenGL is it's own can of worms that I didn't feel like dealing with when I just wanted to get things on screen fast.
+SDL provides an OpenGL escape hatch, but OpenGL is its own can of worms that I didn't feel like dealing with when I just wanted to get things on screen fast.
 
 SDL's immediate mode drawing approach isn't useless though.
 SDL's drawing API in general avoids the complexity of graphics APIs that require the creation of full-blown graphics pipelines, shader compilation and linking.
 It also only really suffers performance issues when it's used to draw a lot of small things; it's actually quite fast when drawing a few large things instead.
 In RuggRogue, these large things are tile grids, and this is how the hybrid rendering strategy came to be.
 It's probably not as fast as a proper graphics pipeline, but it's much simpler to put together.
-It also separates the drawing of the contents of a tile grid independent of where and how it's shown on screen, which makes drawing and arranging tile grids on screen easier.
+It also separates the drawing of the contents of a tile grid from where and how it's shown on screen, which makes drawing and arranging tile grids on screen easier.
 
 Just before diving into the rest of this, there a couple of SDL-specific things to keep in mind.
 SDL's drawing API stores image data in two ways: surfaces and textures.
@@ -78,7 +78,7 @@ Image data is stored in row-major order, so this arrangement ensures that the di
 To support recoloring, tile image data is stored in grayscale.
 The grayscaling process occurs in the `Tileset::transfer_tiles` function.
 A "grayness" value is calculated from the input image data.
-A "grayness of zero is set to transparent black, while anything else is set to white with "grayness" serving as alpha.
+A "grayness" of zero is set to transparent black, while anything else is set to white with "grayness" serving as alpha.
 
 The job of rendering tile image data onto a surface is done by the `Tileset::draw_tile_to` function.
 If you read the source code of this function, you'll notice references to `CellSym` and `text_fallback`.
@@ -113,9 +113,9 @@ The purpose of `GameSym` is to provide distinct symbolic names to tile appearanc
 This allows drawing code to use these symbolic names to represent tile appearances in a flexible manner.
 
 `TileGridView` is defined just above `TileGrid` in `src/lib/tilegrid.rs`.
-It holds the position, size and offset within a bounding box in which its holding `TileGrid` will be clipped.
+It holds the position, size and offset within a bounding box in which its `TileGrid` owner will be clipped.
 The `color_mod` field alters the color of the whole tile grid at display time, which is mainly used to dim tile grids associated with inactive background modes.
-It also holds an integer zoom factor that the options menu can alter to separately apply zooming to the map and the user interface.
+It also holds an integer zoom factor that the options menu can alter to zoom the map and the user interface.
 
 ## The Rendering Process
 
@@ -130,8 +130,8 @@ To make this process easier to understand, I'll switch to these specific terms t
 **Drawing** is the first thing that happens when the game wants something to appear on screen.
 Drawing happens through the public functions of `TileGrid`, such as `TileGrid::print` and `TileGrid::put_sym_color`.
 These functions are called from the `draw` functions of modes that can typically be found at the bottom of any of the files in the `src/modes/` directory.
-Map rendering specifically occurs near the bottom of `src/chunked.rs`; a file that is covered in its own section a bit later.
-Entity rendering happens in the deceptively-named `src/render.rs` file that, despite its name, only handles entity drawing and not rendering in these terms.
+Map drawing specifically occurs near the bottom of `src/chunked.rs`; a file that is covered in its own section a bit later.
+Entity drawing happens in the deceptively-named `src/render.rs` file that, despite its name, only handles entity 'drawing' and not 'rendering' in these terms.
 The `TileGrid` drawing functions dispatch to similar functions in `RawTileGrid` that perform the actual drawing by setting the cell (a character or symbol) along with its foreground and background colors.
 
 **Rendering** is how cells are turned into pixel data.
@@ -143,11 +143,11 @@ If a tile doesn't change, it doesn't get rendered.
 The end of `TileGrid::render` updates the back grid with the contents of the front grid in preparation for the next frame.
 
 **Uploading** occurs after rendering to update the contents of the tile grid's GPU-side texture with its CPU-side rendered buffer.
-This is the `texture.update(...)` part of the `TileGrid::display` function, which is an SDL-provided function.
+This is the `texture.update(...)` part of the `TileGrid::display` function, provided by SDL.
 
 **Displaying** the uploaded tile grid texture is, unsurprisingly, the job of the `TileGrid::display` function.
 The main loop all the way over in `src/lib/run.rs` goes through all of the tile grid layers in its `layers` vector, and then calls this function on each tile grid in each layer.
-The majority of the `TileGrid::display` function is dedicated to calculating where and how the tile grid should appear on screen and call `canvas.copy(...)` to put the tile grid texture on screen.
+The majority of the `TileGrid::display` function is dedicated to calculating where and how the tile grid should appear and calling `canvas.copy(...)` to put the tile grid texture on screen.
 This is what happens in the straightforward case, but if you read the code in this function you'll notice there's a lot more going on.
 Why are there four separate calls to `canvas.copy`?
 In order to understand this, I'm going to need to go into the technique I've used here that I call "wrapped offset rendering".
@@ -163,20 +163,20 @@ Rendering multiple shifted dungeon tiles versus a single player tile seems prett
 There must be some way to render only the player and their immediate surroundings while avoiding the need to render most of the visible dungeon tiles again.
 
 What if, when the player moves one tile to the right, we *offset* all drawing one tile to the right internally as well?
-This would normally cause drawing in the far right cell columns to overflow, so we need to *wrap* them over to the now unused left cell columns instead.
+This would normally cause drawing in the far right cell columns to overflow, so we need to *wrap* them over to the now-unused left cell columns instead.
 The rendering phase will pick up that the player has moved one tile to the right, while the dungeon map remains stationary.
 But the whole point of drawing the player at the center of the screen is, well, to have them centered.
 
 This is where we get clever.
-At display time, we undo the offset that was set when drawing, so the player that was drawn a tile over to tile to the right is shifted a tile back to the left, thus recentering everything.
-The wrapped column of cells that were drawn in the left column can then be split off and displayed over on the right side, where they were originally intended to be.
+At display time, we *undo* the offset that was set when drawing, so the player that was drawn a tile over to the right is shifted a tile *back* to the left, thus recentering everything.
+The wrapped column of cells that was drawn in the left column can then be split off and displayed over on the right side, where they were originally intended to be.
 Presto!
 We only had to render the player and immediate surroundings again, while the rest of the dungeon tiles can be skipped during rendering.
 It is this central idea that underpins what I call *wrapped offset rendering*.
 
 As you can probably guess from the example, wrapped offset rendering is used to reduce the number of dungeon tiles that need to be rendered when the player moves around.
 The tile grid representing the dungeon map is given the player's position via its `TileGrid::set_draw_offset` function, which immediately passes it over to `RawTileGrid::set_draw_offset`, since the `RawTileGrid` handles drawing.
-The `RawTileGrid::index` function underpins how all drawing functions see the grid cell storage, and this is where the offset and wrapping are applied to affect drawing operations.
+The `RawTileGrid::index` function underpins how all drawing functions 'see' the grid cell storage, and this is where the offset and wrapping are applied to affect drawing operations.
 Meanwhile, the rendering process is blind to all of this offset business and renders whatever it sees.
 
 This sets the stage for understanding why `TileGrid::display` calls `canvas.copy` (up to) four separate times.
@@ -189,7 +189,7 @@ These additional calls take wrapped rows and columns of the grid and put them on
 If you're considering using this wrapped offset rendering technique in your own projects, there's a couple of points to keep in mind.
 First, this is probably only really effective for software rendering and not hardware rendering, since graphics hardware renders all pixels every frame anyway.
 Second, this approach won't work as well if tiles are constantly changing, like if they're being animated.
-It is the unique combination of partial software rendering, a player-centric camera and a mostly static dungeon that make wrapped offset rendering an effective performance improving technique for RuggRogue.
+It is the unique combination of partial software rendering, a player-centric camera and a mostly static dungeon that makes wrapped offset rendering an effective performance-improving technique for RuggRogue.
 
 In order for wrapped offset rendering to work, it needs an appropriate offset.
 This happens early on in the `ChunkedMapGrid::draw` function in the `src/chunked.rs` file, which feeds the top-left corner of the top-left map chunk on screen into `TileGrid::set_draw_offset`, and all is well.
@@ -201,7 +201,7 @@ Wait, what's a "chunk"?
 ## Improving Map Drawing Performance with Chunked Drawing
 
 It turns out that the performance rabbit hole goes even deeper than mere wrapped offset rendering.
-Some time after I had finished work on getting wrapped offset rendering into a function state, I found myself profiling the web version of the game.
+Some time after I had finished work on getting wrapped offset rendering into a functioning state, I found myself profiling the web version of the game.
 Performance still wasn't great at this time, and I wanted to know why.
 What I saw in the profile data stuck out to me: *drawing* of the map was dominating execution time.
 Not rendering, where all the pixels of each tile have to be handled, but just deciding what tiles were going to look like to begin with?
@@ -233,11 +233,11 @@ There are two values we need to know in order to calculate how much to shift the
 1. the pixel width of the screen, halved
 2. the x-value of the central pixel of the tile relative to the left edge of the map tile grid
 
-The latter value is the sum of the pixels between the central chunk and the left edge, and the pixels between the center of the camera tile and the left edge of the central chunk in which is resides.
+The latter value is the sum of the pixels between the central chunk and the left edge, and the pixels between the center of the camera tile and the left edge of the central chunk in which it resides.
 The difference between those two values is computed early in the `ChunkedMapGrid::draw` function and stored in `grid.view.dx` in order to shift the grid the correct amount.
 A similar process is used to fill `grid.view.dy` as well, substituting "x" with "y" and "width" with "height".
 
-With size and position sorted, the next thing to sort out is which screen chunk shows which map chunk.
+With size and position sorted, the next thing to work out is which screen chunk shows which map chunk.
 This is the job of the `screen_chunks` field of the `ChunkedMapGrid` struct.
 This is a vector of `ScreenChunk` structs that holds metadata for each chunk of the map tile grid that needs to be filled in.
 Screen chunks are stored in this vector in row-major order, so `0` is the top-left 8-by-8 chunk of grid cells, `1` would be next to it on the right, and so on.
@@ -246,7 +246,7 @@ Map chunks are stored as pairs of integers, but the idea is the same as for scre
 
 The screen chunks are filled with map chunk data by figuring out which map chunk the top-left screen chunk should be showing, and populating the other screen chunks from there.
 This is the task of the `ChunkedMapGrid::screen_top_left_map_chunk` function.
-It takes the tile position of the camera on the map, and subtracts half a screen's width and height worth in tiles from it; whatever map chunk it lands in is assigned to be shown in the top-left screen chunk.
+It takes the tile position of the camera on the map, and subtracts half a screen's width- and height-worth of tiles from it; whatever map chunk it lands in is assigned to be shown in the top-left screen chunk.
 
 Each screen chunk is accompanied by a `dirty` flag.
 When map chunks are assigned to a screen chunk, the new map chunk value is compared against the existing value remembered by the screen chunk.
@@ -277,7 +277,5 @@ I'm really happy about how this all turned out.
 
 If you've read this far, congratulations.
 `src/lib/tilegrid.rs` is the longest source code file in the game, and `src/chunked.rs` is probably the most complicated.
-Future chapters shouldn't be anywhere near as long or detailed as this one.
-Hopefully this gives an idea about how 2D tile grid rendering works overall, and some hints about what's involved in putting one together.
-
-I apologize for any grammatical errors in this chapter; I can't bring myself to proof-read all of this.
+Future chapters shouldn't be anywhere near as complicated as this one.
+Hopefully this gives an idea about how 2D tile grid rendering works overall, and some hints about what's involved in pulling it all together.
