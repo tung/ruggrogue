@@ -10,6 +10,9 @@ edition = "2018"
 # Benchmark and print updates/frames per second to standard error.
 fps = []
 
+[profile.release]
+strip = true
+
 [dependencies]
 bitflags = "1.0"
 bitvec = "0.21"
