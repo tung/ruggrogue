@@ -35,8 +35,6 @@
     <script>
         var Module = {
             'locateFile': function (path, prefix) {
-                // For easy local testing.  Just put .data files next to
-                // everything else and remove this branch when hosting.
                 if (path.endsWith(".data")) {
                     return prefix + "deps/" + path;
                 }
