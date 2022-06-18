@@ -1,42 +1,60 @@
 # RuggRogue
 
-RuggRogue is a simple but complete roguelike written in Rust with SDL2, playable native or in a web browser in WebAssembly form with the help of Emscripten.
-It was made primarily as a learning exercise after following the [Rust roguelike tutorial](http://bfnightly.bracketproductions.com/), but wanting to work around a couple of issues that could only be solved by starting from scratch and writing an engine by hand.
+Fight monsters and find loot as you battle your way to the bottom of the dungeon!
+Play the game [in your web browser](https://tung.github.io/ruggrogue/play/), or download it for Windows or Linux [at GitHub in the Releases section](https://github.com/tung/ruggrogue/releases).
+
+RuggRogue is a simple, complete roguelike inspired by the first part of the [Rust Roguelike Tutorial](http://bfnightly.bracketproductions.com/).
+Despite this, it's made from scratch using [SDL2](https://libsdl.org) (with [Emscripten](https://emscripten.org) for the web port), without any game engine or roguelike helper libraries.
+The source code can be found [at GitHub](https://github.com/tung/ruggrogue).
+Roguelike developers may also want to see the [RuggRogue Source Code Guide](https://tung.github.io/source-code-guide/); a 20-odd chapter technical web book about the development, ideas and code architecture of the game.
 
 ## Features
 
-* A dungeon around 20 randomly-generated levels deep.
-* 20 monsters, 10 weapons and 10 armors that spawn with increasing power at deeper levels.
-* 5 different types of consumable items.
-* Hunger mechanic with health regeneration based on fullness.
-* Tiles and ASCII graphics options, with optional 2x zoom.
-* Save and load that works even in the browser version.
-* Menu-based interface with hotkey support for common actions.
-* Auto-run that follows corridors and stops for items and stairs.
-* New game plus mode that spawns more monsters and items and more powerful equipment for successive wins.
-* The simple satisfaction of ever-increasing numbers.
+- Discover new monsters and equipment the deeper you go.
+- Hunger and regeneration: stay fed and stay healed!
+- Choose between graphical tiles and ASCII display.
+- Menu-based UI with hot keys.
+- Auto-run to quickly follow corridors and cross open space.
+- Save and load system.
+- New Game Plus mode!
 
 ## Controls
 
-The controls have been designed to be similar to other classic roguelikes for the most part.
-Like other roguelikes, simply move into monsters to attack them.
+The controls are mostly similar to many other classic roguelikes.
+Move into monsters to attack them.
 
-* **numpad, arrows, hjklyubn** - move in eight directions
-* **period, space, numpad 5** - wait a turn
-* **shift + direction** - auto-run in a direction
-* **shift + space** - rest until healed
-* **enter, shift + period (>)** - use downstairs
-* **escape** - options menu
-* **i** - inventory
-* **g, comma** - get (pick up) item
-* **d** - drop item
-* **a** - apply (use) item
-* **w, e** - wield (equip) weapon or wear armor
-* **r** - remove weapon or armor
-* **v** - enter view mode; move the cursor to describe distant tiles and move the camera around; hold shift for faster movement
+*Movement keys:*
 
-Menus can be navigated with the arrow keys, confirmed with enter and cancelled with escape.
-Item menus also support navigation keys like home, end, page up and page down.
+- **Numpad**, **Arrows**, **vi-keys** - move in eight directions
+- **Period**, **Space**, **Numpad 5** - wait a turn
+- **Shift + direction** - auto-run
+- **Shift + Space** - rest until healed
+- **Enter**, **>** (Shift + Period) - use downstairs
+
+*Other keys:*
+
+- **Esc** - options menu
+- **v** - view mode; move the cursor to view distant tiles
+
+*Item keys:*
+
+- **i** - inventory menu
+- **g**, **,** (Comma) - pick up item
+
+*Hot keys:*
+
+- **a** - apply (use) item
+- **d** - drop item
+- **w**, **e** - wield weapon or wear armor
+- **r** - remove weapon or armor
+
+*Menu keys:*
+
+- **Movement keys**, **Page Up/Page Down/Home/End** - move cursor
+- **Enter** - confirm selection
+- **Esc** - cancel
+
+Hot keys can be used in certain item menus to quickly perform actions.
 
 ## How to build the game
 
@@ -57,12 +75,12 @@ To build the web browser version:
 3. Activate `emsdk_env.sh`, then run `cargo build --target=wasm32-unknown-emscripten --release`.
 4. Follow the instructions in `index.html` to serve it from a local web server to try it out in a browser; aside from `index.html`, the relevant files are `ruggrogue.wasm`, `ruggrogue.js`, and `deps/ruggrogue.data`, which can all be found under `target/wasm32-unknown/release/`.
 
-## License
+## Licenses
 
-RuggRogue is released under the MIT License; see [LICENSE.txt](/LICENSE.txt) for the full text.
+RuggRogue is released under the [MIT License](/LICENSE.txt).
 
-The tile graphics are from the [Urizen 1Bit Tilesets by vurmux](https://vurmux.itch.io/urizen-onebit-tilesets), licensed under Creative Commons Zero; see [assets/urizen/LICENSE](/assets/urizen/LICENSE) and [assets/urizen/readme.txt](/assets/urizen/readme.txt).
+The tile graphics are from the [Urizen 1Bit Tilesets by vurmux](https://vurmux.itch.io/urizen-onebit-tilesets), licensed under [Creative Commons Zero](/assets/urizen/LICENSE).
 
 [GohuFont](https://font.gohu.org/) is licensed under the [WTFPL](http://www.wtfpl.net/about/).
 
-`assets/terminal-8x8.png` was borrowed from the assets accompanying the [Rust roguelike tutorial](http://bfnightly.bracketproductions.com/), under whatever license that the tutorial originally got the font image from.
+`assets/terminal-8x8.png` was borrowed from the assets accompanying the [Rust Roguelike Tutorial](http://bfnightly.bracketproductions.com/).
