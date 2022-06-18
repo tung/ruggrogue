@@ -56,25 +56,6 @@ Move into monsters to attack them.
 
 Hot keys can be used in certain item menus to quickly perform actions.
 
-## How to build the game
-
-First, get the source code at <https://github.com/tung/ruggrogue>
-
-To compile any version of the game, you'll need to [install Rust](https://www.rust-lang.org/tools/install).
-
-On Linux, install the development libraries for [SDL2](https://libsdl.org/) (`libsdl2-dev`) and [SDL2\_image](https://www.libsdl.org/projects/SDL_image/) (`libsdl2-image-dev`), then run `cargo build --release` to build the game, and `cargo run --release` to start playing.
-
-There's no support for building a native version of the game for Windows out of the box.
-The easiest way would probably be to alter `Cargo.toml` to fetch and build SDL2 and SDL2\_image into a static binary using cargo-vcpkg according to the [rust-sdl2 instructions](https://github.com/Rust-SDL2/rust-sdl2#windows-linux-and-macos-with-vcpkg).
-If anybody can try this and test that it works, patches are welcome.
-
-To build the web browser version:
-
-1. Start by running `rustup target add wasm32-unknown-emscripten` to install the WebAssembly + Emscripten target for Rust.
-2. Next, install version **1.39.20** of [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) using emsdk; *newer versions will not work*.
-3. Activate `emsdk_env.sh`, then run `cargo build --target=wasm32-unknown-emscripten --release`.
-4. Follow the instructions in `index.html` to serve it from a local web server to try it out in a browser; aside from `index.html`, the relevant files are `ruggrogue.wasm`, `ruggrogue.js`, and `deps/ruggrogue.data`, which can all be found under `target/wasm32-unknown/release/`.
-
 ## Licenses
 
 RuggRogue is released under the [MIT License](/LICENSE.txt).
