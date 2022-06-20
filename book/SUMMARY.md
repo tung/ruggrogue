@@ -1,6 +1,5 @@
 # Summary
 
-[TODO](todo.md)
 [Introduction](introduction.md)
 
 - [Dependencies](dependencies.md)
