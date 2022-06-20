@@ -5,21 +5,19 @@ In order to complete the game in a reasonable time frame, I had to make use of s
 
 ## The Language: Rust
 
-Many words have been spilled extolling the virtues of Rust as a programming language, so I'll stick to general points on how it relates to RuggRogue.
+A lot has been said about the benefits of Rust as a programming language, so I'll stick to general points on how it relates to RuggRogue.
 When I was starting out, there were two things I wanted out of whatever I was going to build the game out of: correctness and performance, and I was willing to take the extra time to make them happen.
 In those ways, Rust was a perfect fit for the project.
 
-On the correctness front, Rust's strong type system provided a robust foundation for structuring the game.
-Not only that, but it allowed for bold code improvements that I would never have attempted without it; code that would otherwise needed whole rewrites or been left in a sub-par state.
-My attitude towards bugs is to catch them early and eliminate them with extreme prejudice, and Rust's type and safety checks detect most low-level bugs pretty much as early as possible.
-People complain about Rust's slow compilation times, but if I had to choose between the compiler wasting time checking stuff, or me wasting time chasing down subtle bugs in code I last touched six months ago I have virtually no memory of, I'll take slow compiles every single time.
-Wasting my computer's time is way better than wasting my brain's time.
+On correctness, Rust's strong type system provided a robust foundation for structuring the game.
+It also allowed for bold code improvements that I would never have attempted without it; code that would otherwise needed whole rewrites or been left in a sub-par state.
+My attitude towards bugs is to catch and eliminate them early, and Rust's type and safety checks detect most low-level bugs pretty much as early as possible.
 
-As for performance, I generally dislike any software that uses more CPU and memory than it needs to do its job.
-There's a lot of software like that nowadays everywhere due to developers working under time pressure, but it still feels disrespectful to waste the time and resources of so many users to save some time for a few developers.
+As for performance, I dislike any software that uses more CPU or memory than it needs to do its job.
+There's lots of software like that nowadays everywhere due to developers working under time pressure, but it still feels disrespectful to waste the time and resources of so many users to save some time for a few developers.
 But thanks to Rust, RuggRogue doesn't have to join their ranks.
 It still takes time and effort to improve performance, but the result is a game that doesn't feel awful to have open.
-I don't know if anybody else cares, even most of the players, but that is extremely satisfying to me.
+I don't know if anybody else cares, even most of the players, but that's very satisfying to me.
 
 Aside from correctness and performance, Rust's tooling and standard library served the creation of RuggRogue very well.
 
@@ -31,7 +29,7 @@ RuggRogue uses the following crates to do handle various things it doesn't alrea
 ### bitflags
 
 [bitflags](https://crates.io/crates/bitflags) enables the creation of compact bitmask values with symbolic names.
-RuggRogue uses it to encode the state of the Shift, Ctrl and Alt modifier keys in a single value that the game logic can later check.
+RuggRogue uses it to encode the state of the Shift, Ctrl and Alt modifier keys in a single value that the game logic can check later.
 
 ### bitvec
 
@@ -48,7 +46,7 @@ RuggRogue uses these crates to generate random numbers for level generation, ite
 ### sdl2
 
 [sdl2](https://crates.io/crates/sdl2) or "Rust-SDL2" as the crate refers to itself provides access to [SDL](https://libsdl.org/).
-SDL itself is a library that provides access to windows, input events and display to hardware-accelerated video output in a cross-platform manner, which is exactly what RuggRogue uses it for.
+SDL itself is a library that provides access to windows, input events and display in a cross-platform manner.
 RuggRogue enables the `image` feature to load PNG files for tiles and ASCII symbols.
 
 SDL is the only non-Rust external dependency of RuggRogue, which has interesting implications.
@@ -58,17 +56,16 @@ On top of that, it means that unoptimized debug builds of RuggRogue run almost a
 There is one big downside to using a non-Rust dependency in a Rust project, which is that it forces other developers who want to build the game to install SDL themselves; a task that requires some specialized platform-specific knowledge.
 It's easiest on Linux, which is what I developed RuggRogue on: a package manager installs SDL2 and SDL2\_image in a standard location, Rust knows how to look in that standard location, and everything is flowers and sunshine.
 It's hardest on Windows, which is used by almost 90% of people with a computer, since there's no standard location for development packages, so tools have no idea how to cooperate without messing with paths and deciphering cryptic error messages when you inevitably screw it up.
-The web build of RuggRogue is not only convenient in general, but is an escape hatch to allow people on Windows the chance to play the game.
 
 ### serde, serde\_json
 
 [serde](https://crates.io/crates/serde) provides plumbing and infrastructure to enable serialization and deserialization of data structures.
 [serde\_json](https://crates.io/crates/serde_json) uses that plumbing to convert data to and from the JSON text-based data format.
-RuggRogue uses these crates to convert its data structure into JSON when saving the game to a file, and convert them back out when loading a saved game from a file.
+RuggRogue uses these crates to convert its data structures into JSON when saving the game to a file, and convert them back out when loading a saved game from a file.
 
 ### shipyard
 
-[shipyard](https://crates.io/crates/shipyard) is an Entity Component System (or "ECS") crate; that is, it provides:
+[shipyard](https://crates.io/crates/shipyard) is an Entity Component System (or "ECS") crate that provides:
 
 1. data storage in the form of entities with data components attached,
 2. systems that are functions that run on subsets of entities based on which components they have, and
@@ -77,7 +74,7 @@ RuggRogue uses these crates to convert its data structure into JSON when saving 
 However, RuggRogue only uses the entity-and-component data storage of Shipyard, and mostly uses conventional functions, reaching for systems only when convenient and avoiding workloads entirely.
 This avoids having lots of message queues to do cross-system communication, and thus a lot of red tape, since systems can't directly call other systems in the classic ECS arrangement.
 On the other hand, I have to carefully handle every function call, every branch and every loop to make sure everything runs at exactly the right time, and the right number of times, which the flat and linear model of system-based workloads sidesteps entirely.
-My EC-only approach isn't necessarily better than the full ECS approach, but it makes it very different to what it otherwise would have been.
+My "EC-only" approach isn't necessarily better than the full ECS approach, but it makes it very different to what it otherwise would have been.
 
 ### wyhash
 
@@ -93,18 +90,18 @@ If we ignore the `unknown`, `wasm32` is the target architecture (this would be s
 `wasm32` is the 32-bit flavor of [WebAssembly](https://webassembly.org/), which is a machine-code-like binary format that web browsers can run in a sandbox as an alternative to JavaScript.
 But WebAssembly can only muck about with memory and numbers; it has to call *host functions* to do interesting things, e.g. JavaScript functions in a web browser.
 
-This is where [Emscripten](https://emscripten.org/) enters the picture.
+This is where [Emscripten](https://emscripten.org/) comes in.
 Emscripten provides a whole bunch of host functions that make a WebAssembly blob believe it's running in a classic desktop-like environment.
 For example, Emscripten provides POSIX-like file system APIs that enable the same file system code to compile and run unmodified in a web browser as it does natively.
 Critically for RuggRogue, Emscripten implements the SDL API, so the windowing, input event handling and rendering all work in a web browser with minimal changes.
 When Emscripten works, it's like magic.
 
 But Emscripten's magic is imperfect.
-A part of it is differences imposed by the browser environment that Emscripten operates in, which is not its fault.
+A part of it is differences imposed by the browser environment that Emscripten operates in.
 In a native application, processes automatically share access to the CPU due to pre-emptive multi-processing managed by the operating system.
 In a browser, a tab has a single main thread, and if, say, a game runs its own main loop that never yields control back to the tab, that tab will just lock up.
-The game that wants to run in a tab can't have a real main loop.
-Instead, it has to be code-adapted to run just a single iteration of its main loop, and have Emscripten yield control to the browser.
+A game that wants to run in a tab can't have a real main loop.
+Instead, it has to be adapted to run just a single iteration of its main loop, and have Emscripten yield control to the browser.
 Emscripten then runs this loop at around 60 FPS on the game's behalf.
 So everything is good, right?
 
@@ -113,11 +110,10 @@ When RuggRogue isn't handling an input event or animating something, it waits fo
 I pored over a lot of documentation, but for the life of me I could not find a good way to get Emscripten to support this kind of execution flow.
 In order for RuggRogue to keep its own game loop while running in a browser tab without locking it up, I had to reach for a transformation known as [Asyncify](https://emscripten.org/docs/porting/asyncify.html).
 The link explains what it does better than I can here.
-Unfortunately, it's pretty invasive transformation with a high CPU cost, so ironically I have to waste CPU in order to save CPU.
-The CPU savings occur when the player is idle, though, so in my opinion it's still a net win.
+Sadly, it's a pretty invasive transformation with a high CPU cost, but it allows CPU savings to occur when the player is idle, so it's still a net win.
 
 Asyncify saves CPU by substituting `sleep` calls that RuggRogue makes during its main loop with the browser's [setTimeout](https://developer.mozilla.org/en-US/docs/Web/API/setTimeout) JavaScript function.
-But here's the stinger: native RuggRogue relies on fine-grained `sleep` calls for smooth gameplay, but [setTimeout has delays](https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#reasons_for_delays) when called repeatedly in a deep call stack.
+But there's a problem: RuggRogue relies on fine-grained `sleep` calls for smooth gameplay, but [setTimeout has delays](https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#reasons_for_delays_longer_than_specified) when called repeatedly in a deep call stack.
 It just so happens that the Asyncify transformation leads to very deep call stacks.
 The result?
 RuggRogue suffers unavoidable stutter in the web version.
@@ -127,9 +123,9 @@ As well as the stutter, Emscripten is tricky to use with Rust in general.
 In particular, it relies on the output format of [LLVM](https://llvm.org/) tools.
 These formats are *not* stable across versions, so Emscripten relies on the most recent revision of LLVM at the time of development.
 Meanwhile, Rust runs its own version of LLVM which is *not* the most recent revision of LLVM at any given time.
-In order to correctly build an program with Rust and Emscripten, they usually have to use matching versions of LLVM.
+In order to correctly build a program with Rust and Emscripten, they usually have to use matching LLVM versions.
 The LLVM version used by Rust can be found using `rustc --version --verbose`, but I couldn't find how to do the same for Emscripten anywhere I searched.
-The use of version **1.39.20** is from [Therocode's blog](https://blog.therocode.net/2020/10/a-guide-to-rust-sdl2-emscripten), who I can only assume did a deep dive into the release histories of Emscripten and LLVM to discover the version number.
+The use of version **1.39.20** is from [Therocode's blog](https://web.archive.org/web/20210618192808/https://blog.therocode.net/2020/10/a-guide-to-rust-sdl2-emscripten), who I can only assume did a deep dive into the release histories of Emscripten and LLVM to discover the version number.
 Using the newest version of Emscripten with Rust will likely not work.
 
 I would strongly consider taking the extra time to learn [Rust and WebAssembly](https://rustwasm.github.io/docs.html) without the Emscripten bit in the future.
