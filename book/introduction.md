@@ -1,43 +1,110 @@
 # Introduction
 
-RuggRogue is a simple classic roguelike made with little more than [Rust](https://www.rust-lang.org) and [SDL2](https://libsdl.org).
-RuggRogue can be played in a web browser or be built to be played natively; for more information, check out the [git repo](https://github.com/tung/ruggrogue).
+Welcome to the *RuggRogue Source Code Guide*!
+This is a web book describing the internal workings of [RuggRogue](https://tung.github.io/ruggrogue/): a simple, complete roguelike inspired by the first part of the [Rust Roguelike Tutorial](https://bfnightly.bracketproductions.com).
+Unlike that tutorial, however, it's made without the help of any game engine or roguelike helper libraries, instead relying on [SDL2](https://libsdl.org), with [Emscripten](https://emscripten.org) for the web port.
 
-This guide is companion to the source code of the game.
-The reason that this exists was that I released the game as open source under the MIT License, hoping that it would serve as a useful case study of how to make a simple roguelike without leaning on roguelike helper libraries that are commonly used by beginner roguelike tutorials.
-However, most people interested in making their own roguelike are already too busy with their own code to make sense of somebody else's, so the raw release of the source code of RuggRogue by itself wouldn't help them that much.
-For those want to learn from the RuggRogue source code, this guide should make it easier to approach.
-For those who are just curious about how a simple roguelike works, this guide also covers how the game solves various problems such as rendering, word wrapping, map generation and auto-run.
+RuggRogue itself plays out like many other roguelikes: You fight your way down a procedurally generated dungeon through ever-stronger monsters.
+Along the way you'll find weapons, armor and magical items that will aid you in your quest.
 
-Before getting into this, there's one last thing I'd like to mention.
-RuggRogue is my first non-trivial Rust project, and I was fairly new to Rust when I started, with little more than the [Rust Book](https://doc.rust-lang.org/book/) and part of the [Rust Roguelike Tutorial](bfnightly.bracketproductions.com/) under my belt.
-Despite going to the effort of writing this source code guide, RuggRogue is not a model of what a perfect Rust project should look like.
-It is the product of my desire to create a complete game with a scope larger than a tutorial or a tech demo.
-As such, there are places where the code and structure are technically functional but awkward, which had to be left as-is in the name of finishing the project without burning extra months on it.
-The code could be better, but then it also wouldn't be complete or released either.
+The source code of RuggRogue can be found at [its GitHub repository](https://github.com/tung/ruggrogue).
+It consists of thirteen thousand lines of Rust code across forty four files.
+How does it all fit together?
+Read on and find out!
 
-## Overview
+## About this Book
 
-Here's a sneak peak at what this guide covers:
+RuggRogue is a relatively small open source game, so in theory everything about how it works could be learned by simply reading its source code.
+However, the code is arranged for the computer to run first and foremost, so broad ideas are obscured by a vast sea of details.
+The aim of this book is to highlight these ideas, from a high-level perspective all the way down to how they translate into functions and variables.
 
-- **Dependencies** talks about the stuff that RuggRogue leans on to do things outside of its development scope, but still need to be handled.
-- **Source Code Layout** gives a brief overview of why each file exists.
-- **Overall Game Flow** provides a bird's eye view of how the game goes from launch to its game loop, managing control flow through what I refer to as a "mode stack".
-- **Event Handling** describes how the game reacts to events such as keyboard input and the game window being resized or closed.
-- **Rendering** covers how the game displays graphical output using a home-grown system of tile grids, as well as making it all run fast enough to not feel terrible to play.
-- **User interface** explains how menus and dialogs work, how the main game screen is drawn and how a request to close the application is handled.
-- **Word Wrapping** is about how to break any line of more than a couple of words into multiple lines that fit within a given width.
-- **Entity Component System** describes Shipyard and how RuggRogue uses it to store and access its game data.
-- **Game Data** provides a run-down of the data that constitutes the game and how it's managed.
-- **Saving and Loading** talks about the save file format, the game's approach to loading and save persistence for the web version.
-- **Field of View** goes over the game's approach to high performance field of view calculation.
-- **Pathfinding** is exactly as it says on the tin, but also covers mitigations and fallback pathfinding if a direct path can't be found in a reasonable number of steps.
-- **Randomness** is about how the game uses seeds, magic numbers and hashing to leverage RNGs that seem random but aren't.
-- **Map Generation** discusses the placement of rooms and corridors in maps.
-- **Map Population** follows on from map generation with the topic of filling empty maps with things like monsters and items.
-- **Auto-Run** goes over how the game moves automatically for the player when they hold Shift and press a direction.
-- **Turn Order and Combat** covers how the player and monsters take turns, as well as damage and in particular avoiding the zero damage problem.
-- **Items** provides an overview of how items like consumables and equipment work.
-- **Hunger and Regeneration** discusses how the game tracks hunger and the book-keeping it does to gradually restore health over time.
-- **Experience and Difficulty** goes into the game's numeric approach to balance: something that would otherwise be done by hand and is often omitted entirely by roguelike tutorials.
-- **New Game Plus** talks about what happens when the player wins, both in terms of gameplay and technical details.
+Studying the code architecture of RuggRogue is interesting for a few reasons.
+The game is directly inspired by the numerous roguelike tutorials that can found across the Internet, but it goes beyond them in a number of ways.
+It directly implements algorithms that tutorials typically provide canned solutions to, such as field of view and pathfinding.
+It also answers questions that such tutorials typically leave as an exercise to the reader, such as game balance, word wrapping and auto-run.
+
+At the same time, RuggRogue is a complete game with a limited scope that doesn't go too much further than those roguelike tutorials.
+A person who has followed one of them has a realistic chance of learning from the RuggRogue source code without being overwhelmed.
+
+Finally, RuggRogue's source code architecture differs quite a bit from most roguelike tutorials.
+RuggRogue arranges a lot of its logic into *game states* with an explicit *game state stack* (internally referred to as *"modes"* and *"the mode stack"*).
+This allows different screens and menus to keep their data and the code very close together.
+This technique is hard to find in roguelike tutorials, but it's described in this book.
+
+## Who is this Book for?
+
+This book is written for programmers, so prior knowledge is assumed for things like variables, branches, loops, functions and basic data structures such as stacks, vectors and hash maps.
+
+The game is written in the Rust programming language, but I try to keep it simple, so Rust knowledge is helpful to follow along but not mandatory.
+Readers coming from other programming languages may want to look up Rust topics such as *traits* (like interfaces in other languages), *modules*, *pattern matching* and *iterators*.
+
+If you're an aspiring roguelike developer, this book will give you broad idea of the scope of a roguelike.
+Reading a chapter in detail should serve as useful guidance as to how to implement features yourself.
+
+If you're developing a roguelike yourself already, this book should serve as an interesting case study to compare and contrast your existing approaches to various features.
+You may stumble across ideas you hadn't thought of to enhance the game you're working on.
+
+If you're a programmer that's curious about game development in general, this book will shed some light on how a game functions under the hood.
+Everything game-related must be handled by the source code, since there's no game engine for anything to hide in.
+
+## How to Read this Book
+
+Each chapter of the book is more or less standalone, so they can mostly be read in any order.
+There are a few cross-references, most of which point backwards.
+
+Chapters vary in balance between describing high-level ideas and fine-grained technical details.
+Unfortunately, the early chapters are fairly detail-heavy due to establishing the technical base upon which all of the (hopefully) fun gameplay is built upon.
+If it becomes too much to bear, feel free to skip the chapter and come back later.
+
+In all of the chapters, there are many references to the names of files, functions, variables and other code-specific things.
+You'll get the most out of this book with the source code handy in another window.
+
+On the other hand, if you're not interested in juggling the game's source code while reading the book, you can still skim the chapters just for the ideas and skip over the source code references.
+
+## Chapter Overview
+
+[**Dependencies**](dependencies.md): The technology, libraries and tools used to create the game.
+
+[**Source Code Layout**](source-code-layout.md): The location and purpose of each file and directory of the source code.
+
+[**Overall Game Flow**](overall-game-flow.md): Game initialization, game loop and mode (game state) stack.
+
+[**Event Handling**](event-handling.md): Handling of external events such as player input, window resizing and closing.
+
+[**Rendering**](rendering.md): Drawing grids of tiles onto the screen and performance-improving techniques.
+
+[**User Interface**](user-interface.md): How menus work and screens are laid out.
+
+[**Word Wrapping**](word-wrapping.md): How long lines of text are broken up to fit inside a limited space.
+
+[**Entity Component System**](entity-component-system.md): How data is stored, retrieved and modified.
+
+[**Game Data**](game-data.md): The different types of data components and how entities are created and destroyed.
+
+[**Saving and Loading**](saving-and-loading.md): What save files look like and how they work.
+
+[**Field of View**](field-of-view.md): Determining which tiles the player and monsters can see using shadow casting.
+
+[**Pathfinding**](pathfinding.md): A\* search algorithm for finding paths between points, its uses and subtleties.
+
+[**Randomness**](randomness.md): Pseudo-random number generation, seeds and reproducibility of results.
+
+[**Map Generation**](map-generation.md): Data structures and logic for randomly laying out rooms, corridors and stairs.
+
+[**Map Population**](map-population.md): Placement of the player, monsters and items in freshly-generated maps.
+
+[**Auto-Run**](auto-run.md): Implementing the smart directional "auto-run" movement command that follows corridors and crosses open space.
+
+[**Turn Order and Combat**](turn-order-and-combat.md): Monster turns, melee combat, damage formula and death handling.
+
+[**Items**](items.md): List of items, spawn rates, item-related data structures, menus and usage logic.
+
+[**Hunger and Regeneration**](hunger-and-regeneration.md): How hunger fits into the rest of the game and its link to regeneration.
+
+[**Experience and Difficulty**](experience-and-difficulty.md): Game balance, numeric progression and pacing the flow of new monsters, weapons and armor.
+
+[**Monsters**](monsters.md): Mini-chapter with a list of monsters and cross-references to other chapters about how they work.
+
+[**New Game Plus**](new-game-plus.md): Gameplay and implementation details of how successive wins change play-throughs.
+
+[**Options**](options.md): The options menu and how option changes are reflected in real-time.

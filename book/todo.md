@@ -1,7 +1,23 @@
 - **Intro**
-  - What is this doc?
-  - Who is it for?
-  - What does it cover?
+  - Describe the game
+    - Link the game
+    - Describe the source and tech
+  - Describe the book
+    - Case study of a roguelike built without a game engine or any roguelike helper libraries
+    - Focus: describe how ideas translate into source code, files, functions and variables
+  - Who is the book for?
+    - Roguelike developers
+      - Aspiring: Learn how a roguelike works in practice.
+      - Current: Compare and contrast implementation approaches with their own games.
+    - Programmers curious about one way to make a game without a game engine.
+  - How to read the book
+    - Chapters are mostly standalone
+      - Chapter cross-references usually point backwards
+      - Chapters vary in balance between ideas vs. details
+    - In general, many references to names of files, functions and variables
+      - Gain the most from reading with source code open in another window
+      - If not, text can still be skimmed for ideas
+  - Chapter overview
 - **Dependencies**
   - bitflags
   - bitvec
