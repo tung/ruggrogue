@@ -80,6 +80,8 @@ On the other hand, if you're not interested in juggling the game's source code w
 
 [**User Interface**](user-interface.md): How menus work and screens are laid out.
 
+[**Options**](options.md): The options menu and how option changes are reflected in real-time.
+
 [**Word Wrapping**](word-wrapping.md): How long lines of text are broken up to fit inside a limited space.
 
 [**Entity Component System**](entity-component-system.md): How data is stored, retrieved and modified.
@@ -111,5 +113,3 @@ On the other hand, if you're not interested in juggling the game's source code w
 [**Monsters**](monsters.md): Mini-chapter with a list of monsters and cross-references to other chapters about how they work.
 
 [**New Game Plus**](new-game-plus.md): Gameplay and implementation details of how successive wins change play-throughs.
-
-[**Options**](options.md): The options menu and how option changes are reflected in real-time.

@@ -8,6 +8,7 @@
 - [Event Handling](event-handling.md)
 - [Rendering](rendering.md)
 - [User Interface](user-interface.md)
+- [Options](options.md)
 - [Word Wrapping](word-wrapping.md)
 - [Entity Component System](entity-component-system.md)
 - [Game Data](game-data.md)
@@ -24,4 +25,3 @@
 - [Experience and Difficulty](experience-and-difficulty.md)
 - [Monsters](monsters.md)
 - [New Game Plus](new-game-plus.md)
-- [Options](options.md)
