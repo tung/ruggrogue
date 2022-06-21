@@ -36,7 +36,12 @@ This technique is hard to find in roguelike tutorials, but it's described in thi
 This book is written for programmers, so prior knowledge is assumed for things like variables, branches, loops, functions and basic data structures such as stacks, vectors and hash maps.
 
 The game is written in the Rust programming language, but I try to keep it simple, so Rust knowledge is helpful to follow along but not mandatory.
-Readers coming from other programming languages may want to look up Rust topics such as *traits* (like interfaces in other languages), *modules*, *pattern matching* and *iterators*.
+Readers coming from other programming languages may want to look up Rust topics such as [*traits*][rust-traits] (like interfaces in other languages), [*modules*][rust-modules], [*pattern matching*][rust-pattern-matching] and [*iterators*][rust-iterators].
+
+[rust-traits]: https://doc.rust-lang.org/book/ch10-02-traits.html
+[rust-modules]: https://doc.rust-lang.org/book/ch07-05-separating-modules-into-different-files.html
+[rust-pattern-matching]: https://doc.rust-lang.org/book/ch06-00-enums.html
+[rust-iterators]: https://doc.rust-lang.org/book/ch13-02-iterators.html
 
 If you're an aspiring roguelike developer, this book will give you broad idea of the scope of a roguelike.
 Reading a chapter in detail should serve as useful guidance as to how to implement features yourself.
