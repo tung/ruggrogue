@@ -1,6 +1,6 @@
 # Entity Component System
 
-Up until now, most of the data that has been covered has been about technical things that the game needs just to run, like input events, surfaces, textures and timing information.
+Up until now, most of the data that has been covered in this book has been about technical things that the game needs just to run, like input events, surfaces, textures and timing information.
 But beyond that is the data that defines RuggRogue as a game, such as the player, the map, monsters and items.
 This game-specific data is all managed by a crate named [Shipyard](https://crates.io/crates/shipyard), and this chapter is all about Shipyard and how RuggRogue uses it.
 
@@ -9,8 +9,8 @@ By its own description:
 > Shipyard is an Entity Component System focused on usability and speed.
 
 Here, an *entity* is a lightweight ID whose role is to associate groups of *components* that hold the data describing the entity.
-The main benefit of this is that it avoids the "talking sword" problem that you'd run into with an object-oriented approach: if you NPCs that you can talk to, and a sword you can pick up and swing, how do you represent a talking sword?
-In the OO-style of modelling game data, problems like this end up poking holes in the encapsulation the classes are supposed to have, and functionality drifts up the inheritance tree into a gigantic all-encompassing mega-class.
+The main benefit of this is that it avoids the "talking sword" problem that you'd run into with an object-oriented approach: if you have NPCs that you can talk to, and a sword you can pick up and swing, how do you represent a talking sword?
+In the object-oriented style of modelling game data, problems like this end up poking holes in the encapsulation the classes are supposed to have, and functionality drifts up the inheritance tree into a gigantic all-encompassing mega-class.
 Game data modelled with entities and components instead avoids both of those issues; see Catherine West's RustConf 2018 closing keynote ([video](https://www.youtube.com/watch?v=aKLntZcp27M) and [notes](https://kyren.github.io/2018/09/14/rustconf-talk.html)) for more information.
 
 In a game built fully in the ECS-style, *systems* are just functions that manipulate groups of entities according to what components they have.
@@ -26,7 +26,7 @@ Therefore, RuggRogue uses Shipyard 0.4 and not 0.5.
 
 In order to understand how RuggRogue reads and modifies its own game data, you'll need to understand the basics of Shipyard 0.4.
 This is the point where I would link to the Shipyard 0.4 User's Guide that existed when I started writing the game, except it was replaced wholesale when Shipyard 0.5 came out, which has a bunch of differences.
-I could build and host that old guide myself, but putting up documentation for an older version of somebody else's library with no indication that it's stale causes problems.
+I could build and host that old guide myself, but putting up documentation for an older version of somebody else's library with no indication that it's stale would be problematic.
 As such, most of this chapter is going to serve as a crash course on Shipyard 0.4, which should provide a foundation for understanding the code in RuggRogue that works with game data.
 
 If you have Rust installed and you have the RuggRogue source code, you can peruse a detailed reference to Shipyard 0.4's API, along with all of the other crates used by RuggRogue, by typing `cargo doc --open`.
@@ -286,7 +286,7 @@ This pretty much covers all of the ways that RuggRogue uses Shipyard to handle i
 
 As mentioned earlier, RuggRogue uses Shipyard for entities and components, but it mostly does *not* use its systems.
 From my prior experience of reading the source code of open source roguelikes, and sometimes tinkering with it too, the order and conditions under which logic is supposed to run needs to be precise.
-With systems, a lot of synchronizing data is needed to define this precision; for example see how the Rust Roguelike Tutorial uses a ["WantsToAttack" component](http://bfnightly.bracketproductions.com/chapter_7.html#player-attacking-and-killing-things) as an ad-hoc queue to synchronize systems.
+With systems, a lot of synchronizing data is needed to define this precision; for example see how the Rust Roguelike Tutorial uses a ["WantsToAttack" component](https://bfnightly.bracketproductions.com/chapter_7.html#player-attacking-and-killing-things) as an ad-hoc queue to synchronize systems.
 (I'd use an actual queue in that case, but that's still extra synchronizing data that's needed.)
 Just sticking with functions, branches and loops avoids all of that, and it's what I'm more comfortable with, so it's the approach I chose for RuggRogue.
 It seems like I arrived at a similar conclusion as Bob Nystrom in his talk about ECS and roguelikes ([video](https://www.youtube.com/watch?v=JxI3Eu5DPwE)).
@@ -329,7 +329,7 @@ By avoiding workloads, RuggRogue is able to precisely dictate how and when logic
 
 In most of the code samples above, `World::borrow` is preferred over `World::run`.
 In the RuggRogue source code in general, older code tended to use a lot of `World::run`, while newer code mostly prefers `World::borrow`.
-But in the code we just saw, the code for the `World::run` versions are shorter and more convenient.
+But in the code we just saw, the code for the `World::run` versions is shorter and more convenient.
 So why does RuggRogue prefer `World::borrow` over `World::run`?
 
 Due to Rust's borrowing rules, a system cannot easily be called from within another system.
@@ -410,6 +410,6 @@ RuggRogue works with many different component types and functions that call each
 
 ## Conclusion
 
-You should now have a good general idea of how RuggRogue stores and accesses its data using Shipyard.
-Insofar as Rust ECS crates go, I'm so-so on Shipyard, since it came with a lot of functionality I ended up just not using.
+You should now have a general idea of how RuggRogue stores and accesses its data using Shipyard.
+Insofar as Rust ECS crates go, I'm so-so on Shipyard, since it came with a lot of functionality that I never used.
 I could use it for future projects, but I can just as easily see myself exploring other options or even cobbling my own data storage to suit my own needs.
