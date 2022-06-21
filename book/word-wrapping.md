@@ -1,6 +1,6 @@
 # Word Wrapping
 
-If you've played RuggRogue you'll notice the messages that appear in the sidebar.
+If you play RuggRogue, you'll notice the messages that appear in the sidebar.
 There's enough room for messages up to 32 characters long to appear unbroken; anything longer than that must be *word wrapped*.
 Word wrapping is the act of breaking a long line down into a sequence of shorter lines that fit inside a desired width while keeping words whole.
 
@@ -771,7 +771,7 @@ We originally wanted string slices of word-wrapped lines, which trivially builds
 
 And that's it!
 If you run this code, you'll see the original input wrapped into lines no longer than 15 characters each.
-Note that lines with non-ASCII multi-byte characters still count characters correctly, and hyphenated words split across lines.
+Note that lines with non-ASCII multi-byte characters still count characters correctly, and hyphenated words are split across lines.
 
 ## Conclusion
 
@@ -782,4 +782,4 @@ Using iterators also encapsulates all of these tracking variables into a single 
 
 However, I still don't feel like this iterator approach is the easiest code to read.
 But in order to write a simpler version, stable Rust would need a language feature known as *generators*; look them up if you're curious.
-Still, this word wrapping code manages to perform its work on demand, avoid memory allocations and is fast enough to run every frame, so all-in-all it worked out pretty well for RuggRogue.
+Still, this word wrapping code manages to perform its work on demand, avoid memory allocations and is fast enough to run every frame, so all-in-all it worked out pretty well for the game.
