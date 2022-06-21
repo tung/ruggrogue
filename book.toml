@@ -8,3 +8,6 @@ multilingual = false
 
 [build]
 build-dir = "target/book/"
+
+[output.html]
+additional-css = ["book/outlink.css"]

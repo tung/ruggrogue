@@ -1,0 +1,6 @@
+a[href^="http"] {
+    padding-right: 13px;
+    background-image: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAYAAABWdVznAAAAZUlEQVQoU2NkIBEwYlPP5rr2PzbxX7uDGXFq+LkrCEUPu9s6BhQN2ExF1oRVA0wBSJIoG0CK0BXD+ETZAFKEDDD8gO5mmI0ghTCNcAbI0+juBimCOQWrBlxxiNUGYiMca8Th0wwAwvdIDbyhfgIAAAAASUVORK5CYII=);
+    background-position: center right;
+    background-repeat: no-repeat;
+}
