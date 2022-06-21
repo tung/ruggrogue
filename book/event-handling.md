@@ -1,7 +1,7 @@
 # Event Handling
 
 As a game, it's crucial for RuggRogue to react to *events*.
-The most important events are key presses of the player playing the game, but there are other kinds that need to be handled too, like window resizing, mouse inputs and attempts to close the game window.
+The most important events are the key presses of the player playing the game, but there are other kinds that need to be handled too, like window resizing, mouse inputs and attempts to close the game window.
 This chapter will talk about where events come from and how the game responds to them.
 
 ## Receiving Events
@@ -25,9 +25,9 @@ There are three kinds of events that are handled directly in the game's main loo
 
 Window resize events update the `window_size` variable in the main loop with the new window size.
 This is later sent into the `update` callback that was given to the `ruggrogue::run` function so that the updating and drawing logic are always aware of the size of the game window.
-(*Aside*: The updating logic in particular needs this info so that menus know how far to scroll when pressing the page up and page down keys.)
+The updating logic in particular needs this info so that menus know how far to scroll when pressing the page up and page down keys.
 
-The game hides the cursor in response to key presses; mouse input events will reveal the cursor again.
+The game hides the mouse cursor in response to key presses; mouse input events reveal it again.
 These include mouse movement, mouse button presses and mouse wheel movement.
 
 The two rendering-related events that need direct handling are both things that can happen on Windows with DirectX being used as the graphics backend for SDL:
@@ -39,11 +39,11 @@ In both cases the game will flag its graphics-related data to do the right thing
 
 ## The Input Buffer
 
-Once any direct handling is complete, the event may be added to the *input buffer*.
-The game logic will almost always run less often than the main loop, so the purpose of the input buffer is to save events from the main loop so the game logic can react to them later.
+Once any direct handling is done, the event may be added to the *input buffer*.
+The game logic will almost always run less often than the main loop, so the purpose of the input buffer is to save events from the main loop so that the game logic can react to them later.
 
-The `inputs` variable in the `ruggrogue::run` function is this input buffer.
-It holds an instance of the `InputBuffer` struct and enqueues mainly keyboard events when its `InputBuffer::handle_event` associated function is called with an event.
+The `inputs` variable in the `ruggrogue::run` function holds the input buffer.
+This is an `InputBuffer` struct that enqueues mainly keyboard events when its `InputBuffer::handle_event` function is called with an event.
 
 The `InputBuffer` struct is defined in the `src/lib/input_buffer.rs` file.
 When the game logic wishes to check for input events, it follows these steps:
@@ -53,7 +53,7 @@ When the game logic wishes to check for input events, it follows these steps:
 3. The end of the game loop calls the `InputBuffer::clear_input` function to make way for the next call to the `InputBuffer::prepare_input` function.
 
 The events stored in the `InputBuffer` struct are a stripped-down form of SDL's events in the form of small `InputEvent` enums that mainly hold SDL key codes that are unique for each keyboard key.
-As `InputEvent`s are pulled from the `InputBuffer`, the `InputBuffer` tracks the press state of the *modifier keys*, i.e. `Shift`, `Ctrl` and `Alt` that the game logic can get using the `InputBuffer::get_mods` function.
+As `InputEvent`s are pulled from the `InputBuffer`, the `InputBuffer` tracks the press state of the *modifier keys* (i.e. `Shift`, `Ctrl` and `Alt`) that the game logic can read using the `InputBuffer::get_mods` function.
 
 The game logic will typically combine the prepared input and modifier key state into a logical *game key*, represented by the `GameKey` enum defined in the `src/gamekey.rs` file.
 The `gamekey::from_keycode` function in that file translates the SDL key code values into logical game key values.
@@ -87,4 +87,4 @@ Responses fall into one of three categories:
 2. `DungeonMode` pushes an instance of `AppQuitDialogMode` (defined in the `src/modes/app_quit_dialog.rs` file) to show a save-and-exit confirm dialog; it also does this if any mode on top of it in the mode stack returns its own `AppQuit` result.
 3. `AppQuitDialogMode` ignores `AppQuit` events while waiting for the player to pick a response.
 
-The combined effect of these responses will either quit the game outright (an empty mode stack quits the game) or show a save-and-exit confirm dialog if the player is in the middle of playing the game (the `DungeonMode` catches `AppQuit` events and mode results).
+The combined effect of these responses will either quit the game outright (by emptying out the mode stack) or show a save-and-exit confirm dialog if the player is in the middle of playing the game (the `DungeonMode` catches `AppQuit` events and mode results to show the dialog).
