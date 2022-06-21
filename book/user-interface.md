@@ -5,13 +5,13 @@ This chapter covers how RuggRogue handles menus and dialogs, the layout and draw
 ## Menus
 
 Most of RuggRogue's interface exists in the form of menus and dialogs.
-As mentioned in the overall game flow chapter, menus and dialogs are uniformly represented as modes in the game's mode stack.
-Because of this, there's no meaningful distinction between a "menu" and a "dialog": they both present themselves as tile grids, react to player input and return some result.
+As mentioned in the overall game flow chapter, menus and dialogs are represented as modes in the game's mode stack.
+Because of this, there's no real difference between a "menu" and a "dialog": they both present themselves as tile grids, react to player input and return some result.
 This is a perfect excuse to demonstrate how menus work by using a dialog as an example instead.
 
 The `YesNoDialogMode` struct in the `src/modes/yes_no_dialog.rs` file is the simplest dialog, and therefore the simplest menu, in the game.
 The struct itself contains the `prompt` field that is shown to the player and a `yes_selected` boolean that the player can change by pressing keys.
-Every menu and dialog holds data like this: one or more fields related to presentation, and a selection that represents a player-changeable cursor.
+Every menu and dialog holds data like this: one or more fields related to presentation, and a selection that represents a player-controlled cursor.
 Sometimes this selection will be accompanied by a `subsection` field for more complex menus; the `YesNoDialogMode` doesn't need one, so it doesn't have one.
 
 Above the definition of `YesNoDialogMode` is the `YesNoDialogModeResult` enum.
@@ -50,7 +50,7 @@ Assuming it's a key press event, it is then translated into a logical game key b
 The `YesNoDialogMode::update` function reacts to `GameKey::Left` and `GameKey::Right` by altering the selected option.
 
 The `YesNoDialogMode::draw` function draws the dialog itself.
-The first thing it does is dim itself if it's not the top-most mode on the stack by setting `color_mod` to `Color::GRAY` in response to the value received in its `active` parameter.
+The first thing it does is dim itself if it's not the top-most mode on the stack by setting `color_mod` to `Color::GRAY` in response to the value of the `active` parameter.
 The drawing itself takes place after that, drawing the box border and message.
 When drawing the "Yes" and "No" options, it reads the `yes_selected` field of the mode to highlight whichever option the player currently has selected.
 
@@ -91,7 +91,7 @@ The distinction between the message frame grid and the message grid is a bit jan
 The split was part of a plan to use wrapped offset rendering to increase message rendering performance, but it never ended up happening.
 If I were to revisit this part of the code I would just have a single message grid that draws its frame like everything else.
 
-The `DungeonMode::new` function prepares the book-keeping for the dungeon mode, the most important part of which is for chunked map drawing, described in detail in the rendering chapter.
+The `DungeonMode::new` function prepares the book-keeping for the dungeon mode, the most important part of which is for chunked map drawing, described in detail back in the [Rendering chapter](rendering.md#improving-map-drawing-performance-with-chunked-drawing).
 
 Things get slightly more interesting with the `DungeonMode::prepare_grids` function, which immediately delegates all of its work to the `ui::prepare_grids` function.
 This function can be found at the very bottom of the `src/ui.rs` file, and is responsible for calculating and setting the size and position of all the main game screen tile grids.
@@ -108,4 +108,4 @@ The `draw_messages` function in particular applies word wrapping to message line
 Apart from `DungeonMode`, there are two other modes that also draw the main game screen in this fashion: `TargetMode` and `ViewMapMode`.
 `TargetMode` is defined in `src/modes/target.rs` and allows the player to pick a target tile when using an item that needs a target.
 `ViewMapMode` is defined in `src/modes/view_map.rs` and allows the player to pan the camera while describing map tiles.
-Both of these modes show dynamically updating text in the message area by filling in the optional `prompt` parameter when calling the `ui::draw_ui` function.
+Both of these modes show dynamically-updating text in the message area by filling in the optional `prompt` parameter when calling the `ui::draw_ui` function.
