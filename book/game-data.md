@@ -1,6 +1,6 @@
 # Game Data
 
-The entity component system chapter covered *how* RuggRogue uses Shipyard to store its game data.
+The [Entity Component System chapter](entity-component-system.md) covered *how* RuggRogue uses Shipyard to store its game data.
 This chapter is all about *what* that data actually is.
 *Game data* here refers to all the data that defines RuggRogue as a game that isn't just technical book-keeping, such as the player, the map, items and monsters.
 
@@ -15,37 +15,36 @@ This chapter will provide a run-down of what each of those types are, and will w
 
 ## Uniques
 
-The following types are stored as uniques in RuggWorld's game world.
+The following types are stored as uniques in RuggRogue's game world.
 
 ### `BaseEquipmentLevel`
 
 Found in: `src/main.rs`
 
 32-bit integer of the minimum power level of weapons and armors that spawn throughout the game.
-It's set when starting a new loop of new game plus to ensure that all spawned equipment in this loop will be more powerful than in the previous loop.
+It's set when starting a new loop of New Game Plus to ensure that all spawned equipment in this loop will be more powerful than in the previous loop.
 
 ### `Camera`
 
 Found in: `src/chunked.rs`
 
-Position that should be centered upon when drawing the map in the main game screen.
+Position that should be centered upon when drawing the map on the main game screen.
 Usually this is the position of the player, but it can be shifted around in view mode.
-This lives in the file that it does because that's where map drawing happens anyway.
 
 ### `Difficulty`
 
 Found in: `src/experience.rs`
 
 Tracks the total amount of experience to be gained by defeating every monster on the current level, as well as the ID of an entity that gains experience like the player.
-Together, this tracking data calculates how much experience the player would gain if they defeat all monsters on each level.
+Together, this tracking data calculates how much experience the player could gain upon defeating all of the monsters on each level.
 The outcome of this tracking is used to determine the power level of items and monsters spawned on future levels.
 
 ### `GameSeed`
 
 Found in: `src/main.rs`
 
-64-bit unsigned integer that is used to provide random number sequences that are unique to each game that is started.
-It's filled in with a randomly-determined value or via a command-line-provided argument when starting a new game.
+64-bit unsigned integer that is used to provide random number sequences that are unique to each playthrough.
+It's set to a random value or via a command line argument when starting a new game.
 Loading a game populates this value from the save file.
 
 ### `Map`
@@ -67,26 +66,26 @@ This makes it easier for the player to deal with longer menus repeatedly.
 Found in: `src/message.rs`
 
 Holds the message log that appears in the sidebar in the main gameplay screen.
-It has a maximum capacity of messages, and old messages will be cleared out as new ones are added to it when this capacity is exceeded.
+It has a maximum capacity of messages, and old messages will be cleared out as new ones are added when this capacity is exceeded.
 
 ### `MonsterTurns`
 
 Found in: `src/monster.rs`
 
 A heap that holds the entity IDs of monsters that should be given a turn to act between player turns.
-The heap distributes turns to the monsters nearest to the player first.
+The heap gives turns to monsters nearest to the player first.
 
 ### `Options`
 
 Found in: `src/ui.rs`
 
-Stores the tilesets and zoom settings of the tilegrids that show the map in the main gameplay mode and the user interface as a whole.
+Stores the tilesets and zoom settings of the tile grids that show the map in the main gameplay mode and the user interface as a whole.
 
 ### `PickUpHint`
 
 Found in: `src/item.rs`
 
-A flag that determines whether the game should append a hint of the key to press to pick up items when the player steps over a tile with items in it.
+A flag that determines whether the game should append a hint of the key to press to pick up items when the player steps over one.
 It's set at the start of each new game, and is unset once the player picks up an item.
 
 ### `PlayerAlive`
@@ -95,8 +94,6 @@ Found in: `src/player.rs`
 
 A flag that's `true` when the player is alive and `false` when they've died.
 This determines whether the player should keep getting turns, as well as if they should get a win screen or game over screen when the game ends.
-It was created to avoid a strong assumption of the player being alive being tied to their hit points.
-However, considering how simple RuggRogue ended up being, it's technically redundant information.
 
 ### `PlayerId`
 
@@ -117,7 +114,7 @@ It's shown in the user interface and in the game ending screens.
 Found in: `src/main.rs`
 
 64-bit unsigned integer that counts the number of times the player has won the game.
-This impacts the number of items and monsters that spawn in successive new game plus iterations.
+This impacts the number of items and monsters that spawn in successive New Game Plus runs.
 
 ## Components
 
@@ -127,7 +124,7 @@ Components can all be found in the `src/components.rs` file.
 
 ### `AreaOfEffect`
 
-Attached to item entities to determine the radius of the area of their effect when they're used.
+Attached to item entities to determine the radius of their circular area of effect when they're used.
 
 ### `Asleep`
 
@@ -145,9 +142,9 @@ Attached to weapon and armor entities to determine how much extra attack and def
 
 ### `CombatStats`
 
-Attached to player and monster entities to track hit points, as well as base attack and defense values.
+Attached to player and monster entities to track hit points, as well as hold base attack and defense values.
 This is the main component that is dealt with during combat.
-When hit points reaches zero here, the entity dies.
+When hit points reach zero here, the entity dies.
 
 ### `Consumable`
 
@@ -160,11 +157,11 @@ In particular, items will lose this component when picked up, and gain it again 
 
 ### `EquipSlot`
 
-Attached to item entities to determine whether they can be equipped as a weapon or as armor.
+Attached to item entities to determine whether they can be equipped as a weapon or armor.
 
 ### `Equipment`
 
-Tracks the IDs of the entities representing the weapon and armor equipped by the entity it's attached to.
+Tracks the entity IDs of the weapon and armor equipped by an entity.
 In practice, only the player has one of these components.
 
 ### `Experience`
@@ -175,7 +172,7 @@ The `Difficulty` unique also has an entity with this component attached to track
 ### `FieldOfView`
 
 Attached to players and monsters to determine their immediate fields of view.
-It consists of a grid of flags that track which tiles are visible relative to a set center position on the map.
+It consists of a grid of flags that track which tiles are visible relative to a position on the map.
 
 ### `GivesExperience`
 
@@ -230,8 +227,8 @@ Attached to items to indicate the amount of hit points they should restore on th
 ### `Ranged`
 
 Attached to consumable items to indicate that they can be used on a target at range.
-If the player uses an item with this component, they can pick a distant space to set the target of the item.
-If the item also has an `AreaOfEffect` component, this sets the center of that area of effect.
+If the player uses an item with this component, they can target a distant space with the item.
+If the item also has an `AreaOfEffect` component, that distant space will be the center of the area of effect.
 
 ### `RenderOnFloor`
 
@@ -252,7 +249,7 @@ Attached to entities that are drawn on the map to determine their visual appeara
 Attached to the player to give them hunger and regeneration mechanics.
 Fullness tracked in this component slowly drains over time, and is replenished when an item with a `Nutrition` component is used.
 An entity with normal levels of fullness will slowly regenerate hit points over time.
-An entity with an empty stomach will take damage over time.
+An entity with an empty stomach will instead take damage over time.
 
 ### `Tally`
 
@@ -288,7 +285,7 @@ Monsters are spawned via the `spawn_random_monster` function that then calls the
 Like the `spawn_weapon` and `spawn_armor` functions, the `spawn_monster` function considers the current difficulty level when determining the monster to create and its power level.
 
 The positions of entities that exist on the map are stored in the `Coord` component of the entity.
-Conversely, this means that an entity with a `Coord` component is considered to be "on the map".
+This means that an entity with a `Coord` component is considered to be "on the map".
 In addition to this, the map maintains a *spatial cache* that tracks a list of entity IDs for any given position.
 This may seem redundant, but it drastically improves performance when dealing with entities by position by avoiding the need to iterate over all entities and check their positions manually.
 The consequence of all this is that any entity that is added to the map needs to be given a `Coord` component *and* be placed correctly in the map's spatial cache.
@@ -297,14 +294,14 @@ This placement is done by calling the `Map::place_entity` function, whose defini
 
 There are exactly two entities that are *not* automatically added to the map's spatial cache: the difficulty tracker and the player.
 
-The difficulty tracking entity is an entity that only has an `Experience` component.
+The difficulty tracking entity has only an `Experience` component.
 Its role is to track the total amount of experience that could be gained by defeating all monsters on the current map in order to gauge an appropriate power level to spawn items and monsters on future levels.
 The difficulty tracking entity is created by the `spawn_difficulty` function in the `src/spawn.rs` file, and its entity ID is stored in the `id` field of the unique `Difficulty` struct defined in the `src/experience.rs` file.
 The difficulty tracking entity is spawned when a new game is started, namely in the `new_game_setup` function defined in the `src/modes/title.rs` file.
 
-The player entity is created by the `spawn_player` function defined in the `src/spawn.rs` file, which is called when starting a new game in the same `new_game_setup` function that was just mentioned.
+The player entity is created by the `spawn_player` function defined in the `src/spawn.rs` file, which is called when starting a new game in the `new_game_setup` function.
 The ID of the player entity is needed almost everywhere in the game, so it's stored in the `PlayerId` unique for easy access.
-As mentioned before, the player entity is not automatically added to the map's spatial cache, but unlike the difficulty tracking entity, it eventually needs to be added so that the player can move around the do things in the map.
+As mentioned before, the player entity is not automatically added to the map's spatial cache, but unlike the difficulty tracking entity, it eventually needs to be added so that the player can move around and do things on the map.
 When this needs to happen, the `add_coords_to_players` function (defined in `src/player.rs`) is called, followed by the `place_player_in_first_room` function (defined in `src/map.rs`) to position it and add it to the spatial cache.
 
 You may notice that the difficulty tracking and player entities are also created in the `main` function in the `src/main.rs` file.
@@ -326,21 +323,21 @@ We'll cover each of these in turn.
 The simplest and most common reason for entities to be despawned is when the player descends to the next dungeon level.
 Moving between levels means replacing the current map with a fresh map, which in turn means despawning entities on the current map so they can be replaced with new spawns.
 This is the task of the `despawn_coord_entities` function (defined in `src/spawn.rs`), which is called by the `player_do_descend` function (defined in `src/player.rs`) when the player takes the downstairs of the current level.
-As implied by its name, it simply despawns entities that have a `Coord` component, meaning that that entity is placed on the map.
+It simply despawns entities that have a `Coord` component, which are the ones that belong to the map.
 
 But the player has a `Coord` component; how does it avoid being despawned when moving between levels?
-The answer is simple: all entities with the `Player` tag component are stripped of their `Coord` component by the aptly-named `remove_coords_from_players` function in the `src/player.rs` file.
+The answer is simple: all entities with the `Player` tag component are stripped of their `Coord` component by the `remove_coords_from_players` function in the `src/player.rs` file.
 Once this despawning is done, player entities regain their `Coord` component through the `add_coords_to_players` function in the same file.
 
 There's also the matter of the items belonging to the player: how do they avoid being despawned between levels?
-The act of picking up an item also removes its `Coord` component; this is done by the `remove_item_from_map` function in the `src/item.rs` file.
-Conversely, dropping an item attaches a `Coord` component to it; this is done by the `add_item_to_map` function in the same file.
-These functions also take care to manage the map's spatial cache, since it still needs to be correct while the map exists.
+The `Coord` component is removed from items while being picked up by the `remove_item_from_map` function in the `src/item.rs` file.
+Conversely, a `Coord` component is attached to dropped items by the `add_item_to_map` function in the same file.
+These functions take care to manage the map's spatial cache, which must be correct while the map exists.
 
 ### Defeating Monsters
 
 The next most common reason to despawn entities is when the player defeats a monster.
-This despawning is performed by the `despawn_entity` function in the `src/spawn.rs` file, which is a general function for despawning an entity by its ID.
+This is the job of the `despawn_entity` function in the `src/spawn.rs` file, which despawns an entity by its ID.
 This is called when a monster dies in the `handle_dead_entities` function in the `src/damage.rs` file.
 The monster is removed from the map's spatial cache just before being despawned, for the same reason as when an item is picked up off the map.
 
@@ -348,7 +345,7 @@ The monster is removed from the map's spatial cache just before being despawned,
 
 The game over sequence is where things get interesting with respect to entity despawning.
 When a monster is defeated, it's despawned as usual.
-When the player is defeated, their entity is *not* despawned.
+However, when the player is defeated, their entity is *not* despawned.
 Instead, the unique `PlayerAlive` flag is set to `false`, and the player is whisked away to the game over screen.
 
 The game over screen shows a bunch of information about the player at the time that they were defeated, but it also shows the reason that they were defeated to begin with.
@@ -364,7 +361,7 @@ The reason for this is to support the new game plus feature, which carries the p
 
 If the `post_game_cleanup` function never despawns the player, then what does?
 In the case of starting a new game, this is done by the `new_game_setup` function in the `src/modes/title.rs` file.
-This is the reason for the existence of the dummy player entity created when the game is first launched: it simplifies this logic.
+This is why the dummy player entity is created when the game is first launched: it simplifies this logic.
 
 Meanwhile, loading a game from a save file pretty much loads replacement entities for everything.
 Assuming the load was successful, all of the old entities are manually despawned by the loading code using the `despawn_entity` function that you should probably be familiar with now.
@@ -382,4 +379,4 @@ An entity is considered reachable if:
 3. Its ID is stored in a component owned by another entity that is reachable, like the `Equipment` or `Inventory` components.
 
 If an entity doesn't fit in any of the above cases, it is considered unreachable, which is the equivalent of a memory leak.
-By despawning entities through the `despawn_entity` function instead of deleting them raw, we avoid making entities unreachable and thus wasting memory.
+By despawning entities through the `despawn_entity` function instead of deleting them raw, we avoid making entities unreachable and thus leaking memory.
