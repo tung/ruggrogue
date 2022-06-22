@@ -2,10 +2,10 @@
 
 RuggRogue features a pretty basic save system.
 When the player chooses to save and exit from the options menu, all game data is written into a save file.
-The title screen will detect the presence of this save file and show an option to load the game.
+The title screen will detect the presence of this file and show an option to load the game.
 The game also auto-saves at a couple of other points, such as when the player takes the stairs, and when they're about to win the game.
 If the player dies, any detected save file is deleted.
-If the player chooses to start a new game and a save file exists, a prompt will appear that will delete the save file when confirmed.
+If the player chooses to start a new game and a save file exists, a prompt will appear to delete it first.
 
 All of this save-and-load action happens in the fittingly-named `src/saveload.rs` file, which will be the focus of most of this chapter.
 
@@ -136,7 +136,7 @@ According to the `Coord` component they are located at coordinates 33,25.
 Like the difficulty tracker, the player has an `Experience` component.
 Components such as `Name`, `Renderable`, `Stomach` and `Tally` contain basic data.
 
-The `RenderOnMap` component is a tag component with no data, so its serialized form is the JSON `null` value.
+The `RenderOnMap` component is a tag component with no data, so its serialized to the JSON `null` value.
 The `Player` component would be saved the same way, except it stores some runtime data that doesn't need to be saved, so it comes out as an empty JSON object instead.
 
 The `FieldOfView` component represents which tiles in the immediate vicinity of the player should be visible.
@@ -220,13 +220,13 @@ Used as-is, it would normally appear like this in the `save_game` function:
 save_named_unique<_, GameSeed>(world, &mut writer, "GameSeed")?;
 ```
 
-To avoid having to specify the type name of the unique twice, the `save_game` function instead uses a helper macro named `save_unique!`, which shortens the above to this:
+To avoid having to specify the type name of the unique twice, the `save_game` function instead uses a helper macro named `save_unique!`, shortening the above to:
 
 ```rust,ignore
 save_unique!(GameSeed, world, &mut writer)?;
 ```
 
-While the `save_named_unique` function writes a single line for a unique, the `save_named_storage` function instead writes multiple lines for a given component type, one of each individual component.
+While the `save_named_unique` function writes a single line for a unique, the `save_named_storage` function instead writes multiple lines for a given component type, one for each individual component.
 Used as-is, it would look like this:
 
 ```rust,ignore
@@ -244,7 +244,7 @@ You should appreciate the simplicity of this, because the loading logic is a lot
 
 It's worth noting what *isn't* being considered here: entity IDs.
 It turns out that entity IDs are not only serializable, but they're 100% safe to save as-is with no further intervention.
-If game data were stored and managed with something like references or pointers instead, which would require an [unswizzling](https://en.wikipedia.org/wiki/Pointer_swizzling) strategy that would have to invade the data serialization logic.
+If game data were stored and managed with something like references or pointers instead, it would need an [unswizzling](https://en.wikipedia.org/wiki/Pointer_swizzling) strategy that would have to invade the data serialization logic.
 
 ## Loading
 
@@ -257,7 +257,7 @@ The loading process can be broadly broken down into these major parts:
 
 1. Load data for each line in the save file:
     - If it starts with an asterisk, load the line as a unique.
-    - Otherwise, try to load component data and attach it to a specific entity, creating it if it doesn't yet exist.
+    - Otherwise, try to load component data and attach it to a specific entity, creating it if it doesn't exist yet.
 2. Check that all uniques needed were loaded from the save file.
 3. Fix entity IDs across all uniques and components that store them.
 4. Place entities with `Coord` components on the map.
@@ -279,7 +279,7 @@ At this point, there will be entities in the world that existed before loading b
 If loading fails, these new entities need to be despawned so that we don't have half-loaded entities floating about in the world.
 Likewise, if loading succeeds, old entities need to be despawned since they've been fully replaced by the loaded entities and are thus no longer needed.
 
-The sole purpose of the `load_game` function is to give a blank list for the `load_save_file` function to fill with the IDs of entities that it needs to have despawned, and guarantee that they are indeed despawned afterwards.
+The sole purpose of the `load_game` function is to give a blank list for the `load_save_file` function to fill with the IDs of entities that need to be despawned, and guarantee that they are despawned afterwards.
 The `load_game` function is called from the `TitleMode::update` function in the `src/modes/title.rs` file when the player chooses to load a game from the title screen.
 If the `load_save_file` function fails to load the game, this list will contain the newly-loaded entity IDs so that they can be cleaned up.
 If it succeeds, this list will instead contain the IDs of old entities that weren't part of the save file.
@@ -340,7 +340,7 @@ The loading process will try to interpret any line that doesn't start with an as
 
 The first part of a component line is the entity that the component should be attached to.
 This entity ID is meaningful within the save data, but is meaningless in the current world.
-To reconcile this, we need to map each distinct entity ID that we encounter while loading components to fresh entities that have their own new entity IDs.
+To reconcile this, we need to map each distinct entity ID that we encounter while loading components to *fresh* entities that have their own new entity IDs.
 Near the top of the `load_save_file` function is the data structure whose job is to manage exactly this:
 
 ```rust,ignore
@@ -352,8 +352,8 @@ If the entity ID at the beginning of the component line exists, it is simply ret
 If it doesn't, it is created and added to this hash map.
 
 Since we have the ID of the new entity, we can proceed to attempt to load components, trying one type at a time.
-This is done with the `deserialize_named_component` function and the `deserialize_component!` helper macro that work much like `deserialize_named_unique` and `deserialize_unique!` did for uniques.
-In fact, the `deserialize_named_component` function works in much the same way as the `deserialize_named_unique` function, except that it attaches component data to a new temporary entity passed in by ID and emits `Err(LoadError::DuplicateComponent(...))` instead.
+This is done with the `deserialize_named_component` function and the `deserialize_component!` helper macro that work much like how `deserialize_named_unique` and `deserialize_unique!` did for uniques.
+In fact, the `deserialize_named_component` function works the same way as the `deserialize_named_unique` function, except that it attaches component data to a new temporary entity passed in by ID and emits `Err(LoadError::DuplicateComponent(...))` instead.
 
 At this point, any line that cannot be read as data for a unique or for a component causes the `load_save_file` function to return `LoadError::UnrecoginzedLine` as an error.
 
@@ -385,11 +385,11 @@ When component lines were being processed, new entities were being created accor
 However, there are also entity IDs present in the data payloads at the end of unique and component lines as well that are loaded verbatim, which means they refer to the IDs at the beginning of lines.
 We need to fix these IDs to point to the IDs of the entities created during the loading process by converting them according to the `old_to_new_ids` hash map that was built up earlier.
 
-In RuggRogue, there are two uniques and two components that hold entity IDs and thus need fixing.
+There are two uniques and two components that hold entity IDs and thus need fixing.
 The unique types are `Difficulty` and `PlayerId`, while the component types are `Equipment` (weapon and armor) and `Inventory` (items).
 The loading code takes care to only iterate over entities that were created during the loading process by filtering by the values of the `old_to_new_ids` hash map.
 
-Converting old save IDs to new loaded entity IDs also doubles as an integrity check that ensures that each ID refers to an existing entity in the save file.
+Converting old save IDs to new loaded entity IDs also doubles as an integrity check to ensure that each ID refers to an existing entity in the save file.
 If any of the IDs to fix are absent from the `old_to_new_ids` hash map, a `LoadError::UnknownId` error is raised.
 
 ### Placing Entities on The Map
@@ -397,12 +397,12 @@ If any of the IDs to fix are absent from the `old_to_new_ids` hash map, a `LoadE
 If you look at the serialized version of the map in a save file and compare it to the definition of the `Map` struct in the `src/map.rs` file, you'll notice that the `tile_entities` field isn't being serialized.
 This is the spatial cache that's used to speed up access to entities according to their position in the map.
 It doesn't need to be saved or loaded because the same information is stored in the `Coord` components of each entity.
-However, this spatial cache still needs to be restored when loading a save file; this can be done by simply iterating over all entities with a `Coord` component and using the `Map::place_entity` function to fill in the cache.
+However, this spatial cache still needs to be restored when loading a save file; this is done by simply iterating over all entities with a `Coord` component and using the `Map::place_entity` function to fill in the cache.
 
 ### Committing Loaded Uniques and Entities
 
 So far all of our data has been loaded in a temporary form: uniques are loaded in local variables, while components are attached to temporary entities.
-We want to *commit* our temporary data, which really just means preparing it to be used by the rest of the game.
+We want to *commit* our temporary data; that is, prepare it so it can be used by the rest of the game.
 
 Committing temporary entities involves clearing out the `despawn_ids` vector that was passed in at the beginning.
 Its contents are replaced with old entities that were around before loading that need to be despawned.
@@ -415,7 +415,7 @@ The API of Shipyard 0.4 has no way to replace or remove a unique once one has be
 ### After Loading
 
 At this point all of the saved data has been loaded and prepared, so all that's left is to bounce the player right back into the gameplay.
-The original invocation of the `load_game` function in the `TitleMode::update` triggers a mode switch to `DungeonMode` which does pretty much that.
+The original invocation of the `load_game` function in the `TitleMode::update` function triggers a mode switch to `DungeonMode` which does pretty much that.
 
 So like I said earlier: loading is a lot more complicated than saving.
 Despite all of these checks and safe-guards, there's a lot of ways a save file can be loaded and accepted by the game, but still be broken.
@@ -438,7 +438,7 @@ You can also have some fun by modifying a save file: try cranking up `Wins` to 3
 If you've been reading up to this point, you might have noticed that something is missing in this explanation: how is serialization and deserialization actually performed?
 If each line of the save file ends with JSON-formatted data, how are data structures converted to and from JSON when saving and loading?
 
-The reason that serialization and deserialization has been glossed over is because RuggRogue outsources the task to two crates: [serde](https://crates.io/crates/serde) and [serde\_json](https://crates.io/crates/serde_json), that make it almost trivial.
+The reason that all of this has been glossed over is because RuggRogue outsources the task to two crates: [serde](https://crates.io/crates/serde) and [serde\_json](https://crates.io/crates/serde_json), that make it almost trivial.
 RuggRogue first uses Serde to annotate any data structure that needs this treatment using the *derive macros* that provides, like so:
 
 ```rust,ignore
@@ -588,5 +588,5 @@ The other caveat of this IndexedDB approach is that persistent IndexedDB instanc
 In that case, the game will silently fall back to the in-memory file system, so save files will be forgotten when the game page is closed.
 
 To be honest, I don't know if doing all of this the way I'm supposed to.
-Emscripten has a decent amount of reference documentation, but it's very thin on guidance documentation, so a lot of what I did above was cobbled together from bits and pieces of the docs I could find.
+Emscripten has a decent amount of reference documentation, but it's very thin on guidance, so a lot of what I did above was cobbled together from bits and pieces of the docs I could find.
 There feels like there should be a better and more reliable way to do what I've done here, but I haven't found one, so I just had to make do with what I could find.
