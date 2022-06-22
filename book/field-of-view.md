@@ -10,15 +10,15 @@ The first thing this chapter will cover is how fields of view are used in RuggRo
 Next comes the general approach to calculating fields of view and the design considerations that come with it, followed by a high-level description of the algorithm used to calculate fields of view.
 The rest of the chapter will then describe the various parts of the RuggRogue source code that implement this algorithm.
 
-## How RuggRogue uses Fields of View
+## How Fields of View are used
 
-Before diving into how fields of view are calculated, it's useful to consider how it's used to begin with.
+Before diving into how fields of view are calculated, it's worth considering how they're used to begin with.
 The most obvious purpose of field of view calculation is to define and limit how much of the map the player can see at any given time, in order to generate a sense of mystery and danger in exploring unknown territory.
 However, it's also used for a number of other purposes.
 
 Monsters in the dungeon are subject to the same vision rules as the player and thus also have a field of view calculated for them.
 Monsters and the player both possess a `FieldOfView` component that tells the game to calculate the field of view when needed for the corresponding entity.
-The `FieldOfView` component itself, defined in the `src/components.rs` file, consists of the position and radius range of the field of view, a bit grid with a bit set for each visible tile and a dirty flag to prevent unnecessary recalculations.
+The `FieldOfView` component itself, defined in the `src/components.rs` file, consists of the position and range of the field of view, a bit grid with a bit set for each visible tile and a dirty flag to prevent unnecessary recalculations.
 All of this calculation is regulated by the `recalculate_fields_of_view` function defined in the `src/vision.rs` file; it's here that we get our first glimpse of the use of the `ruggrogue::field_of_view` function that calculates the field of view itself.
 Fields of view belonging to the player will update the memory of previously-seen map tiles stored in the `seen` bit grid field of the `Map` struct defined in the `src/map.rs` file.
 
@@ -26,7 +26,7 @@ The field of view of the player is used to limit which tiles can be targeted whe
 The tiles of the player's field of view are used as the basis for valid target tiles considered by the `TargetMode` struct in the `src/modes/target.rs` file.
 This is done by filling in the `valid` field of the `TargetMode` struct in the `TargetMode::new` function.
 
-The final application of field of view is to shape the area of effect of items with such an area according to the target epicenter of their blast.
+The final use of field of view calculation is to shape the area of effect of items according to the target epicenter of their blast.
 The `use_item` function in the `src/item.rs` file fills in a `targets` variable with entity IDs according to their positions within the field of view of the target epicenter; note the use of the `ruggrogue::field_of_view` function here to achieve this.
 
 ## Calculating Field of View
@@ -77,7 +77,7 @@ The two are often confused in other literature when listing downsides to using s
 
 ## The Shadow Casting Algorithm
 
-In order to make sense of the code in RuggRogue that calculates fields of view we'll first need to understand how shadow casting works on an algorithmic level.
+In order to make sense of the code in RuggRogue that calculates fields of view, we'll first need to understand how shadow casting works on an algorithmic level.
 There are two broad approaches to implementing shadow casting: recursive and iterative.
 The recursive approach solves the shadow casting problem by repeatedly breaking it down into smaller sub-problems, tracking visible areas as arguments fed into successive function calls.
 The iterative approach loops over tiles while tracking visible areas explicitly in data structures.
@@ -90,7 +90,7 @@ In reality, grids and coordinates in RuggRogue treat y as increasing downwards, 
 
 ### Dividing Space to Make Shadow Casting Easier
 
-The first step to perform when implementing shadow casting is to visit the *starting tile*, marked with an at-sign ("@") in all of these diagrams.
+The first step of shadow casting is to visit the *starting tile*, marked with an at-sign ("@") in all of these diagrams.
 This seems obvious, but we won't be revisiting it at any other point in our algorithm, so it needs to be accounted for before anything else.
 
 Beyond the starting tile, how are we going to handle all of the other tiles?
@@ -105,10 +105,10 @@ Instead of working with the entire area all at once, we can divide the space aro
 
 As it turns out, wall handling and rounding is handled the same way for all tiles in any single octant.
 In octants where our slopes are mostly horizontal (octants 0, 3, 4 and 7 above) we only care about the vertical corners of our diamond-shaped walls; conversely, we only consider the horizontal corners in the other mostly-vertical octants (1, 2, 5 and 6 above).
-When slopes straddle tiles we want to round towards the nearest cardinal axis to avoid odd-looking bias, and this rounding is performed in the same direction for all tiles in an octant.
+When slopes straddle tiles, we want to round towards the nearest cardinal axis to avoid odd-looking bias, and this rounding is performed in the same direction for all tiles in an octant.
 Dividing our processing into octants will make our logic a lot cleaner.
 
-However, the best part about all of this is that now perform shadow casting in just one octant and use some clever mathematics to reuse our work in all of the other octants!
+However, the best part about all of this is that we can now perform shadow casting in just one octant and use some clever mathematics to reuse our work in all of the other octants!
 When we work in a single octant, we'll treat the starting tile as being at (0,0) coordinates and identify other tiles as offset from the starting tile by x and y values.
 When we need real map coordinates instead, such as when checking if a tile is a wall or floor on the map, we can convert them using the following formulas:
 
@@ -146,7 +146,7 @@ This means that our work will be broken down into columns, like so:
 ![Columns in an octant, numbered 1 through 7.](img/fov-octant-columns.png)
 
 Whatever we do, we'll need to finish all of our work in one column before moving onto the next.
-In the image above, we start with column 1 and process it completely, then column 2, then column 3 and so forth.
+In the image above, we start with column 1 and process it completely, then column 2, then column 3 and so on.
 
 ### Determining Visible Tiles in a Column
 
@@ -158,7 +158,7 @@ Here is an example of a slope of the top corner of a nearby wall:
 
 ![An example of a slope created by a nearby wall.](img/fov-slope.png)
 
-The first thing to note about the slope above and indeed all slopes is that they are *always measured from the center of the starting tile*.
+The first thing to note about the slope above, and indeed all slopes, is that they are *always measured from the center of the starting tile*.
 The center is the only point in the starting tile that stays in the same place regardless of flipping and transposing, which is what will happen when taking our work into other octants.
 
 The next thing to note is that we're representing slopes as pairs of integers and measuring them out in *half-tile units*.
@@ -168,7 +168,7 @@ By measuring in half-tiles, RuggRogue avoids the performance overhead of convert
 Finally, even though a slope is created between two points, its influence extends beyond them.
 This is what allows our field of view to properly expand outwards from the starting tile.
 
-An important property of slopes is that they can be *compared*; slope comparison will be used later on to do things like test of a tile is symmetrically visible, for example.
+An important property of slopes is that they can be *compared*; slope comparison will be used later on to do things like test if a tile is symmetrically visible, for example.
 Low slopes are considered to be of a value less than higher slopes.
 One way to compare two slopes, `a` and `b`, is to define a less-than-or-equal-to inequality, like so:
 
@@ -191,7 +191,7 @@ a_rise * b_run <= b_rise * a_run
 If this inequality is true, then slope `a` is less than or equal to slope `b`.
 
 We can use a pair of slopes as a way to represent a visible area; we'll call this a **sight**.
-Here's an example of a few sights in practice:
+Here's an example of three sights in practice:
 
 ![Three sights projected over an octant.](img/fov-sights.png)
 
@@ -200,7 +200,7 @@ The wall tile in column 5 creates two sights: 0/1 to 3/10 and 5/10 to 1/1.
 These two sights describe the visible area for columns 6 and 7.
 
 Now that we know about sights and slopes, we can now define the (potentially) visible tiles in a column as the tiles inside the list of sights for that column.
-We consider a tile as inside a sight if any part of its mid-line is inside the sight.
+We consider a tile as 'inside' a sight if any part of its mid-line is inside the sight.
 Fortunately, we don't have to calculate any line intersections to determine this.
 If we consider the starting tile as (0, 0) and our column numbers as x values, we just need to figure out the range of y values for a sight in that column.
 Here's the basic line equation:
@@ -238,7 +238,7 @@ In this diagram, we have a single sight with a low slope of 1/4 and high slope o
 If we apply the formula to the low slope, we get a low y of 1; doing to the same with the high slope gets us a high y of 4.
 Therefore, the potentially visible tiles of this (1/4)-(3/4) sight in column 5 lie between y = 1 and y = 4 inclusive, highlighted above.
 
-This is an example of a single sight projected onto a column, but if there are multiple active sights in a column we need to repeat this process for all of those sights in order to get all of the potentially visible tiles.
+This is an example of a single sight projected onto a column, but if there are multiple active sights in a column we need to repeat this process for all of those sights in order to get all of the potentially visible tiles of that column.
 
 ### Processing Visible Tiles in a Column
 
@@ -252,8 +252,8 @@ As we step through each potentially visible tile of a sight, we have two jobs:
 The word "visit" here differs between shadow casting implementations; some hard-code the marking of a visibility map here, others provide a callback to permit a caller to decide what to do.
 RuggRogue's shadow casting implementation is built as an iterator, so it just returns the real map coordinates to whatever code is driving the iterator.
 This is all that's needed for wall tiles, which are asymetrically center-to-mid-line visible.
-All other tiles are only symetrically center-to-center visible, so we need to test if the tile is symmetrically visible and return it as a flag alongside the tile coordinate and return it as a flag alongside the tile coordinates.
-We can test for this by comparing the slope of the tile's center point lies inside the low and high slopes of the current sight:
+All other tiles are only *symetrically* center-to-center visible, so we need to test if the tile is symmetrically visible and return it as a flag alongside the tile coordinates.
+We can do this by testing if the slope of the tile's center point lies inside the low and high slopes of the current sight:
 
 ```plaintext
 low_slope <= tile_center_slope <= high_slope
@@ -261,7 +261,7 @@ low_slope <= tile_center_slope <= high_slope
 
 If this condition is true, the tile is symmetrically visible from the starting tile and should be marked visible.
 
-Reading from the current sight list while building up a next sight list means we need two sight lists at any given time when working with a column.
+Reading from the current sight list while building up a next sight list means we need *two* sight lists at any given time when working with a column.
 The start of the shadow casting logic creates these lists and hands them to the octants.
 Each octant initializes the lists: an empty *even list* and an *odd list* with a single sight covering the whole octant, i.e. a low slope of 0/1 and a high slope of 1/1.
 Each odd column treats the odd list as its current sight list, then clears and starts pushing to the even list as the next sight list; even columns swap the roles of the even and odd lists.
@@ -334,7 +334,7 @@ The "shape" of a field of view determines how that range is treated: `FovShape::
 Adding half a tile prevents single tiles poking out on the four cardinal directions that would occur with an exact radius circle of vision.
 
 The iterator returns the map coordinates of visible tiles, along with a symmetric flag if the tile is considered symmetrically visible, i.e. its center point is visible to the center of the starting tile.
-The body of the loop then makes the final decision about whether that tile is visible: a symmetrically visible tile is always visible, and walls are visible no matter what.
+The body of the loop then makes the final decision about whether that tile is visible: a symmetrically visible tile is always visible, and walls are visible regardless of symmetry.
 
 The `ruggrogue::field_of_view` function itself lives at the bottom of the `src/lib/field_of_view.rs` file.
 It does nothing more than initialize an instance of the `FovIter` struct whose definition can be found near the top of the file.
@@ -383,7 +383,7 @@ This comes back to the fact that this is all one big iterator: it gets called on
 This is why the `FovIter` struct housed so much temporary and iteration progress data: to remember where to pick up from after returning a single tile's worth of data.
 
 The `FovIter::advance` function begins by declaring and initializing two variables: `out_pos` and `out_symmetric`, for the tile position and symmetry test to output respectively.
-The setting of these variables indicates that the function should return them after this iteration.
+Setting these variables signals that the function should return their values after this iteration.
 Leaving them be instead causes nothing to be returned, in turn causing the function to be called again immediately if the iteration hasn't finished yet.
 
 The very first call to `FovIter::advance` sets the `octant` field to `Some(value)` where the value is the octant index of -1 to visit the starting tile, 0 through 7 for each of the octants, or 8 when shadow casting is complete.
@@ -453,6 +453,6 @@ When the `octant` field takes on the `Some(8)` value, shadow casting is complete
 The field of view code is some of the earliest code I ever wrote for RuggRogue.
 Indeed, RuggRogue started as a fake terminal demo, and spent a lot of its early life as a proof-of-concept for shadow casting.
 There's no doubt in my mind that I would write this differently if I were to revisit this today: make better use of Rust's iterator API, define slopes as a proper type instead of an integer tuple so I could define ordering and use normal inequality operators, and so on.
-However, if I stayed and continually refined this field of view code, I would never have moved onto finishing the rest of the game; moving on was a judgement call that just had to be made.
+However, if I stayed and continually refined this field of view code, I would never have moved onto finishing the rest of the game.
 
 Despite its issues, I'm still quite happy with how field of view calculation turned out: it runs well, the results are good and I can be confident that I understand shadow casting well enough to implement it from scratch.
