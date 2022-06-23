@@ -2,7 +2,7 @@
 
 As the player descends the dungeon, the game procedurally generates new levels that are unique to the game seed and dungeon depth.
 Levels are created in two phases: laying out the map and placing interesting things in it like monsters and items.
-This chapter is about map layout, i.e. deciding where rooms and corridors should appear, then drawing them out with wall and floor tiles.
+This chapter is about map layout: deciding where rooms and corridors should appear, then drawing them out with wall and floor tiles.
 
 ## Map Data
 
@@ -23,7 +23,8 @@ pub struct Map {
 
 The `depth` field is the dungeon depth of the map; this is `1` for the first level.
 The `width` and `height` fields hold the dimensions of the map in terms of tiles.
-The `tiles` field contains the tiles themselves; the `Tile` enum is defined higher up in the `src/map.rs` file:
+The `tiles` field contains the tiles themselves, stored in *row-major* order, i.e. store a full row of tiles, then the next row, then the next and so on.
+The `Tile` enum is defined higher up in the `src/map.rs` file:
 
 ```rust,ignore
 pub enum Tile {
@@ -32,15 +33,6 @@ pub enum Tile {
     DownStairs,
 }
 ```
-
-The simple and obvious way to store these tiles is in *row-major order*, i.e. store a full row of tiles, then the next row, then the next and so on.
-Instead, at some point not long after chunked map rendering was done, the tiles themselves were also reorganized into chunks.
-Since chunks are eight-by-eight tile squares, this means that the `tiles` field rounds up the width and height of the map to a multiple of eight to calculate how many tiles it should store.
-The chunks are arranged row-major, as are the tiles within each chunk.
-
-Though chunked map *drawing* brought performance gains, I consider this chunked *tile storage* a mistake.
-It was done with the aim of improving cache friendliness when drawing a chunk of tiles, but the complexity it adds to the `Map::new`, `Map::clear` and `Map::index` functions doesn't justify it.
-The code in those functions would be simpler and faster without the many calculations involving the `chunked::CHUNK_TILE_WIDTH` and `chunked::CHUNK_TILE_HEIGHT` constants.
 
 The final relevant field of the `Map` struct is the `rooms` field.
 This is a list of `Rect` structs, one for each room:
@@ -202,11 +194,10 @@ let connect_rooms = |map: &mut UniqueViewMut<Map>, r1: usize, r2: usize, h_then_
 };
 ```
 
-It's written like a lambda, but it really should be a proper helper function; it's a refactoring scar.
 The `h_then_v` argument is a flag to draw horizontal floor tiles, then vertical floor tiles; this is decided with a random coin flip by the map generation random number generator.
 Corridors can freely overlap rooms and each other.
 
-Savvy readers may notice that joining rooms with corridors like this resembles *Prim's algorithm* for finding the minimum spanning tree of a graph, i.e. the least cost edges to join every node.
+Savvy readers may notice that joining rooms with corridors this way is like using *Prim's algorithm* for finding the minimum spanning tree of a graph, i.e. the least cost edges to join every node.
 A tree of a graph contains no loops, so what we have so far is a map with a lot of dead end rooms, which in gameplay terms means a lot of backtracking that we don't want.
 To reduce the number of dead ends and backtracking needed, several extra pairs of rooms are picked at random and joined with corridors as well.
 
@@ -215,4 +206,4 @@ To reduce the number of dead ends and backtracking needed, several extra pairs o
 If the player hasn't descended deep enough into the dungeon, a downstairs tile is placed in the center of the last room in the room list.
 If they have, the coordinates of that same tile is passed back to the calling code so that the victory item can be placed there instead.
 
-With the map tiles drawn out and the room list prepared, the map is ready to be populated with things like monsters and items; this is the topic of the next chapter.
+With the map tiles drawn out and the room list prepared, the map is ready to be populated with things like monsters and items.
