@@ -5,13 +5,13 @@ Instead of repeatedly pressing the movement keys, the player can tell the game t
 This feature is known as *auto-running*.
 
 Auto-run is activated by holding the Shift key while pressing a movement key.
-There are three types of auto-running:
+There are three types of auto-run:
 
 1. *Resting in place*: Pressing Shift+Space will wait in place until the player is fully healed.
-2. *Straight auto-run*: Pressing Shift+direction in open space or against a wall will move in that direction until the space around the player changes.
+2. *Straight auto-run*: Pressing Shift+direction in open space or against a wall will move in a straight line until the open space or wall ends.
 3. *Corridor auto-run*: Pressing Shift+direction in a corridor will follow that corridor until it branches or opens up.
 
-Once auto-run starts the game will issue movement commands until interrupted by:
+Once auto-run starts the game will move the player until it's interrupted by:
 
 - the player pressing a key
 - a monster appearing in the player's field of view
@@ -20,8 +20,8 @@ Once auto-run starts the game will issue movement commands until interrupted by:
 
 ## Auto-Run Data Structures
 
-The crux of auto-running involves the game performing actions instead of the player across multiple frames.
-This means it needs to remember that auto-running was requested, as well as type of auto-run and desired movement direction.
+Auto-running requires the game to perform actions across multiple frames.
+This means it needs to remember that auto-run was requested, as well as type of auto-run and desired movement direction.
 This means that the state of auto-running needs to be stored in data structures.
 
 Everything that auto-run needs to operate is stored in the `Player` struct in the `src/components.rs` file:
@@ -75,21 +75,21 @@ enum AutoRunWallSide {
 }
 ```
 
-Straight auto-running keeps track of walls and open tiles to the left and right of the direction that the player is auto-running.
+Straight auto-run keeps track of walls and open tiles to the left and right of the direction that the player is auto-running.
 
 - `AutoRunWallSide::Neither`: Expect neither left nor right walls, i.e. both sides of the player should be fully open.
 - `AutoRunWallSide::Left`: Expect a solid wall on the left and open space on the right.
 - `AutoRunWallSide::Right`: Expect a solid wall on the right and open space on the left.
 
-Straight auto-running is stopped if the arrangement of tiles falls into a different category than expected, or doesn't fit into any of these categories.
+Straight auto-run is stopped if the arrangement of tiles falls into a different category than expected, or doesn't fit into any of these categories.
 
 ## Auto-Run Control Flow
 
-In broad strokes, auto-run integrates with the input and control flow logic as follows:
+Auto-run integrates with the input and control flow logic as follows:
 
 1. The player holds Shift when pressing a movement key, handling the turn as usual but also filling in the `auto_run` field of the `Player` struct to start auto-running.
 2. While auto-running, the end of the `DungeonMode::update` function tells the game loop to run on the next frame instead of waiting for an event as it normally would.
-3. While auto-running, auto-run checks if it should proceed and if so automatically moves the player instead of doing the usual input handling logic.
+3. While auto-running, auto-run checks if it should proceed; if so, it automatically moves the player instead of doing the usual input handling logic.
 
 The Shift key during normal input handling is picked up in the `player::player_input` function in the `src/player.rs` file.
 This is handed off as a boolean value to either the `try_move_player` or `wait_player` functions, which fills in the `auto_run` field of the `Player` struct after doing their usual business.
@@ -164,9 +164,9 @@ The first thing that the auto-run logic in the `player::player_input` function d
 - the player stepping onto or next to something interesting (checked by the `player_check_frontier` function)
 - the player seeing any monsters (checked by the `player_sees_foes` function)
 
-Auto-running is stopped by the `player::player_stop_auto_run` function, which simply sets the `auto_run` field of the `Player` struct to `None` to clear it.
+Auto-run is stopped by the `player::player_stop_auto_run` function, which simply clears the `auto_run` field of the `Player` struct to `None`.
 
-Auto-run logic then deducts the `limit_reached` field of the `AutoRun` struct, and when it hits zero also stops auto-running.
+Auto-run logic then decrements the `limit_reached` field of the `AutoRun` struct, and when it hits zero also stops auto-run.
 
 At this point, auto-run logic needs to perform final checks that vary based on the different auto-run types: resting in place, straight auto-run and corridor auto-run.
 This is the job of the `auto_run_next_step` function, which works as follows:
@@ -174,7 +174,7 @@ This is the job of the `auto_run_next_step` function, which works as follows:
 - Resting in place returns `Some((0, 0))` if the player can still heal by resting (i.e. below maximum hit points and isn't starving) or `None` otherwise.
 - Straight auto-run and corridor auto-run check the tiles around the player and return `Some((dx, dy))` to run in the desired direction or `None` to stop.
 
-In the case that it returns `Some(...)`, the direction value within is unpacked and causes the auto-run logic to run either the `try_move_player` or `wait_player` functions to perform the auto-run step.
+In the case that it returns `Some(...)`, the direction value within is unpacked and causes the auto-run logic to call either the `try_move_player` or `wait_player` functions to perform the auto-run step.
 Note that these two functions are exactly the same ones called during normal input handling, so auto-run effectively acts like smart automatic input handling.
 
 ## Resting in Place
@@ -195,9 +195,9 @@ In terms of code, resting in place starts when the normal input logic detects th
 The Space key triggers the usual logic for waiting a turn, so the `wait_player` function is called as usual.
 The pressing of the Shift key causes the `rest_in_place` argument of that function to be set to `true`.
 
-The first thing that the `wait_player` function does in this case is to check for any reason that resting in place should not start.
+The first thing that the `wait_player` function does in this case is check for any reason that resting in place should not start.
 If any monsters are present in the player's field of view, the player gets a message and no turns are spent waiting.
-The game then calls the `hunger::can_regen` function (defined in the `src/hunger.rs` file) to perform hunger-related checks; any hunger-related reason for failure appears as a message and prevents any waiting from taking place.
+The game then calls the `hunger::can_regen` function (defined in the `src/hunger.rs` file) to perform hunger-related checks; any hunger-related reason to not rest appears as a message and prevents any waiting from taking place.
 
 Assuming that there is no reason to prevent it, resting in place is started by setting the `auto_run` field of the `Player` struct with a `run_type` of `AutoRunType::RestInPlace`.
 Auto-run then takes over as described earlier in the auto-run control flow section.
@@ -214,7 +214,7 @@ By holding Shift while pressing a direction, the player will perform a *straight
 This allows the player to quickly cross empty and cleared-out rooms.
 
 Straight auto-run that starts in the open will advance until the player finds themselves adjacent to any walls.
-Straight auto-run that starts with a wall to one side of the player will advance until that wall ends, which is almost always an exit of a room.
+Straight auto-run that starts with a wall to one side of the player will advance until that wall ends.
 
 The logic for auto-running in a direction starts when normal movement code detects that the Shift key is being held down.
 As per usual, the move is handled with a call to the `try_move_player` function, but the Shift key sets the `start_run` argument to `true`.
@@ -243,18 +243,18 @@ To perform the correct rotation, the `auto_run_straight_check` function feeds th
 - `real_y_from_x`
 - `real_y_from_y`
 
-With the convention of positive y pointing upwards, these variables are filled based on the player's movement direction as follows:
+With the convention of positive y pointing upwards, these variables are filled in based on the player's movement direction (`dx` and `dy`) as follows:
 
-(`dx`, `dy`) | `real_x_from_x` | `real_x_from_y` | `real_y_from_x` | `real_y_from_y`
------------- | --------------- | --------------- | --------------- | ---------------
-(1, 0) | 1 | 0 | 0 | 1
-(1, 1) | 1 | 0 | 0 | 1
-(0, 1) | 0 | -1 | 1 | 0
-(-1, 1) | 0 | -1 | 1 | 0
-(-1, 0) | -1 | 0 | 0 | -1
-(-1, -1) | -1 | 0 | 0 | -1
-(0, -1) | 0 | 1 | -1 | 0
-(1, -1) | 0 | 1 | -1 | 0
+`dx` | `dy` | `real_x_from_x` | `real_x_from_y` | `real_y_from_x` | `real_y_from_y`
+---- | ---- | --------------- | --------------- | --------------- | ---------------
+1 | 0 | 1 | 0 | 0 | 1
+1 | 1 | 1 | 0 | 0 | 1
+0 | 1 | 0 | -1 | 1 | 0
+-1 | 1 | 0 | -1 | 1 | 0
+-1 | 0 | -1 | 0 | 0 | -1
+-1 | -1 | -1 | 0 | 0 | -1
+0 | -1 | 0 | 1 | -1 | 0
+1 | -1 | 0 | 1 | -1 | 0
 
 If `player_x` and `player_y` represent the player's map coordinates, the following helper closures can then rotate logical dx and dy values to get real map coordinates:
 
@@ -291,10 +291,10 @@ let real_x = |_, dy| player_x + dy * -1;
 let real_y = |dx, _| player_y + dx * 1;
 ```
 
-Above, you'll notice that changes to the logical `dy` value lead to *reversed* changes to real x, e.g. logical upwards changes travel left in reality.
-Meanwhile, logical `dx` value changes lead to non-reversed changes to real y, e.g. logical rightward changes travel up in reality.
+Above, you'll notice that changes to the logical `dy` value lead to *reversed* changes to real x, e.g. logical upwards steps travel left in reality.
+Meanwhile, logical `dx` value changes lead to non-reversed changes to real y, e.g. logical rightward steps travel up in reality.
 
-Savvy readers will notice that converting logical `dx` and `dy` values into real map coordinates like this is an *affine transformation*, involving rotating according to player movement direction and translation to the player's real map coordinates.
+Savvy readers will notice that conversions of logical `dx` and `dy` values into real map coordinates like this are *affine transformations*, involving rotating according to player movement direction and translation to the player's real map coordinates.
 
 ### Checking Walls and Open Space
 
@@ -304,7 +304,7 @@ Armed with the `real_x` and `real_y` helper closures, the `auto_run_straight_che
 let check_wall = |dx, dy| map.wall_or_oob(real_x(dx, dy), real_y(dx, dy));
 ```
 
-The `Map::wall_or_oob` function defined in the `src/map.rs` file is just a little helper that returns `true` if the given tile coordinates are a wall or out-of-bounds.
+The `Map::wall_or_oob` function defined in the `src/map.rs` file is just a little helper function that returns `true` if the given tile coordinates are a wall or out-of-bounds.
 
 `check_wall` is used like this: If the player is moving cardinally, `check_wall(1, 0)` checks the tile in front of the player, `check_wall(0, 1)` checks the tile to their left and `check_wall(0, -1)` the tile to their right.
 For a diagonally moving player, the tile in front is checked using `check_wall(1, 1)`.
@@ -378,13 +378,13 @@ If the player holds Shift while moving in a corridor, *corridor auto-run* will e
 This allows the player to quickly move between rooms on the current dungeon level.
 
 In order to implement corridor auto-run, the game must check the tiles near and around the player according to their movement direction, much like straight auto-run.
-At each step, corridor auto-run checks for walls around the player in the direction of movement with a single open tile that it should step into.
+At each step, corridor auto-run checks for a single open tile in the direction of movement for the player to step into, and walls for other surrounding tiles.
 This means corridor auto-run *changes* the player's movement direction at each step; the job of the `auto_run_corridor_check` function is thus to check for a pattern of corridor-like surrounding walls and produce this direction.
-The direction change is handled in the `auto_run_next_step` function under the handling for `AutoRunType::Corridor`.
+The direction change is dealt with in the `auto_run_next_step` function under the handling for `AutoRunType::Corridor`.
 
 The same idea of rotation from straight auto-run carries into the logic for corridor auto-run in the `auto_run_corridor_check` function.
 However, corridor auto-run needs to check for many more patterns of walls and open tiles.
-To make this easier, the state of these tiles are each represented by a single bit in an unsigned 16-bit integer variable named `nearby_walls`.
+To make this easier, the state of each of these tiles is represented by a single bit in an unsigned 16-bit integer variable named `nearby_walls`.
 
 The code near the top of the `auto_run_corridor_check` function populates the bits of the `nearby_walls` variable using a different helper closure to that used by the straight auto-run logic:
 
@@ -460,7 +460,7 @@ Suppose the player is moving to the right and encounters the corner of a corrido
 
 There are now *two* adjacent open tiles for the player to step into, marked as `!` above.
 The simple single-tile cases fail to recognize that the player is still in a corridor, so we need more patterns to handle this.
-What's more, these patterns need to check tiles that are two steps away from the player, which is why the `nearby_walls` variable needed to be packed with them earlier.
+What's more, these patterns need to check tiles that are *two* steps away from the player, which is why the `nearby_walls` variable needed them earlier.
 
 If the player is moving cardinally, the corresponding rightward-moving patterns for corridor corners look like this:
 
