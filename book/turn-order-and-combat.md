@@ -1,6 +1,6 @@
 # Turn Order and Combat
 
-RuggRogue is a turn-based game, so the game waits until the player finishes their turn, then gives the monsters their turn.
+RuggRogue is a turn-based game, so the game waits until the player finishes their turn, then gives the monsters a turn.
 There's no special speed system, so turns just alternate between the player and the monsters.
 
 The most common interaction between the player and the monsters during their turns is performing a *melee attack*.
@@ -92,7 +92,7 @@ Note that dead entities and experience levels need to be dealt with at each poin
 Once the `time_passed` variable in the `DungeonMode::update` function is set to `true`, the monsters get their turn.
 All monsters are given a turn with a call to the `monster::enqueue_monster_turns` function in the `src/monster.rs` file.
 Its job is to fill in the `MonsterTurns` queue with the entity ID of each monster.
-The `monster::do_monster_turns` function then pops entity IDs out to act out a turn for each monster.
+The `monster::do_monster_turns` function then pops entity IDs out to give each monster their turn.
 
 Why not just loop through all monsters, handle their turns directly and avoid the need for a queue?
 The answer to this is that the `MonsterTurns` queue grants turns to monsters closest to the player first to minimize blocking when a group of monsters chase the player down a corridor.
@@ -200,7 +200,7 @@ pub struct Tally {
 }
 ```
 
-The `damage_dealt` of the attacker and the `damage_taken` of the target are incremented by the final damage value if either entity has a `Tally` component, which in practice means the player entity.
+The `damage_dealt` of the attacker and the `damage_taken` of the target are incremented by the final damage value if either entity has a `Tally` component.
 This information is also shown on the game over screen, so in practice only the player is given a `Tally` component.
 
 ## Handling Death
