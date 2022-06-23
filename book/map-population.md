@@ -27,7 +27,7 @@ The function can be found in the `src/spawn.rs` file.
 
 The player entity exists beyond the life of any one map, so whenever a map isn't ready, the player entity lacks a `Coord` component.
 To place the player, this component is added again by calling the `player::add_coords_to_players` function defined in the `src/player.rs` file.
-The player can then be placed on the map using the `map::place_player_in_first_room` function defined in the `src/map.rs` file.
+The player can then be moved to their starting position on the map using the `map::place_player_in_first_room` function defined in the `src/map.rs` file.
 
 The player is guaranteed to start the map in a different room than the downstairs (or victory item), so long as the map has more than one room (which is almost always true).
 
