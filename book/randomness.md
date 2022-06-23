@@ -9,8 +9,8 @@ This chapter will cover generation, usage and considerations of random numbers b
 Roguelikes typically get their random numbers from what's called a *pseudo-random number generator* (or *PRNG*).
 "Pseudo" means "fake", so a PRNG produces a *deterministic* series of numbers that just happen to look random enough for the purposes of a computer game.
 RuggRogue takes advantage of this determinism.
-Most roguelikes just initialize a single PRNG, hang onto it and share it across the whole game logic, but not RuggRogue.
-Instead, RuggRogue creates temporary PRNGs whenever some code needs random numbers and discards those PRNGs afterwards.
+Most roguelikes just initialize a single PRNG, hang onto it and share it across the whole game logic.
+RuggRogue instead creates *temporary* PRNGs whenever some code needs random numbers and discards those PRNGs afterwards.
 By carefully controlling how these PRNGs are initialized we can achieve *seeded games*, where two games with the same seed produce the same dungeon and spawns.
 Seeded games are useful for debugging and play-testing, and can be fun for players to mess around with.
 
@@ -45,10 +45,10 @@ The fact that the magic numbers have different values helps to avoid the same se
 
 The game seed is a unique number associated with a game that is the sole reason that different games have different dungeon layouts and outcomes.
 The initial game seed value can be provided as a command line argument or randomly generated as needed; this is one of the first things done in the `main` entry point function in the `src/main.rs` file.
-Starting a new game causes that game to adopt that initial value as that game's game seed; this value is preserved across saves and loads.
+Starting a new game causes that game to adopt that initial value as that game's seed; this value is preserved across saves and loads.
 If the player returns to the title screen for whatever reason, the initial game seed value is changed into another random value to avoid accidentally playing the same dungeon again.
 
-With the magic number and game seed fed into the hasher, the final thing the hasher needs are some relevant differentiating input values.
+With the magic number and game seed fed into the hasher, the final thing the hasher needs is some relevant differentiating input values.
 For example, the PRNG associated with `GENERATE_ROOMS_AND_CORRIDORS` provides the dungeon depth so that depth 2 has a different layout to depth 1.
 
 The final hash value is then used as the seed for that particular PRNG.
@@ -107,7 +107,7 @@ This PRNG determines:
 - the placement of the starting weapon and armor in the room that the player starts in,
 - the placement of the guaranteed ration on each level,
 - whether a room should spawn items and where they should be placed,
-- whether a spawned item should equipment or consumable,
+- whether a spawned item should be equipment or consumable,
 - whether spawned equipment should be a weapon or armor,
 - the exact type of a spawned consumable item,
 - the random extra bonus for spawned weapons and armors, and whether to round fractional power values up or down,
@@ -141,7 +141,7 @@ The combat PRNG exists in the `melee_attack` function in the `src/damage.rs` fil
 The combat PRNG determines:
 
 - whether the melee attack hits or misses, assuming the defender is not asleep,
-- the variation of the exact amount of damage inflicted between plus and minus 20%, and
+- whether to fluctuate damage, and if so, whether to modify it plus or minus 50%, and
 - whether to round fractional damage values up or down to the nearest whole number.
 
 ## Ensuring Identical Randomness with Native and Web Builds
@@ -181,4 +181,4 @@ Note that the `num` variable above is now also of type `i32`, so it needs to be 
 
 This chapter serves as a high-level overview of RuggRogue's approach to generating and using random numbers.
 The biggest thing to take away from all of this is the focus on determinism by seeding PRNGs with the hashed combination of carefully selected input values.
-I've deliberately glossed over the nitty gritty of exactly how each random number is used to produce random outcomes: those details are better covered by other chapters.
+I've deliberately glossed over the nitty gritty details of exactly how each random number is used to produce random outcomes, which are better covered by other chapters.
