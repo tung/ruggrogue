@@ -61,8 +61,8 @@ According to the damage formula described in the [Turn Order and Combat](turn-or
 A melee hit of 8.0 attack versus 4.0 defense causes 4.0 damage.
 This allows us to talk about how tough the player and monsters are:
 
-- A player with 30 maximum hit points is defeated by 4.0 damage monster attacks in 7.5 turns.
-- A monster with 14 maximum hit points is defeated by 4.0 damage player attacks in 3.5 turns.
+- A player with 30 maximum hit points is defeated by 4.0-damage monster attacks in 7.5 turns.
+- A monster with 14 maximum hit points is defeated by 4.0-damage player attacks in 3.5 turns.
 
 Statements like this establish numeric relationships that form the foundation of game balance in RuggRogue.
 
@@ -101,8 +101,7 @@ If the hit kills the monster, the `damage::handle_dead_entities` function in the
 The experience points stored in `Experience` components are checked when the `DungeonMode::update` function in the `src/modes/dungeon.rs` file calls the `experience::gain_levels` function in the `src/experience.rs` file.
 These calls occur whenever experience could have been awarded, i.e. when time passes.
 
-The `experience::gain_levels` function checks if the `exp` value exceeds the `next` value.
-If so:
+The `experience::gain_levels` function checks if the `exp` value exceeds the `next` value; if so:
 
 - The entity's level is increased by 1.
 - `next` is deducted from `exp`.
@@ -183,7 +182,7 @@ Weapons and armor spawned by the `spawn_random_item_at` function are granted a +
 ## Picking the Final Dungeon Level
 
 The `MONSTERS` array at the top of the `src/spawn.rs` file has 25 entries.
-Once the difficulty tracker has allowed them all to spawn, there are no new monsters to be seen; the player has effectively seen all of the content offered by the game.
+Once the difficulty tracker has allowed them all to spawn, there are no new monsters to be seen; the player has effectively seen all of the content the game has to offer.
 Since monsters are chosen directly from the level of the difficulty tracker, this point is reached once the difficulty tracker reaches level 25.
 If this point has been reached when a new map is spawned by the `map::generate_rooms_and_corridors` function in the `src/map.rs` file, the downstairs is replaced by the location for the victory item that ends the game.
 Depending on how many monsters spawn over the course of the game, the final dungeon depth usually ends up being between 25 to 30 levels deep.
