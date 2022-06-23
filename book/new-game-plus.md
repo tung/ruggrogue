@@ -1,11 +1,11 @@
 # New Game Plus
 
-RuggRogue allows the player to continue playing the game after they win in a sort of *New Game Plus* mode.
+RuggRogue allows the player to continue playing the game after they win by way of the *New Game Plus* mode.
 When the player dismisses the victory screen, they're fully healed and are allowed deeper into the dungeon.
 The player keeps their level, experience, stats and all of their equipment and items, apart from the victory item.
 The game in turn will allow more monsters and items to spawn the more times the player wins.
 The power of weapons and armor spawned will continue to increase, but the power of monsters resets.
-Thus, New Game Plus is intended to serve as a victory lap for the player to collect ever more powerful equipment, and not so much a proper challenge.
+Thus, New Game Plus is intended to serve as a victory lap for the player to collect ever more powerful equipment, and not so much deliver a proper challenge.
 
 ## Starting New Game Plus
 
@@ -45,14 +45,14 @@ In the case of victory in the above code, the `player_alive` boolean flag will b
 The `title::post_game_cleanup` function is defined in the `src/modes/title.rs` file.
 It simply despawns map-local entities such as monsters still alive and any items left behind, and in the case of victory that's all it does.
 
-The `title::new_game_setup` function in the same file is used both to start a new game and the New Game Plus mode.
+The `title::new_game_setup` function in the same file is used to start both new games and the New Game Plus runs.
 If New Game Plus is needed, the `new_game_plus` argument is set to `true`, causing the function to:
 
 - Increment the turn count and depth, as if the player had taken a downstairs on the final level.
 - Restore the player to full health.
 - Store the level of the difficulty tracker as the *base equipment level* for the New Game Plus run.
 
-Since the difficulty tracker is reset for both new games and New Game Plus runs, the last point ensures that new weapons and armor that spawn will do so with ever increasing power.
+Since the difficulty tracker is reset for both new games and New Game Plus runs, the last point ensures that new weapons and armor that spawn will do so with ever-increasing power.
 
 ## Win Counter
 
@@ -65,8 +65,8 @@ pub struct Wins(u32);
 
 The `Wins` unique is increased by one when the player uses the Present item in the `item::use_item` function in the `src/item.rs` file.
 
-The win counter increases the maximum number of randomly spawned items and monsters per room by one in New Game Plus runs.
-The `fill_rooms_with_spawns` function in the `src/spawn.rs` file checks the `Wins` unique to achieve this.
+The win counter increases the maximum number of randomly-spawned items and monsters per room by one in New Game Plus runs.
+The `fill_rooms_with_spawns` function in the `src/spawn.rs` file checks the `Wins` unique to accomplish this.
 
 ## Base Equipment Level
 
