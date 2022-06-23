@@ -55,8 +55,8 @@ It uses the `pick_random_pos_in_room` function to pick a random spot in a random
 The `spawn::fill_rooms_with_spawns` function goes through every room and randomly decides to place monsters and items in it, except for the first room where the player starts.
 It calls the `fill_room_with_spawns` helper function (note the singular "room") to do this.
 
-There is a 1-in-4 chance for one or two items to be spawned in each room.
-The `spawn_random_item_at` helper function chooses, creates and places the items themselves.
+There is a 1-in-4 chance for an item to be spawned in each room.
+The `spawn_random_item_at` helper function chooses, creates and places items.
 The exact item selection is covered in a different chapter, but generally consists of consumable scrolls and potions, with the occasional weapon or armor.
 
 Each room also has a 1-in-2 chance of spawning between one to three monsters.
