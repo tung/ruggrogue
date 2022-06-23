@@ -1,15 +1,15 @@
 # Pathfinding
 
 As the player explores the dungeon in RuggRogue they'll encounter monsters.
-When a monster sees the player they will move towards the player in order to attack them.
+When a monster sees the player they will move towards the player to attack them.
 The path taken by that monster is determined by *pathfinding*, which makes up the most important part of their AI.
-This chapter is all about how RuggRogue finds and uses paths for monsters.
+This chapter touches on the algorithm used for pathfinding, then covers the details needed to make it work in the context of the game.
 
 ## The A\* Search Algorithm
 
-The problem of getting a monster to approach the player is about finding a path between their positions on the map.
-The traditional approach to calculating a path in this kind of context is the *A\* search algorithm* (pronounced "a-star").
-Unlike shadow casting approaches in the field of view chapter, all A\* search implementations have a similar structure.
+Getting a monster to approach the player is about finding a path between their positions on the map.
+The traditional approach to calculating a path in this context is the *A\* search algorithm* (pronounced "a-star").
+Unlike shadow casting approaches in the [Field of View chapter](field-of-view.md), all A\* search implementations have a similar structure.
 Instead of painstakingly describing it here, I'll link to Red Blob Games instead:
 
 > [Introduction to the A\* Algorithm at Red Blob Games](https://www.redblobgames.com/pathfinding/a-star/introduction.html)
@@ -28,12 +28,12 @@ Pathfinding in RuggRogue can be broken down into several parts:
 - The back-end function that forms the core of the pathfinding implementation.
 
 The monster AI lives in the `do_turn_for_one_monster` function in the `src/monster.rs` file.
-It calls the `ruggrogue::find_path` function, the front-end pathfinding function, to find a path to the player and takes a single step towards them.
+It calls the `ruggrogue::find_path` function to find a path to the player and takes a single step towards them.
 
 The map informs the pathfinding system about which of its tiles are blocked and which are walkable by implementing the `ruggrogue::PathableMap` trait defined in the `src/lib/path_find.rs` file.
-The map defines a single `is_blocked` function for this trait in the `src/map.rs` file to facilitate this decision, which is based on the type of tile at that position, along with any entities there.
+The map defines a single `is_blocked` function for this trait in the `src/map.rs` file to do this, the result of which is based on the type of tile at that position, along with any entities there.
 
-The front-end function for pathfinding is the `ruggrogue::find_path` function defined in the `src/lib/path_find.rs` file.
+The `ruggrogue::find_path` function is the front-end function for pathfinding, defined in the `src/lib/path_find.rs` file.
 It calls the back-end `a_star` function in the same file to calculate the raw path data, then prepares the path it finds into an `AStarIter` struct, which is an iterator describing that path.
 
 ## Pathfinding in Monster AI
@@ -63,13 +63,13 @@ The first step of the `AStarIter` iterator is the starting position of the monst
 This whole thing is wrapped in an `if let` block, so if the monster cannot find a path to the player it will simply do nothing.
 
 Assuming that the monster finds a path, if that next step is the player's position, the monster performs a melee attack, otherwise it takes a step.
-When the monster moves, its position is updated for the map with the `Map::move_entity` function defined in the `src/map.rs` file.
+When the monster moves, its position is updated for the map by the `Map::move_entity` function defined in the `src/map.rs` file.
 The `Coord` component of the monster entity needs to be similarly updated.
 Finally, the monster's field of view needs to be recalculated based on its new position, so its `FieldOfView` component is marked dirty.
 
 ## Blocked Map Tiles
 
-The purpose of the A\* search algorithm in the context of RuggRogue is to find a path from a monster to the player.
+RuggRogue uses the A\* search algorithm to find a path from a monster to the player.
 This path has two main concerns:
 
 1. Don't walk through walls.
@@ -134,7 +134,7 @@ let mut came_from: HashMap<(i32, i32), (i32, i32)> = HashMap::new();
 
 The key of this hash map is a tile position, while the value is the position of the pathfinding step taken to get to this tile.
 Following this linkage of steps from any keyed position will eventually lead back to the starting position.
-In other words, that path data that will be stored in here will be backwards; that will be dealt with later.
+In other words, the path data that will be stored in here will be backwards; that will be dealt with later.
 
 The `ruggrogue::find_path` function calls the `a_star` function defined above it to perform the pathfinding itself:
 
@@ -142,16 +142,16 @@ The `ruggrogue::find_path` function calls the `a_star` function defined above it
 let closest = a_star(map, start, dest, bound_pad, &mut came_from);
 ```
 
-The first thing to notice is the `bound_pad` argument.
+The first thing to note is the `bound_pad` argument.
 In order to avoid excessive path exploration when no path exists between a monster and the player, pathfinding in RuggRogue is not typically performed over the entire map.
 Instead, pathfinding is bounded by a rectangle of tiles that includes the monster and player positions as corners.
-If the `bound_pad` argument is non-zero, this rectangle is expanded to include `bound_pad` worth of extra tiles on all sides; a zero `bound_pad` causes pathfinding to explore the whole map if needed.
+If the `bound_pad` argument is non-zero, this rectangle is expanded to include `bound_pad`-worth of extra tiles on all sides; a zero `bound_pad` causes pathfinding to explore the whole map if needed.
 
 The call to the `a_star` function populates the `came_from` hash map, but it also returns the position of the tile closest to the destination out of all the tiles that it explored.
 If a path is found to the destination, this `closest` tile will be the destination itself.
 If there is no such path, the caller of `ruggrogue::find_path` can opt into receiving a path to this closest tile instead by setting the `fallback_closest` argument to true; monster AI uses this to allow multiple monsters to pursue the player down a single-tile-wide corridor for example.
 
-As mentioned earlier, the raw path data in the `came_from` hash map has each tile point backwards to the tile it was reached via and is thus backwards from how the caller of `ruggrogue::find_path` needs it.
+As mentioned earlier, the raw path data in the `came_from` hash map has each tile point *backwards* to the tile it was reached via and is thus backwards from how the caller of `ruggrogue::find_path` needs it.
 The links of the path need to be reversed so that each tile on the path points forwards and not backwards.
 The code looks like this:
 
@@ -175,7 +175,7 @@ This is the same kind of logic used to reverse a linked list.
 
 If you're clever, you might be wondering why the `ruggrogue::find_path` function doesn't just reverse the start and destination positions to avoid having to manually reverse path data.
 Doing that would only save work if a path is definitely found between a monster and the player.
-If no path exists, the closest tile position is useless since it's only reachable from the destination and not the starting position; a second pathfinding run starting from the starting position would be needed anyway in this case.
+If no path exists, the closest tile position is useless since it's only reachable from the destination and not the starting position; a second pathfinding run starting from the starting position would be needed anyway in that case.
 
 ## The `a_star` Function
 
@@ -217,8 +217,7 @@ let dist100 = |(x1, y1), (x2, y2)| {
 ```
 
 This function calculates the approximate distance between two points, times 100 to avoid having to convert between integers and floating point values.
-Side note: This is not idiomatic Rust code, since it was written fairly early in the game's life cycle.
-In any case, this estimates the path cost where every diagonal step costs 141 (i.e. the square root of 2, multiplied by 100) and every cardinal step thereafter costs 100...
+This estimates the path cost where every diagonal step costs 141 (i.e. the square root of 2, multiplied by 100) and every cardinal step thereafter costs 100...
 
 Wait, why is there a multiplication by "99" and not "100"?
 
@@ -232,7 +231,7 @@ Just remember that `dist100` is only a heuristic function; it doesn't actually a
 
 There's another oddity about this heuristic function that, unlike the quirk above, is also reflected in the real path cost.
 Diagonal steps have an extra cost compared to cardinal moves in all of this pathfinding code, but steps in all eight directions cost a single turn during actual gameplay; why the discrepancy?
-Using Euclidean distance for pathfinding like this leads to paths that look more like how a human would choose.
+Using Euclidean distance for pathfinding like this leads to paths that look more like what a human would choose.
 Using the exact distance calculations used by the gameplay instead leads to many intermediate frontier tiles with equal priority values, and the tie-breaking involved often leads to technically correct shortest paths that look ugly or bizarre.
 
 The big `while` loop in the `a_star` function performs the main part of the A\* search algorithm: pop a tile from the frontier, terminate if it's the destination and add surrounding tiles to the frontier based on path cost priority.
@@ -249,9 +248,9 @@ The big `while` loop updates this so that there's a fallback destination to take
 
 ## Conclusion
 
-As mentioned before, the pathfinding code in RuggRogue was written fairly early in its life cycle, so it does things a bit strangely compared to how I would author the code nowadays.
+The pathfinding code in RuggRogue was written fairly early in its life cycle, so it does things a bit strangely compared to how I would author the code nowadays.
 
-Astute readers may notice that the code calculates the whole path for a monster to take only a single step just to recalculate the path again on its next turn.
+Astute readers may notice that the code calculates the whole path for a monster, takes just a single step and recalculates the path again on its next turn.
 This is less wasteful than it seems: the book-keeping data for the A\* search algorithm has to be allocated anyway even for a single step, so discarding it immediately doesn't differ much from creating an iterator, taking a single step and throwing away the iterator.
 
 The tweak to the heuristic function to get monsters to line up with the player to chase them down corridors works pretty well.
