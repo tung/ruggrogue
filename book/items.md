@@ -46,7 +46,7 @@ The exact process for all of this is described in detail in the [Map Population]
 
 ## Inventory and Equipment
 
-For the player to pick up and use items, there must be some space for them to hold items in their possession; in other words, an *inventory*.
+For the player to pick up and use items, they need an *inventory* to serve as space to hold them.
 The list of items carried by the player is represented by the `Inventory` component, defined in the `src/components.rs` file:
 
 ```rust,ignore
@@ -89,7 +89,7 @@ Most of the time spent playing the game that isn't moving around the dungeon or 
 As a result, about half of the interface code is dedicated solely to dealing with items.
 
 Although these item-related menus and dialogs allude to actions, note that they *never perform these actions themselves*.
-For example, if the player chooses to drop an item from the inventory, the inventory returns a result that captures that intent, and the job of dropping the item is handled elsewhere.
+For example, if the player chooses to drop an item from the inventory, the inventory returns a *result* that captures that intent, and the job of dropping the item is handled elsewhere.
 
 ### Pick Up Menu
 
@@ -106,7 +106,7 @@ The entity ID of the selected item is returned as part of the `PickUpMenuModeRes
 
 The player presses the 'i' key to bring up the inventory menu.
 This is the biggest and most advanced of the menus, represented as the `InventoryMode` in the `src/modes/inventory.rs` file.
-It shows the player's currently equipped weapon and armor in a small section at the top, with a larger inventory listing beneath it.
+It shows the player's currently-equipped weapon and armor in a small section at the top, with a larger inventory listing beneath it.
 There's also an option to sort the inventory, which sorts inventory items according to hard-coded criteria.
 
 If an inventory item is selected, an *inventory action menu* is presented for it; a similar *equipment action menu* is presented if an equipped item is selected.
@@ -225,14 +225,14 @@ If these conditions are true, the player has won the game!
 
 The first step of handling victory is to immediately perform an auto-save.
 The victory sequence involves *switching* from the `DungeonMode` to the `GameOverMode`.
-If the game window closes for whatever reason, there's no confirmation dialog or any chance to save the game, since those tasks would normally handled by the `DungeonMode`.
+If the game window closes for whatever reason, there's no confirmation dialog or any chance to save the game, since those tasks would normally be handled by the `DungeonMode`.
 Auto-saving in advance mitigates this issue.
 
 The victory item is then deleted and the win counter is incremented.
 The `item::use_item` function returns a result that signals to the `DungeonMode::update` function that it should switch to the `GameOverMode`.
 
 The `GameOverMode` defined in the `src/modes/game_over.rs` file detects that the player is still alive and has thus won the game, showing a congratulatory message in response.
-Proceeding from the `GameOverMode` simply switches back to the `TitleMode` that the player sees at game launch.
+Proceeding from the `GameOverMode` switches back to the `DungeonMode` to start a New Game Plus run.
 
 ### Gathering Targets
 
@@ -251,7 +251,7 @@ Using field of view calculation to determine targets like this prevents items wi
 Items can have any number of effects according to the components attached to the item and the targets.
 
 **Nutrition** is added to the target if the target entity has a `Stomach` component to fill.
-The `fullness` field of that `Stomach` component is filled according to the amount stated in the item's `Nutrition` component, generally only found on rations.
+The `fullness` field of that `Stomach` component is filled according to the amount stated in the item's `Nutrition` component that found only on rations.
 
 **Healing** is applied if the item has a `ProvidesHealing` component and the target has a `CombatStats` component.
 If the target is at less than full health, the hit points of that target are restored by the amount stated in the `ProvidesHealing` component, up to maximum hit points.
@@ -292,4 +292,4 @@ The sleepiness counter of the entity is decremented according to the following r
 Once the sleepiness counter reaches zero, the `Asleep` component is removed from the entity, waking them up.
 
 The Sleep Scroll inflicts 36 points of sleepiness, by its construction in the `spawn_sleep_scroll` function back in the `src/spawn.rs` file.
-This renders one sleeping monster vulnerable to three hits before waking up if the player wastes no turns attacking them.
+This renders one sleeping monster vulnerable to three hits before waking up if the player wastes no turns to attack them.
