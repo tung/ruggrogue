@@ -7,6 +7,7 @@ The truth about monsters in RuggRogue is they mostly overlap with the player, wi
 - They move towards and fight the player if they can see the player.
 - They have no `Stomach` component, so they don't eat or regenerate.
 - They grant experience when they die to whoever defeated them.
+- They do not pick up, drop or use items.
 
 Monsters differ only in name, appearance and stats; they're treated uniformly in every other way.
 
