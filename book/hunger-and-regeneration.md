@@ -22,7 +22,7 @@ pub struct Stomach {
 
 The `fullness` field is the exact internal fullness level of the player; zero means the player is starving, while the `max_fullness` field simply caps its value.
 
-The `sub_hp` field is used to determine when the player should regenerate a hit point (or lose, in case of starvation).
+The `sub_hp` field is used to determine when the player should regenerate a hit point (or lose one, in case of starvation).
 It can be thought of as a 'fractional hit point', serving as the numerator with the denominator decided elsewhere.
 This is explained later in this chapter.
 
@@ -65,7 +65,6 @@ Each variant maps to a range of `i32` values according to the `HungerState::from
 - `Full`: 1201 and above
 
 These values are hard-coded and probably should have been calculated relative to the `max_fullness` field of the `Stomach` struct, but since there's only one `Stomach` component in the whole game, it's been left as-is.
-If there were any more than one `Stomach` component then these calculations would need to be reworked.
 
 The hunger state is what appears in the sidebar, not the raw value.
 The hunger state determines whether the player regenerates or loses hit points, and messages appear in the message log when it changes.
@@ -102,7 +101,7 @@ This adds 60 to the `sub_hp` field each turn.
 When it reaches 300, the player regenerates a single hit point and 300 is subtracted from the `sub_hp` field.
 Since 300 divided by 60 produces 5, this player will regenerate a hit point every five turns, and indeed will be able to regenerate their full 60 hit points in 300 turns.
 
-As you might have guessed, the hunger states that permit regeneration are decided by whether or not the `HungerState::turns_to_regen_to_max_hp` function returns a number.
+The hunger states that permit regeneration are decided by whether or not the `HungerState::turns_to_regen_to_max_hp` function returns a number.
 The player can only regenerate when their hunger state is "Full", "Normal" or "Hungry".
 
 When the player's hunger state is "Starving", they will *lose* hit points instead of regenerating them.
@@ -125,7 +124,7 @@ Changes to hunger state and losing hits points to starvation not only produce me
 
 Hunger impacts the ability for the player to begin or continue resting in place, in the `wait_player` and `auto_run_next_step` functions found in the `src/player.rs` file respectively.
 They both hinge on the value returned by the `hunger::can_regen` function back in the `src/hunger.rs` file.
-It returns a variant of the `hunger::CanRegenResult` enum that can be found at the top of the `src/hunger.rs` file and looks like this:
+It returns a variant of the `hunger::CanRegenResult` enum that can be found at the top of the `src/hunger.rs` file, which looks like this:
 
 ```rust,ignore
 pub enum CanRegenResult {
