@@ -1,0 +1,320 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Dependencies - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html" class="active"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h1>
+<p>RuggRogue doesn't use any roguelike helper libraries, but that doesn't mean it was made from scratch.
+In order to complete the game in a reasonable time frame, I had to make use of some external tools and libraries.</p>
+<h2 id="the-language-rust"><a class="header" href="#the-language-rust">The Language: Rust</a></h2>
+<p>A lot has been said about the benefits of Rust as a programming language, so I'll stick to general points on how it relates to RuggRogue.
+When I was starting out, there were two things I wanted out of whatever I was going to build the game out of: correctness and performance, and I was willing to take the extra time to make them happen.
+In those ways, Rust was a perfect fit for the project.</p>
+<p>On correctness, Rust's strong type system provided a robust foundation for structuring the game.
+It also allowed for bold code improvements that I would never have attempted without it; code that would otherwise needed whole rewrites or been left in a sub-par state.
+My attitude towards bugs is to catch and eliminate them early, and Rust's type and safety checks detect most low-level bugs pretty much as early as possible.</p>
+<p>As for performance, I dislike any software that uses more CPU or memory than it needs to do its job.
+There's lots of software like that nowadays everywhere due to developers working under time pressure, but it still feels disrespectful to waste the time and resources of so many users to save some time for a few developers.
+But thanks to Rust, RuggRogue doesn't have to join their ranks.
+It still takes time and effort to improve performance, but the result is a game that doesn't feel awful to have open.
+I don't know if anybody else cares, even most of the players, but that's very satisfying to me.</p>
+<p>Aside from correctness and performance, Rust's tooling and standard library served the creation of RuggRogue very well.</p>
+<h2 id="the-libraries"><a class="header" href="#the-libraries">The Libraries</a></h2>
+<p>Rust refers to libraries as <em>crates</em>, so if I use the word &quot;crate&quot; anywhere, it's safe to mentally substitute it with &quot;library&quot;.
+RuggRogue uses the following crates to do handle various things it doesn't already handle itself:</p>
+<h3 id="bitflags"><a class="header" href="#bitflags">bitflags</a></h3>
+<p><a href="https://crates.io/crates/bitflags">bitflags</a> enables the creation of compact bitmask values with symbolic names.
+RuggRogue uses it to encode the state of the Shift, Ctrl and Alt modifier keys in a single value that the game logic can check later.</p>
+<h3 id="bitvec"><a class="header" href="#bitvec">bitvec</a></h3>
+<p><a href="https://crates.io/crates/bitvec">bitvec</a> provides a memory-dense representation of what would otherwise be a vector of booleans that would be each be a byte and thus be eight times larger in memory.
+Reducing memory usage improves cache utilization, which makes the game faster in general.
+RuggRogue uses bitvecs to keep track of which map tiles the player has seen on the current dungeon level, as well as the tiles within each entity's field of view.</p>
+<h3 id="rand-rand_xoshiro"><a class="header" href="#rand-rand_xoshiro">rand, rand_xoshiro</a></h3>
+<p><a href="https://crates.io/crates/rand">rand</a> provides convenient APIs for extracting and using numbers from a backing random number generator.
+<a href="https://crates.io/crates/rand_xoshiro">rand_xoshiro</a> is one such backing whose implementation is simple, fast and high quality for non-cryptographic needs, like games.
+RuggRogue uses these crates to generate random numbers for level generation, item and monster spawning and combat calculations.</p>
+<h3 id="sdl2"><a class="header" href="#sdl2">sdl2</a></h3>
+<p><a href="https://crates.io/crates/sdl2">sdl2</a> or &quot;Rust-SDL2&quot; as the crate refers to itself provides access to <a href="https://libsdl.org/">SDL</a>.
+SDL itself is a library that provides access to windows, input events and display in a cross-platform manner.
+RuggRogue enables the <code>image</code> feature to load PNG files for tiles and ASCII symbols.</p>
+<p>SDL is the only non-Rust external dependency of RuggRogue, which has interesting implications.
+By choosing SDL instead of pure Rust alternatives, RuggRogue is able to avoid having to compile literally dozens of additional dependent crates, which drastically saves on initial compile times and final binary size.
+On top of that, it means that unoptimized debug builds of RuggRogue run almost as fast as optimized release builds; for reference, the performance difference between debug and release builds of the pure Rust approach can be as high as 5x to 10x!</p>
+<p>There is one big downside to using a non-Rust dependency in a Rust project, which is that it forces other developers who want to build the game to install SDL themselves; a task that requires some specialized platform-specific knowledge.
+It's easiest on Linux, which is what I developed RuggRogue on: a package manager installs SDL2 and SDL2_image in a standard location, Rust knows how to look in that standard location, and everything is flowers and sunshine.
+It's hardest on Windows, which is used by almost 90% of people with a computer, since there's no standard location for development packages, so tools have no idea how to cooperate without messing with paths and deciphering cryptic error messages when you inevitably screw it up.</p>
+<h3 id="serde-serde_json"><a class="header" href="#serde-serde_json">serde, serde_json</a></h3>
+<p><a href="https://crates.io/crates/serde">serde</a> provides plumbing and infrastructure to enable serialization and deserialization of data structures.
+<a href="https://crates.io/crates/serde_json">serde_json</a> uses that plumbing to convert data to and from the JSON text-based data format.
+RuggRogue uses these crates to convert its data structures into JSON when saving the game to a file, and convert them back out when loading a saved game from a file.</p>
+<h3 id="shipyard"><a class="header" href="#shipyard">shipyard</a></h3>
+<p><a href="https://crates.io/crates/shipyard">shipyard</a> is an Entity Component System (or &quot;ECS&quot;) crate that provides:</p>
+<ol>
+<li>data storage in the form of entities with data components attached,</li>
+<li>systems that are functions that run on subsets of entities based on which components they have, and</li>
+<li>workloads that are bundles of ordered systems that are to be executed repeatedly.</li>
+</ol>
+<p>However, RuggRogue only uses the entity-and-component data storage of Shipyard, and mostly uses conventional functions, reaching for systems only when convenient and avoiding workloads entirely.
+This avoids having lots of message queues to do cross-system communication, and thus a lot of red tape, since systems can't directly call other systems in the classic ECS arrangement.
+On the other hand, I have to carefully handle every function call, every branch and every loop to make sure everything runs at exactly the right time, and the right number of times, which the flat and linear model of system-based workloads sidesteps entirely.
+My &quot;EC-only&quot; approach isn't necessarily better than the full ECS approach, but it makes it very different to what it otherwise would have been.</p>
+<h3 id="wyhash"><a class="header" href="#wyhash">wyhash</a></h3>
+<p><a href="https://crates.io/crates/wyhash">wyhash</a> is a hashing crate; it ingests some data and calculates a hash value for that data.
+Remember rand and rand_xoshiro?
+There's more to the random number story in RuggRogue.
+RuggRogue uses wyhash to create seeds for temporary random number generators that it uses.</p>
+<h2 id="the-web-support-emscripten"><a class="header" href="#the-web-support-emscripten">The Web Support: Emscripten</a></h2>
+<p>The way that RuggRogue runs on the web is by telling Cargo (Rust's main build tool) to build for the <code>wasm32-unknown-emscripten</code> target.
+If we ignore the <code>unknown</code>, <code>wasm32</code> is the target architecture (this would be something like <code>x86_64</code> for native), while <code>emscripten</code> is the target OS (that's <code>linux</code> if I build the game natively for myself).
+<code>wasm32</code> is the 32-bit flavor of <a href="https://webassembly.org/">WebAssembly</a>, which is a machine-code-like binary format that web browsers can run in a sandbox as an alternative to JavaScript.
+But WebAssembly can only muck about with memory and numbers; it has to call <em>host functions</em> to do interesting things, e.g. JavaScript functions in a web browser.</p>
+<p>This is where <a href="https://emscripten.org/">Emscripten</a> comes in.
+Emscripten provides a whole bunch of host functions that make a WebAssembly blob believe it's running in a classic desktop-like environment.
+For example, Emscripten provides POSIX-like file system APIs that enable the same file system code to compile and run unmodified in a web browser as it does natively.
+Critically for RuggRogue, Emscripten implements the SDL API, so the windowing, input event handling and rendering all work in a web browser with minimal changes.
+When Emscripten works, it's like magic.</p>
+<p>But Emscripten's magic is imperfect.
+A part of it is differences imposed by the browser environment that Emscripten operates in.
+In a native application, processes automatically share access to the CPU due to pre-emptive multi-processing managed by the operating system.
+In a browser, a tab has a single main thread, and if, say, a game runs its own main loop that never yields control back to the tab, that tab will just lock up.
+A game that wants to run in a tab can't have a real main loop.
+Instead, it has to be adapted to run just a single iteration of its main loop, and have Emscripten yield control to the browser.
+Emscripten then runs this loop at around 60 FPS on the game's behalf.
+So everything is good, right?</p>
+<p>Unfortunately, RuggRogue has a special requirement for its own game loop.
+When RuggRogue isn't handling an input event or animating something, it waits for an event, acting more like a GUI program than a game.
+I pored over a lot of documentation, but for the life of me I could not find a good way to get Emscripten to support this kind of execution flow.
+In order for RuggRogue to keep its own game loop while running in a browser tab without locking it up, I had to reach for a transformation known as <a href="https://emscripten.org/docs/porting/asyncify.html">Asyncify</a>.
+The link explains what it does better than I can here.
+Sadly, it's a pretty invasive transformation with a high CPU cost, but it allows CPU savings to occur when the player is idle, so it's still a net win.</p>
+<p>Asyncify saves CPU by substituting <code>sleep</code> calls that RuggRogue makes during its main loop with the browser's <a href="https://developer.mozilla.org/en-US/docs/Web/API/setTimeout">setTimeout</a> JavaScript function.
+But there's a problem: RuggRogue relies on fine-grained <code>sleep</code> calls for smooth gameplay, but <a href="https://developer.mozilla.org/en-US/docs/Web/API/setTimeout#reasons_for_delays_longer_than_specified">setTimeout has delays</a> when called repeatedly in a deep call stack.
+It just so happens that the Asyncify transformation leads to very deep call stacks.
+The result?
+RuggRogue suffers unavoidable stutter in the web version.
+There's no way around it without redoing its approach to web support entirely.</p>
+<p>As well as the stutter, Emscripten is tricky to use with Rust in general.
+In particular, it relies on the output format of <a href="https://llvm.org/">LLVM</a> tools.
+These formats are <em>not</em> stable across versions, so Emscripten relies on the most recent revision of LLVM at the time of development.
+Meanwhile, Rust runs its own version of LLVM which is <em>not</em> the most recent revision of LLVM at any given time.
+In order to correctly build a program with Rust and Emscripten, they usually have to use matching LLVM versions.
+The LLVM version used by Rust can be found using <code>rustc --version --verbose</code>, but I couldn't find how to do the same for Emscripten anywhere I searched.
+The use of version <strong>1.39.20</strong> is from <a href="https://web.archive.org/web/20210618192808/https://blog.therocode.net/2020/10/a-guide-to-rust-sdl2-emscripten">Therocode's blog</a>, who I can only assume did a deep dive into the release histories of Emscripten and LLVM to discover the version number.
+Using the newest version of Emscripten with Rust will likely not work.</p>
+<p>I would strongly consider taking the extra time to learn <a href="https://rustwasm.github.io/docs.html">Rust and WebAssembly</a> without the Emscripten bit in the future.
+I don't know if it would have gained results any quicker, but it seems like it would have dodged a lot of the headaches mentioned above.</p>
+<h2 id="the-migrated-off-of-piston"><a class="header" href="#the-migrated-off-of-piston">The Migrated Off Of: Piston</a></h2>
+<p>RuggRogue did not begin life as an SDL game; it began life as a Piston game.
+<a href="https://crates.io/crates/piston">Piston</a> is one of the earliest Rust game engines that existed, if not the earliest.
+I initially chose it because it seemed like the only game engine that would let me write my own game loop, and because I didn't know any better.</p>
+<p>RuggRogue no longer uses Piston.
+Using Piston to draw a grid of characters onto the screen in the most obvious way led to extremely poor performance.
+Trawling through documentation spread out across Piston's many sub-crates did not reveal any way to improve performance, so eventually it was just dropped entirely.
+Switching from Piston to plain SDL both drastically dropped the compile time and boosted the performance of RuggRogue by <em>a lot</em>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="index.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="source-code-layout.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="index.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="source-code-layout.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

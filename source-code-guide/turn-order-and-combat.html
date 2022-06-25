@@ -1,0 +1,392 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Turn Order and Combat - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html" class="active"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="turn-order-and-combat"><a class="header" href="#turn-order-and-combat">Turn Order and Combat</a></h1>
+<p>RuggRogue is a turn-based game, so the game waits until the player finishes their turn, then gives the monsters a turn.
+There's no special speed system, so turns just alternate between the player and the monsters.</p>
+<p>The most common interaction between the player and the monsters during their turns is performing a <em>melee attack</em>.
+These melee attacks inflict damage to their target until they eventually die, and these dead targets need special handling and clean-up.</p>
+<h2 id="alternating-turns-between-the-player-and-the-monsters"><a class="header" href="#alternating-turns-between-the-player-and-the-monsters">Alternating Turns Between the Player and the Monsters</a></h2>
+<p>Time advances in the game with repeated calls to the <code>DungeonMode::update</code> function in the <code>src/modes/dungeon.rs</code> file.
+For the purpose of understanding turns, it looks roughly like this:</p>
+<pre><code class="language-rust ignore">impl DungeonMode {
+    pub fn update(&amp;mut self, world, inputs, _grids, pop_result) -&gt; (ModeControl, ModeUpdate) {
+        if world.run(player::player_is_alive) {
+            // ...
+            let time_passed: bool = if let Some(result) = pop_result {
+                //
+                // Dialog and menu result handling here.
+                //
+            } else {
+                match player::player_input(world, inputs) {
+                    //
+                    // Player input result handling here.
+                    //
+                }
+            };
+
+            if time_passed {
+                world.run(damage::handle_dead_entities);
+                world.run(experience::gain_levels);
+                // field of view stuff...
+                world.run(monster::enqueue_monster_turns);
+
+                if world.run(player::player_is_alive) {
+                    monster::do_monster_turns(world);
+                    world.run(damage::handle_dead_entities);
+                    world.run(experience::gain_levels);
+                    // field of view stuff...
+
+                    if world.run(player::player_is_alive) {
+                        // hunger handling...
+                        world.run(damage::handle_dead_entities);
+                        world.run(experience::gain_levels);
+                        // field of view stuff...
+
+                        if world.run(player::player_is_alive) {
+                            world.run(damage::clear_hurt_bys);
+                            world.borrow::&lt;UniqueViewMut&lt;TurnCount&gt;&gt;().0 += 1;
+                        }
+                    }
+                }
+
+                // ...
+            }
+
+            // ...
+        } else if player::player_is_dead_input(inputs) {
+            (
+                ModeControl::Switch(GameOverMode::new().into()),
+                ModeUpdate::Immediate,
+            )
+        } else {
+            // ...
+        }
+    }
+}
+</code></pre>
+<p>The most important thing to pick up in the above code skeleton is the <code>time_passed</code> variable.
+The player's turn consists of everything that they're allowed to do while <code>time_passed</code> is set to <code>false</code>.
+Once the player performs a time-consuming action, the <code>time_passed</code> variable is set to <code>true</code>.</p>
+<p>The <code>time_passed</code> variable is either set directly after player input handling, or indirectly after handling the result of a dialog or menu.
+A return value of <code>PlayerInputResult::TurnDone</code> from the <code>player::player_input</code> function sets <code>time_passed</code> to <code>true</code>, while <code>PlayerInputResult::NoResult</code> sets it to <code>false</code>.
+The other variants of <code>PlayerInputResult</code> defined at the top of the <code>src/player.rs</code> file will cause the <code>DungeonMode::update</code> function to create a dialog or menu to show.
+Confirming or performing actions in these dialogs and menus usually sets <code>time_passed</code> to <code>true</code>, while cancelling out sets it to <code>false</code>.</p>
+<p>Once the <code>time_passed</code> variable is set to <code>true</code>, the <code>if time_passed ...</code> conditional block performs the rest of the turn:</p>
+<ol>
+<li>Handle dead entities and level gains.</li>
+<li>Give monsters their turn, handle dead entities and level gains again.</li>
+<li>Tick hunger, handle dead entities and level gains yet again.</li>
+<li>Clear damage book-keeping and increment the turn counter.</li>
+</ol>
+<p>Note that dead entities and experience levels need to be dealt with at each point after damage can occur.</p>
+<h2 id="monster-turns"><a class="header" href="#monster-turns">Monster Turns</a></h2>
+<p>Once the <code>time_passed</code> variable in the <code>DungeonMode::update</code> function is set to <code>true</code>, the monsters get their turn.
+All monsters are given a turn with a call to the <code>monster::enqueue_monster_turns</code> function in the <code>src/monster.rs</code> file.
+Its job is to fill in the <code>MonsterTurns</code> queue with the entity ID of each monster.
+The <code>monster::do_monster_turns</code> function then pops entity IDs out to give each monster their turn.</p>
+<p>Why not just loop through all monsters, handle their turns directly and avoid the need for a queue?
+The answer to this is that the <code>MonsterTurns</code> queue grants turns to monsters closest to the player first to minimize blocking when a group of monsters chase the player down a corridor.
+At the top of the <code>src/monster.rs</code> file, the <code>MonsterTurns</code> queue is declared as a heap that stores monster entity IDs and their distance from the player.
+Since <code>MonsterTurns</code> is a heap, monster IDs are popped out closest-first, giving the desired monster turn order.</p>
+<p>Each monster's turn is individually handled by the <code>do_turn_for_one_monster</code> function in the <code>src/monster.rs</code> file.
+Monster AI is trivial: if the player can be seen, move towards them as described in the <a href="pathfinding.html">Pathfinding chapter</a> and perform a melee attack if adjacent.</p>
+<h2 id="melee-attacks-and-damage"><a class="header" href="#melee-attacks-and-damage">Melee Attacks and Damage</a></h2>
+<p>If the player moves into a monster or vice versa, a melee attack is performed.
+Melee attacks are handled by the <code>damage::melee_attack</code> function in the <code>src/damage.rs</code> file.
+Player melee attacks call this in the <code>try_move_player</code> function in the <code>src/player.rs</code> file.
+Monster melee attacks call this in the <code>do_turn_for_one_monster</code> function in the <code>src/monster.rs</code> file.</p>
+<p>The first consideration of the <code>damage::melee_attack</code> function is accuracy.
+There is a flat 10% miss chance for any attack against a target as long as they aren't asleep.</p>
+<p>The <code>damage::melee_attack</code> function deals with two entities that each have a <code>CombatStats</code> component, defined in <code>src/components.rs</code> like so:</p>
+<pre><code class="language-rust ignore">pub struct CombatStats {
+    pub max_hp: i32,
+    pub hp: i32,
+    pub attack: f32,
+    pub defense: f32,
+}
+</code></pre>
+<p>Notice that the <code>attack</code> and <code>defense</code> fields are typed <code>f32</code>, i.e. 32-bit single precision floating point numbers.
+This allows for much finer-grained control of their values compared to if they were integers instead.</p>
+<p>The player has an <code>Equipment</code> component that points to any equipped weapon or armor:</p>
+<pre><code class="language-rust ignore">pub struct Equipment {
+    pub weapon: Option&lt;EntityId&gt;,
+    pub armor: Option&lt;EntityId&gt;,
+}
+</code></pre>
+<p>Any such weapon or armor has a <code>CombatBonus</code> component:</p>
+<pre><code class="language-rust ignore">pub struct CombatBonus {
+    pub attack: f32,
+    pub defense: f32,
+}
+</code></pre>
+<p>The <code>damage::melee_attack</code> function thus calculates attack and defense values by starting with their base values in the <code>CombatStats</code> component, and adding bonuses from the <code>CombatBonus</code> components of any equipped weapon and armor.</p>
+<p>The base damage calculation considers the attack power of the attacker versus the defense of the target.
+The code looks like this:</p>
+<pre><code class="language-rust ignore">let mut damage = if attack_value &gt;= defense_value * 2.0 {
+    attack_value - defense_value
+} else {
+    attack_value * (0.25 + (0.125 * attack_value / defense_value.max(1.0)).min(0.25))
+};
+</code></pre>
+<p>There are two key take-aways of the above calculation.
+First, if attack is at least twice defense, base damage is just the difference between the two values.
+Second, to avoid zero damage when attack is less than defense, damage from lower attack values is varied from 25% to 50% of the attack value, depending on how much lower it is than the defense value.</p>
+<p>This approach has some nice properties:</p>
+<ol>
+<li>High attack values have a simple one-to-one relationship to damage.</li>
+<li>Attacks still do a little bit of damage even if defense is higher than the attack value.</li>
+<li>Low-damage attacks are still reduced by increases to defense.</li>
+</ol>
+<p>After base damage has been calculated it has a 25% chance of being multiplied by 1.5 (a critical hit) and 25% chance of being multiplied by 0.5 (a weak hit).</p>
+<p>At this point, the damage needs to be converted from a floating point number to an integer.
+Fractional values are rounded up with the help of an RNG, e.g. 3.1 damage has a 10% chance of being rounded up to 4.</p>
+<p>To inflict damage, the freshly-minted integer damage value is deducted from the <code>hp</code> field of the target's <code>CombatStats</code> component.
+This may push the <code>hp</code> field to zero or negative, but entity death is handled elsewhere.
+An appropriate hit message is also added to the message log, with suffix punctuation to match normal (exclamation mark), critical (double exclamation mark) and weak hits (period).</p>
+<p>A damaged entity is given a <code>HurtBy</code> component that's defined like this in the <code>src/components.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub struct HurtBy {
+    Someone(EntityId),
+    Starvation,
+}
+</code></pre>
+<p>In this case, the target entity is given a <code>HurtBy::Someone(attacker)</code>, where <code>attacker</code> is the entity ID of the attacker.
+If the target is a monster, this will be used later on try to grant whoever killed it experience.
+If the target is the player, this will point to the monster that killed them so it can be shown on the game over screen.
+These <code>HurtBy</code> components are cleared off of all entities at the end of the turn back up in <code>DungeonMode::update</code> with a call to the <code>damage::clear_hurt_bys</code> function.</p>
+<p>On the topic of the game over screen, the <code>damage::melee_attack</code> function also modifies any <code>Tally</code> component that it finds attached to the attacker or defender:</p>
+<pre><code class="language-rust ignore">pub struct Tally {
+    pub damage_dealt: u64,
+    pub damage_taken: u64,
+    pub kills: u64,
+}
+</code></pre>
+<p>The <code>damage_dealt</code> of the attacker and the <code>damage_taken</code> of the target are incremented by the final damage value if either entity has a <code>Tally</code> component.
+This information is also shown on the game over screen, so in practice only the player is given a <code>Tally</code> component.</p>
+<h2 id="handling-death"><a class="header" href="#handling-death">Handling Death</a></h2>
+<p>If an entity falls below zero hit points, it is now dead and needs to be handled appropriately.
+This job falls upon the <code>damage::handle_dead_entities</code> function defined in <code>src/damage.rs</code>.</p>
+<p>The <code>damage::handle_dead_entities</code> function goes through all entities with a <code>CombatStats</code> component and checks to see if their hit points are zero or less.
+The entity IDs of any such entities are gathered in batches of ten each, then processed before taking up to another ten, etc.</p>
+<p>A dead entity grants experience points to whoever hurt it last so long as the following conditions hold:</p>
+<ol>
+<li>The dead entity is marked with a <code>HurtBy::Someone(...)</code> component.</li>
+<li>The dead entity has a <code>GivesExperience</code> component, holding the number of experience points it should grant.</li>
+<li>The entity referred to by the <code>HurtBy::Someone(...)</code> component has an <code>Experience</code> component to accept the granted experience points.</li>
+</ol>
+<p>If the dead entity is a monster, it is removed from the map before the entity is deleted entirely.</p>
+<p>If the dead entity is the player, &quot;Press SPACE to continue...&quot; is added to the message log, the <code>PlayerAlive</code> unique flag is set to <code>false</code>, any existing save file is deleted and any remaining dead entity handling is skipped.</p>
+<p>The <code>PlayerAlive</code> unique flag is checked by the <code>player::player_is_alive</code> function that is checked all the way back in the <code>DungeonMode::update</code> function.
+Once the player is dead, control flow in the <code>DungeonMode::update</code> function flows into the <code>player::player_is_dead_input</code> function defined in the <code>src/player.rs</code> file.
+Its only job is to wait for the aforementioned Space key press, to allow the player to see the dungeon at the moment of their untimely passing.</p>
+<p>After the Space key is pressed, the player is whisked away to the <code>GameOverMode</code> defined in <code>src/modes/game_over.rs</code> to be shown the game over screen with the cause of death, final stats and tallied damage and kills.
+Proceeding from the game over screen takes the player back to the title screen.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="auto-run.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="items.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="auto-run.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="items.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

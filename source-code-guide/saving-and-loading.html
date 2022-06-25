@@ -1,0 +1,674 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Saving and Loading - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html" class="active"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="saving-and-loading"><a class="header" href="#saving-and-loading">Saving and Loading</a></h1>
+<p>RuggRogue features a pretty basic save system.
+When the player chooses to save and exit from the options menu, all game data is written into a save file.
+The title screen will detect the presence of this file and show an option to load the game.
+The game also auto-saves at a couple of other points, such as when the player takes the stairs, and when they're about to win the game.
+If the player dies, any detected save file is deleted.
+If the player chooses to start a new game and a save file exists, a prompt will appear to delete it first.</p>
+<p>All of this save-and-load action happens in the fittingly-named <code>src/saveload.rs</code> file, which will be the focus of most of this chapter.</p>
+<h2 id="the-save-file-format"><a class="header" href="#the-save-file-format">The Save File Format</a></h2>
+<p>When the game is saved, save data will be written to a file named <code>savegame.txt</code> in the same directory as the game itself.
+This file is in plain text format where each line represents either a unique or a component, made up of three tab-separated fields of data.
+Each unique line consists of an asterisk character, the type name of the unique and the unique data.
+Each component line consists of the ID of the entity it belongs to, the type name of the component and the component data.</p>
+<p>Here is an example of the contents of a small, complete save file:</p>
+<pre><code class="language-plaintext">*	GameSeed	9542716676452101438
+*	TurnCount	10
+*	Wins	0
+*	BaseEquipmentLevel	0
+*	Difficulty	{&quot;id&quot;:[8,0],&quot;exp_for_next_depth&quot;:40}
+*	Messages	{&quot;capacity&quot;:100,&quot;msg_queue&quot;:[&quot;This is a test save!&quot;],&quot;num_highlighted&quot;:0}
+*	PlayerAlive	true
+*	PlayerId	[5,0]
+*	Map	{&quot;depth&quot;:1,&quot;width&quot;:80,&quot;height&quot;:50,&quot;tiles&quot;:[[&quot;W&quot;,1952],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,1760]],&quot;rooms&quot;:[{&quot;x1&quot;:32,&quot;y1&quot;:24,&quot;x2&quot;:39,&quot;y2&quot;:31}],&quot;seen&quot;:{&quot;width&quot;:80,&quot;height&quot;:50,&quot;bv&quot;:[[1,4000]]}}
+[2,0]	BlocksTile	null
+[3,0]	CombatBonus	{&quot;attack&quot;:0.0,&quot;defense&quot;:1.4}
+[4,0]	CombatBonus	{&quot;attack&quot;:3.2,&quot;defense&quot;:0.0}
+[5,0]	CombatStats	{&quot;max_hp&quot;:40,&quot;hp&quot;:40,&quot;attack&quot;:4.8,&quot;defense&quot;:2.4}
+[2,0]	CombatStats	{&quot;max_hp&quot;:14,&quot;hp&quot;:14,&quot;attack&quot;:8.0,&quot;defense&quot;:4.0}
+[6,0]	Consumable	null
+[7,0]	Consumable	null
+[5,0]	Coord	{&quot;x&quot;:33,&quot;y&quot;:25}
+[7,0]	Coord	{&quot;x&quot;:33,&quot;y&quot;:30}
+[2,0]	Coord	{&quot;x&quot;:38,&quot;y&quot;:30}
+[6,0]	Coord	{&quot;x&quot;:38,&quot;y&quot;:25}
+[3,0]	EquipSlot	&quot;Armor&quot;
+[4,0]	EquipSlot	&quot;Weapon&quot;
+[5,0]	Equipment	{&quot;weapon&quot;:[4,0],&quot;armor&quot;:[3,0]}
+[5,0]	Experience	{&quot;level&quot;:1,&quot;exp&quot;:0,&quot;next&quot;:50,&quot;base&quot;:0}
+[8,0]	Experience	{&quot;level&quot;:1,&quot;exp&quot;:0,&quot;next&quot;:50,&quot;base&quot;:0}
+[2,0]	Experience	{&quot;level&quot;:1,&quot;exp&quot;:0,&quot;next&quot;:0,&quot;base&quot;:0}
+[5,0]	FieldOfView	{&quot;tiles&quot;:{&quot;width&quot;:17,&quot;height&quot;:17,&quot;bv&quot;:[[0,108],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,9],[0,8],[1,9],[0,8],[1,7],[0,21]]},&quot;range&quot;:8,&quot;center&quot;:[33,25],&quot;dirty&quot;:false}
+[2,0]	FieldOfView	{&quot;tiles&quot;:{&quot;width&quot;:17,&quot;height&quot;:17,&quot;bv&quot;:[[0,21],[1,7],[0,8],[1,9],[0,8],[1,9],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,108]]},&quot;range&quot;:8,&quot;center&quot;:[38,30],&quot;dirty&quot;:false}
+[2,0]	GivesExperience	10
+[5,0]	Inventory	{&quot;items&quot;:[]}
+[3,0]	Item	null
+[4,0]	Item	null
+[6,0]	Item	null
+[7,0]	Item	null
+[2,0]	Monster	null
+[6,0]	Name	&quot;Health Potion&quot;
+[7,0]	Name	&quot;Ration&quot;
+[5,0]	Name	&quot;Player&quot;
+[3,0]	Name	&quot;+1 Jerkin&quot;
+[4,0]	Name	&quot;+1 Knife&quot;
+[2,0]	Name	&quot;Blob&quot;
+[7,0]	Nutrition	750
+[5,0]	Player	{}
+[6,0]	ProvidesHealing	{&quot;heal_amount&quot;:15}
+[7,0]	RenderOnFloor	null
+[6,0]	RenderOnFloor	null
+[5,0]	RenderOnMap	null
+[2,0]	RenderOnMap	null
+[6,0]	Renderable	{&quot;sym&quot;:&quot;HealthPotion&quot;,&quot;fg&quot;:{&quot;r&quot;:255,&quot;g&quot;:0,&quot;b&quot;:255},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[7,0]	Renderable	{&quot;sym&quot;:&quot;Ration&quot;,&quot;fg&quot;:{&quot;r&quot;:191,&quot;g&quot;:92,&quot;b&quot;:0},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[5,0]	Renderable	{&quot;sym&quot;:&quot;Player&quot;,&quot;fg&quot;:{&quot;r&quot;:255,&quot;g&quot;:255,&quot;b&quot;:0},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[3,0]	Renderable	{&quot;sym&quot;:&quot;Jerkin&quot;,&quot;fg&quot;:{&quot;r&quot;:170,&quot;g&quot;:97,&quot;b&quot;:32},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[4,0]	Renderable	{&quot;sym&quot;:&quot;Knife&quot;,&quot;fg&quot;:{&quot;r&quot;:165,&quot;g&quot;:165,&quot;b&quot;:165},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[2,0]	Renderable	{&quot;sym&quot;:&quot;Blob&quot;,&quot;fg&quot;:{&quot;r&quot;:89,&quot;g&quot;:162,&quot;b&quot;:191},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[5,0]	Stomach	{&quot;fullness&quot;:1491,&quot;max_fullness&quot;:1500,&quot;sub_hp&quot;:0}
+[5,0]	Tally	{&quot;damage_dealt&quot;:0,&quot;damage_taken&quot;:0,&quot;kills&quot;:0}
+</code></pre>
+<p>If you have a native build of RuggRogue, you can copy and paste this into a file named <code>savegame.txt</code> and the game will load it.
+The above save data contains the player, a monster and some items confined in a small enclosed room in the center of the map.
+We can break down this example save data, starting with the top lines:</p>
+<pre><code class="language-plaintext">*	GameSeed	9542716676452101438
+*	TurnCount	10
+*	Wins	0
+*	BaseEquipmentLevel	0
+*	Difficulty	{&quot;id&quot;:[8,0],&quot;exp_for_next_depth&quot;:40}
+*	Messages	{&quot;capacity&quot;:100,&quot;msg_queue&quot;:[&quot;This is a test save!&quot;],&quot;num_highlighted&quot;:0}
+*	PlayerAlive	true
+*	PlayerId	[5,0]
+*	Map	{&quot;depth&quot;:1,&quot;width&quot;:80,&quot;height&quot;:50,&quot;tiles&quot;:[[&quot;W&quot;,1952],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,72],[&quot;F&quot;,8],[&quot;W&quot;,1760]],&quot;rooms&quot;:[{&quot;x1&quot;:32,&quot;y1&quot;:24,&quot;x2&quot;:39,&quot;y2&quot;:31}],&quot;seen&quot;:{&quot;width&quot;:80,&quot;height&quot;:50,&quot;bv&quot;:[[1,4000]]}}
+</code></pre>
+<p>All of these lines represent uniques, since they all start with an asterisk character.
+There's some basic data for uniques such as <code>GameSeed</code>, <code>TurnCount</code>, <code>Wins</code> and <code>PlayerAlive</code> whose data should hopefully be self-explanatory.
+Looking at some of the other lines reveals that all data is serialized in JSON format.</p>
+<p>The line for the <code>Map</code> unique is interesting here.
+The <code>&quot;tiles&quot;</code> field stores the contents of each tile in the map: <code>&quot;W&quot;</code> is a wall, <code>&quot;F&quot;</code> is a floor and <code>&quot;D&quot;</code> would be a downstairs tile that isn't featured in this tile data.
+Tiles have a lot of redundancy, so they're stored in a special compressed form that will be covered later in this chapter.
+Even with compression, this <code>Map</code> line will often be a lot longer than this in a typical save file.</p>
+<p>You may have noticed the pairs of numbers present in the lines for the <code>Difficulty</code> and the <code>PlayerId</code> uniques.
+These are entity IDs, so each pair uniquely identifies a entity.
+Here, the difficulty tracker is represented by the <code>[8,0]</code> entity, while the player is represented by the <code>[5,0]</code> entity.</p>
+<p>We can peek at the component data for the difficulty tracker by singling out lines of component data starting with the <code>[8,0]</code> entity ID, of which there is just one:</p>
+<pre><code class="language-plaintext">[8,0]	Experience	{&quot;level&quot;:1,&quot;exp&quot;:0,&quot;next&quot;:50,&quot;base&quot;:0}
+</code></pre>
+<p>As we can see, the difficulty tracking entity has a single <code>Experience</code> component that is at level 1 and will advance to the next level once it gains 50 experience points.</p>
+<p>Filtering for the player by looking at lines starting with <code>[5,0]</code> shows that they hold a lot more data:</p>
+<pre><code class="language-plaintext">[5,0]	CombatStats	{&quot;max_hp&quot;:40,&quot;hp&quot;:40,&quot;attack&quot;:4.8,&quot;defense&quot;:2.4}
+[5,0]	Coord	{&quot;x&quot;:33,&quot;y&quot;:25}
+[5,0]	Equipment	{&quot;weapon&quot;:[4,0],&quot;armor&quot;:[3,0]}
+[5,0]	Experience	{&quot;level&quot;:1,&quot;exp&quot;:0,&quot;next&quot;:50,&quot;base&quot;:0}
+[5,0]	FieldOfView	{&quot;tiles&quot;:{&quot;width&quot;:17,&quot;height&quot;:17,&quot;bv&quot;:[[0,108],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,9],[0,8],[1,9],[0,8],[1,7],[0,21]]},&quot;range&quot;:8,&quot;center&quot;:[33,25],&quot;dirty&quot;:false}
+[5,0]	Inventory	{&quot;items&quot;:[]}
+[5,0]	Name	&quot;Player&quot;
+[5,0]	Player	{}
+[5,0]	RenderOnMap	null
+[5,0]	Renderable	{&quot;sym&quot;:&quot;Player&quot;,&quot;fg&quot;:{&quot;r&quot;:255,&quot;g&quot;:255,&quot;b&quot;:0},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+[5,0]	Stomach	{&quot;fullness&quot;:1491,&quot;max_fullness&quot;:1500,&quot;sub_hp&quot;:0}
+[5,0]	Tally	{&quot;damage_dealt&quot;:0,&quot;damage_taken&quot;:0,&quot;kills&quot;:0}
+</code></pre>
+<p>The player's <code>CombatStats</code> show that they're at 40 out of 40 hit points, with a base attack value of 4.8 and a base defense value of 2.4.
+According to the <code>Coord</code> component they are located at coordinates 33,25.
+Like the difficulty tracker, the player has an <code>Experience</code> component.
+Components such as <code>Name</code>, <code>Renderable</code>, <code>Stomach</code> and <code>Tally</code> contain basic data.</p>
+<p>The <code>RenderOnMap</code> component is a tag component with no data, so its serialized to the JSON <code>null</code> value.
+The <code>Player</code> component would be saved the same way, except it stores some runtime data that doesn't need to be saved, so it comes out as an empty JSON object instead.</p>
+<p>The <code>FieldOfView</code> component represents which tiles in the immediate vicinity of the player should be visible.
+It's a very long line out of necessity since each line must hold the full data of either a unique or a component.
+The <code>&quot;bv&quot;</code> field within the top-level <code>&quot;tiles&quot;</code> field is compressed in the same way as the tiles of the map unique.</p>
+<p>The <code>Equipment</code> and <code>Inventory</code> components typically contain entity IDs.
+Here, the player's inventory is empty, but they are armed with a weapon and armor.
+Here are the lines for the weapon entity, which is a &quot;+1 Knife&quot;:</p>
+<pre><code class="language-plaintext">[4,0]	CombatBonus	{&quot;attack&quot;:3.2,&quot;defense&quot;:0.0}
+[4,0]	EquipSlot	&quot;Weapon&quot;
+[4,0]	Item	null
+[4,0]	Name	&quot;+1 Knife&quot;
+[4,0]	Renderable	{&quot;sym&quot;:&quot;Knife&quot;,&quot;fg&quot;:{&quot;r&quot;:165,&quot;g&quot;:165,&quot;b&quot;:165},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+</code></pre>
+<p>The player's armor is a &quot;+1 Jerkin&quot;:</p>
+<pre><code class="language-plaintext">[3,0]	CombatBonus	{&quot;attack&quot;:0.0,&quot;defense&quot;:1.4}
+[3,0]	EquipSlot	&quot;Armor&quot;
+[3,0]	Item	null
+[3,0]	Name	&quot;+1 Jerkin&quot;
+[3,0]	Renderable	{&quot;sym&quot;:&quot;Jerkin&quot;,&quot;fg&quot;:{&quot;r&quot;:170,&quot;g&quot;:97,&quot;b&quot;:32},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+</code></pre>
+<p>There's a &quot;Health Potion&quot; that's on the floor at coordinates 38,25:</p>
+<pre><code class="language-plaintext">[6,0]	Consumable	null
+[6,0]	Coord	{&quot;x&quot;:38,&quot;y&quot;:25}
+[6,0]	Item	null
+[6,0]	Name	&quot;Health Potion&quot;
+[6,0]	ProvidesHealing	{&quot;heal_amount&quot;:15}
+[6,0]	RenderOnFloor	null
+[6,0]	Renderable	{&quot;sym&quot;:&quot;HealthPotion&quot;,&quot;fg&quot;:{&quot;r&quot;:255,&quot;g&quot;:0,&quot;b&quot;:255},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+</code></pre>
+<p>Finally, there's an enemy &quot;Blob&quot; in the opposite corner of the room to the player:</p>
+<pre><code class="language-plaintext">[2,0]	BlocksTile	null
+[2,0]	CombatStats	{&quot;max_hp&quot;:14,&quot;hp&quot;:14,&quot;attack&quot;:8.0,&quot;defense&quot;:4.0}
+[2,0]	Coord	{&quot;x&quot;:38,&quot;y&quot;:30}
+[2,0]	Experience	{&quot;level&quot;:1,&quot;exp&quot;:0,&quot;next&quot;:0,&quot;base&quot;:0}
+[2,0]	FieldOfView	{&quot;tiles&quot;:{&quot;width&quot;:17,&quot;height&quot;:17,&quot;bv&quot;:[[0,21],[1,7],[0,8],[1,9],[0,8],[1,9],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,7],[1,10],[0,108]]},&quot;range&quot;:8,&quot;center&quot;:[38,30],&quot;dirty&quot;:false}
+[2,0]	GivesExperience	10
+[2,0]	Monster	null
+[2,0]	Name	&quot;Blob&quot;
+[2,0]	RenderOnMap	null
+[2,0]	Renderable	{&quot;sym&quot;:&quot;Blob&quot;,&quot;fg&quot;:{&quot;r&quot;:89,&quot;g&quot;:162,&quot;b&quot;:191},&quot;bg&quot;:{&quot;r&quot;:0,&quot;g&quot;:0,&quot;b&quot;:0}}
+</code></pre>
+<p>Monsters share a lot of common component types with the player, but they have a <code>Monster</code> tag component instead of a <code>Player</code> component.
+The <code>BlocksTile</code> tag component marks that other monsters should take a path around this monster, rather than trying to go through it.</p>
+<p>And that's it: a full run-down of a complete save file.
+The format is pretty flexible: lines can technically occur in any order so long as every unique type is present.
+Save data is considered valid as long as all entity IDs exist, and the existence of entities is implied by the ID values at the start of component lines.</p>
+<h2 id="saving"><a class="header" href="#saving">Saving</a></h2>
+<p>The <code>save_game</code> function is responsible for saving the game.
+It's called from several other places in the code:</p>
+<ol>
+<li>In the <code>use_item</code> function in the <code>src/item.rs</code> file when the player uses the victory item.</li>
+<li>In the <code>DungeonMode::update</code> function in <code>src/modes/dungeon.rs</code> in response to:
+<ul>
+<li>confirming when closing the game (the <code>AppQuitDialogModeResult::Confirmed</code> case)</li>
+<li>taking the stairs (the <code>YesNoDialogModeResult::Yes</code> case)</li>
+<li>choosing to save and exit from the options menu (the <code>OptionsMenuModeResult::ReallyQuit</code> case)</li>
+</ul>
+</li>
+</ol>
+<p>The logic of the <code>save_game</code> function is simple: open a buffered writer for the <code>savegame.txt</code> file, write lines for all uniques and component storages, then flush the buffered writer.
+Since this is Rust, the writer will automatically be closed when it falls out of scope at the end of the function.</p>
+<p>The writing of a unique line is handled by the <code>save_named_unique</code> function, which outputs the asterisk, the unique type name and the unique data in tab-separated form.
+Used as-is, it would normally appear like this in the <code>save_game</code> function:</p>
+<pre><code class="language-rust ignore">save_named_unique&lt;_, GameSeed&gt;(world, &amp;mut writer, &quot;GameSeed&quot;)?;
+</code></pre>
+<p>To avoid having to specify the type name of the unique twice, the <code>save_game</code> function instead uses a helper macro named <code>save_unique!</code>, shortening the above to:</p>
+<pre><code class="language-rust ignore">save_unique!(GameSeed, world, &amp;mut writer)?;
+</code></pre>
+<p>While the <code>save_named_unique</code> function writes a single line for a unique, the <code>save_named_storage</code> function instead writes multiple lines for a given component type, one for each individual component.
+Used as-is, it would look like this:</p>
+<pre><code class="language-rust ignore">save_named_storage&lt;_, AreaOfEffect&gt;(world, &amp;mut writer, &quot;AreaOfEffect&quot;)?;
+</code></pre>
+<p>There's also a helper macro for this named <code>save_storage!</code> that shortens it to this instead:</p>
+<pre><code class="language-rust ignore">save_storage!(AreaOfEffect, world, &amp;mut writer)?;
+</code></pre>
+<p>That's all there is to saving the game.
+You should appreciate the simplicity of this, because the loading logic is a lot more involved.</p>
+<p>It's worth noting what <em>isn't</em> being considered here: entity IDs.
+It turns out that entity IDs are not only serializable, but they're 100% safe to save as-is with no further intervention.
+If game data were stored and managed with something like references or pointers instead, it would need an <a href="https://en.wikipedia.org/wiki/Pointer_swizzling">unswizzling</a> strategy that would have to invade the data serialization logic.</p>
+<h2 id="loading"><a class="header" href="#loading">Loading</a></h2>
+<p>Saving is a relatively straightforward affair, free of branches and loops, with very simple error conditions.
+Loading, on the other hand, is a lot more complex.
+Part of this is due to how permissive the save file format is; in particular, lines for uniques and components can technically appear in any order and still be valid.
+But a lot of this complexity comes from the fact that the very nature of loading involves setting up and altering a lot of data, which is something that the saving process never has to worry about.</p>
+<p>The loading process can be broadly broken down into these major parts:</p>
+<ol>
+<li>Load data for each line in the save file:
+<ul>
+<li>If it starts with an asterisk, load the line as a unique.</li>
+<li>Otherwise, try to load component data and attach it to a specific entity, creating it if it doesn't exist yet.</li>
+</ul>
+</li>
+<li>Check that all uniques needed were loaded from the save file.</li>
+<li>Fix entity IDs across all uniques and components that store them.</li>
+<li>Place entities with <code>Coord</code> components on the map.</li>
+<li>Commit the freshly-loaded uniques and entities to the world.</li>
+<li>Despawn any entities that need to be despawned.</li>
+</ol>
+<p>We'll look at each part one at a time.</p>
+<h3 id="handling-entity-despawning"><a class="header" href="#handling-entity-despawning">Handling Entity Despawning</a></h3>
+<p>This is not a mistake: we're looking at the last phase first.
+If you take a look at the <code>load_game</code> function, you'll notice that despawning entities is all that it really does; most of loading logic is instead handled by the <code>load_save_file</code> function that it calls.
+Why is it set up like this?</p>
+<p>To understand the answer, we need to step back and think about what loading actually means in terms of data.
+While we read in each line of the save file, we'll be loading components.
+In order to load components, we need to create new entities to attach them to.
+At this point, there will be entities in the world that existed before loading began alongside newly-created entities spawned in the process of loading.
+If loading fails, these new entities need to be despawned so that we don't have half-loaded entities floating about in the world.
+Likewise, if loading succeeds, old entities need to be despawned since they've been fully replaced by the loaded entities and are thus no longer needed.</p>
+<p>The sole purpose of the <code>load_game</code> function is to give a blank list for the <code>load_save_file</code> function to fill with the IDs of entities that need to be despawned, and guarantee that they are despawned afterwards.
+The <code>load_game</code> function is called from the <code>TitleMode::update</code> function in the <code>src/modes/title.rs</code> file when the player chooses to load a game from the title screen.
+If the <code>load_save_file</code> function fails to load the game, this list will contain the newly-loaded entity IDs so that they can be cleaned up.
+If it succeeds, this list will instead contain the IDs of old entities that weren't part of the save file.</p>
+<h3 id="loading-data-a-line-at-a-time"><a class="header" href="#loading-data-a-line-at-a-time">Loading Data a Line at a Time</a></h3>
+<p>The loading of the save data proper is handled by the <code>load_save_file</code> function.
+The top half of this function is dedicated to setting up for and loading the data out of the save file, one line at a time.</p>
+<p>We can think of loaded data as transitioning through two phases: temporary and committed.
+As the save file is processed a line at a time, data is loaded in some temporary form.
+Once we're happy that everything was loaded successfully, we can take the temporary data and convert it into its committed form; the form that the rest of the game will see and deal with.</p>
+<h4 id="loading-a-unique-line"><a class="header" href="#loading-a-unique-line">Loading a Unique Line</a></h4>
+<p>The big loop near the beginning of the <code>load_save_file</code> function is what reads in each line of the save file.
+Just before it are a bunch of lines that look like this:</p>
+<pre><code class="language-rust ignore">let mut game_seed: Option&lt;GameSeed&gt; = None;
+let mut turn_count: Option&lt;TurnCount&gt; = None;
+let mut wins: Option&lt;Wins&gt; = None;
+let mut base_equipment_level: Option&lt;BaseEquipmentLevel&gt; = None;
+let mut difficulty: Option&lt;Difficulty&gt; = None;
+let mut messages: Option&lt;Messages&gt; = None;
+let mut player_alive: Option&lt;PlayerAlive&gt; = None;
+let mut player_id: Option&lt;PlayerId&gt; = None;
+let mut map: Option&lt;Map&gt; = None;
+</code></pre>
+<p>These are all temporary variables for unique data.
+When the per-line loop reads in a unique, it fills one of these with a <code>Some</code> variant containing the loaded data for that unique.</p>
+<p>The first conditional block of the per-line loop checks for an asterisk character and a whitespace.
+If those characters are detected, the line is trimmed to the point after them and the loading process will attempt to interpret the line according to all of the unique types it knows of, one at a time.</p>
+<p>Unique lines are loaded via the <code>deserialize_named_unique</code> function, which has a helper <code>deserialize_unique!</code> macro to reduce typing redundancy.
+The <code>deserialize_named_unique</code> function accepts one of the temporary variables for holding unique data.
+It does one of the following things, depending on the contents of the data line it sees:</p>
+<ol>
+<li>Returns <code>Ok(false)</code> if the unique type name doesn't match what was expected.</li>
+<li>Returns <code>Ok(false)</code> if deserializing failed for whatever reason.</li>
+<li>Returns <code>Err(LoadError::DuplicateUnique(...))</code> if the temporary variable was already filled in and the load would otherwise have succeeded.</li>
+<li>Returns <code>Ok(true)</code> and fills in the temporary variable with the loaded data if none of the above occurred.</li>
+</ol>
+<p>In other words, a return value of <code>Ok(true)</code> means the unique data was successfully loaded, while <code>Ok(false)</code> indicates that other unique types should be attempted.</p>
+<h4 id="loading-a-component-line"><a class="header" href="#loading-a-component-line">Loading a Component Line</a></h4>
+<p>When components are loaded in, they need to be attached to newly-created entities.
+These entities share the same world space as any entities that existed before the loading process started.
+When entities are created during the loading process they're added to the <code>despawn_ids</code> vector passed into the <code>load_save_file</code> function.
+As mentioned before, entities in this vector will eventually be despawned if they're still there when the <code>load_save_file</code> function is done.
+Therefore, we can think of components loaded and attached to these entities as temporary storage.</p>
+<p>With that in mind, we can now consider lines that should contain component data.
+The loading process will try to interpret any line that doesn't start with an asterisk character as a component line instead.</p>
+<p>The first part of a component line is the entity that the component should be attached to.
+This entity ID is meaningful within the save data, but is meaningless in the current world.
+To reconcile this, we need to map each distinct entity ID that we encounter while loading components to <em>fresh</em> entities that have their own new entity IDs.
+Near the top of the <code>load_save_file</code> function is the data structure whose job is to manage exactly this:</p>
+<pre><code class="language-rust ignore">let mut old_to_new_ids: HashMap&lt;EntityId, EntityId&gt; = HashMap::new();
+</code></pre>
+<p>The keys of this hash map are the entity IDs as listed in the save file, while the values are the entity IDs of the corresponding fresh new entities that represent them in their real, loaded form.
+If the entity ID at the beginning of the component line exists, it is simply retrieved.
+If it doesn't, it is created and added to this hash map.</p>
+<p>Since we have the ID of the new entity, we can proceed to attempt to load components, trying one type at a time.
+This is done with the <code>deserialize_named_component</code> function and the <code>deserialize_component!</code> helper macro that work much like how <code>deserialize_named_unique</code> and <code>deserialize_unique!</code> did for uniques.
+In fact, the <code>deserialize_named_component</code> function works the same way as the <code>deserialize_named_unique</code> function, except that it attaches component data to a new temporary entity passed in by ID and emits <code>Err(LoadError::DuplicateComponent(...))</code> instead.</p>
+<p>At this point, any line that cannot be read as data for a unique or for a component causes the <code>load_save_file</code> function to return <code>LoadError::UnrecoginzedLine</code> as an error.</p>
+<h3 id="checking-uniques"><a class="header" href="#checking-uniques">Checking Uniques</a></h3>
+<p>Once every line in the save file has been processed, we need to check that every unique is accounted for.
+The code is short enough to show here in its entirety:</p>
+<pre><code class="language-rust ignore">// Check that all uniques are present.
+let game_seed = game_seed.ok_or(LoadError::MissingUnique(&quot;GameSeed&quot;))?;
+let turn_count = turn_count.ok_or(LoadError::MissingUnique(&quot;TurnCount&quot;))?;
+let wins = wins.ok_or(LoadError::MissingUnique(&quot;Wins&quot;))?;
+let base_equipment_level =
+    base_equipment_level.ok_or(LoadError::MissingUnique(&quot;BaseEquipmentLevel&quot;))?;
+let mut difficulty = difficulty.ok_or(LoadError::MissingUnique(&quot;Difficulty&quot;))?;
+let messages = messages.ok_or(LoadError::MissingUnique(&quot;Messages&quot;))?;
+let player_alive = player_alive.ok_or(LoadError::MissingUnique(&quot;PlayerAlive&quot;))?;
+let mut player_id = player_id.ok_or(LoadError::MissingUnique(&quot;PlayerId&quot;))?;
+let mut map = map.ok_or(LoadError::MissingUnique(&quot;Map&quot;))?;
+</code></pre>
+<p>The above code checks that each unique type was loaded, and bails with an error if any of them are missing.
+It also uses <em>shadowing</em> to redefine the temporary unique variables into non-<code>Option</code> form so they're easier to work with later in the loading code.</p>
+<h3 id="fixing-entity-ids"><a class="header" href="#fixing-entity-ids">Fixing Entity IDs</a></h3>
+<p>When component lines were being processed, new entities were being created according to the entity ID found at the beginning of those lines.
+However, there are also entity IDs present in the data payloads at the end of unique and component lines as well that are loaded verbatim, which means they refer to the IDs at the beginning of lines.
+We need to fix these IDs to point to the IDs of the entities created during the loading process by converting them according to the <code>old_to_new_ids</code> hash map that was built up earlier.</p>
+<p>There are two uniques and two components that hold entity IDs and thus need fixing.
+The unique types are <code>Difficulty</code> and <code>PlayerId</code>, while the component types are <code>Equipment</code> (weapon and armor) and <code>Inventory</code> (items).
+The loading code takes care to only iterate over entities that were created during the loading process by filtering by the values of the <code>old_to_new_ids</code> hash map.</p>
+<p>Converting old save IDs to new loaded entity IDs also doubles as an integrity check to ensure that each ID refers to an existing entity in the save file.
+If any of the IDs to fix are absent from the <code>old_to_new_ids</code> hash map, a <code>LoadError::UnknownId</code> error is raised.</p>
+<h3 id="placing-entities-on-the-map"><a class="header" href="#placing-entities-on-the-map">Placing Entities on The Map</a></h3>
+<p>If you look at the serialized version of the map in a save file and compare it to the definition of the <code>Map</code> struct in the <code>src/map.rs</code> file, you'll notice that the <code>tile_entities</code> field isn't being serialized.
+This is the spatial cache that's used to speed up access to entities according to their position in the map.
+It doesn't need to be saved or loaded because the same information is stored in the <code>Coord</code> components of each entity.
+However, this spatial cache still needs to be restored when loading a save file; this is done by simply iterating over all entities with a <code>Coord</code> component and using the <code>Map::place_entity</code> function to fill in the cache.</p>
+<h3 id="committing-loaded-uniques-and-entities"><a class="header" href="#committing-loaded-uniques-and-entities">Committing Loaded Uniques and Entities</a></h3>
+<p>So far all of our data has been loaded in a temporary form: uniques are loaded in local variables, while components are attached to temporary entities.
+We want to <em>commit</em> our temporary data; that is, prepare it so it can be used by the rest of the game.</p>
+<p>Committing temporary entities involves clearing out the <code>despawn_ids</code> vector that was passed in at the beginning.
+Its contents are replaced with old entities that were around before loading that need to be despawned.
+There are only two entities that fall under this description: the difficulty tracking entity and the player entity (plus any equipment and items they may have).
+We know that we only have to handle these two entities because loading only happens at the title screen, so no other unassociated entities exist at that point in the game.</p>
+<p>After committing temporary entities comes committing uniques, which is a simple matter of assigning over or replacing each unique type individually.
+The API of Shipyard 0.4 has no way to replace or remove a unique once one has been added to a world, so this involves some clumsy <code>replace</code> function definitions for some unique types, but otherwise it works.</p>
+<h3 id="after-loading"><a class="header" href="#after-loading">After Loading</a></h3>
+<p>At this point all of the saved data has been loaded and prepared, so all that's left is to bounce the player right back into the gameplay.
+The original invocation of the <code>load_game</code> function in the <code>TitleMode::update</code> function triggers a mode switch to <code>DungeonMode</code> which does pretty much that.</p>
+<p>So like I said earlier: loading is a lot more complicated than saving.
+Despite all of these checks and safe-guards, there's a lot of ways a save file can be loaded and accepted by the game, but still be broken.
+For example:</p>
+<ul>
+<li>A map has a set width and height, but could be loaded with insufficient tiles.</li>
+<li>Numbers that are typically positive could be negative.</li>
+<li>What if entities are missing important components?</li>
+<li>A lot of nonsense can happen if entity IDs are changed to refer to unintended entities.</li>
+</ul>
+<p>The loading logic of RuggRogue doesn't check for any of these; it's complex enough as-is and there's almost no limit to the number of things that could be wrong with the data that it loads.
+Instead, it's mostly content to successfully load a save file that was produced by the saving logic.
+If the save file is messed up, the impact on the game can vary from minor unintended behavior all the way to <em>panicking</em>, which is Rust's safe way of bailing out at the first sign of trouble it detects.</p>
+<p>Opening and reading a save file is a good way of gaining insight as to what data exists at any given point in a game.
+You can also have some fun by modifying a save file: try cranking up <code>Wins</code> to 300 and witness the flood of monsters and items, or add a zero or two to the player's maximum hit points.</p>
+<h2 id="run-length-encoding"><a class="header" href="#run-length-encoding">Run-Length Encoding</a></h2>
+<p>If you've been reading up to this point, you might have noticed that something is missing in this explanation: how is serialization and deserialization actually performed?
+If each line of the save file ends with JSON-formatted data, how are data structures converted to and from JSON when saving and loading?</p>
+<p>The reason that all of this has been glossed over is because RuggRogue outsources the task to two crates: <a href="https://crates.io/crates/serde">serde</a> and <a href="https://crates.io/crates/serde_json">serde_json</a>, that make it almost trivial.
+RuggRogue first uses Serde to annotate any data structure that needs this treatment using the <em>derive macros</em> that provides, like so:</p>
+<pre><code class="language-rust ignore">use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize, Serialize)]
+pub struct GameSeed(u64);
+</code></pre>
+<p>In the above example, <code>GameSeed</code> is a simple tuple struct, but this annotation works for larger structs with fields and enums as well.
+Every data structure that RuggRogue needs to save into the save file is annotated in this way.</p>
+<p>Once annotated like this, these data structures can then be serialized into JSON format using serde_json, e.g.:</p>
+<pre><code class="language-rust ignore">// NOTE: Not real saving code!
+
+use serde_json::Serializer;
+
+let mut writer = SomethingToWriteInto::new();
+let game_seed = world.borrow::&lt;UniqueView&lt;GameSeed&gt;&gt;();
+game_seed.serialize(&amp;mut Serializer::new(&amp;mut writer))?;
+</code></pre>
+<p>Deserialization from JSON is also handled by serde_json:</p>
+<pre><code class="language-rust ignore">// NOTE: Not real loading code!
+
+use serde_json::Deserializer;
+
+let line = GetALineFromSomewhere::new();
+let mut ds = Deserializer::from_str(line);
+let mut game_seed = GameSeed::deserialize(&amp;mut ds)?;
+world.borrow::&lt;UniqueViewMut&lt;GameSeed&gt;&gt;().0 = game_seed.0;
+</code></pre>
+<p>The above code samples aren't real code, but they're rough approximations of what happens inside the <code>serialize_named_unique</code>, <code>serialize_named_storage</code>, <code>deserialize_named_unique</code> and <code>deserialize_named_storage</code> functions.</p>
+<p>For simple data, this is all that is needed for serialization and deserialization.
+However, let's take a look at the definition of the <code>Map</code> struct in the <code>src/map.rs</code> file, paying attention to the annotations:</p>
+<pre><code class="language-rust ignore">#[derive(Deserialize, Serialize)]
+pub struct Map {
+    pub depth: i32,
+    pub width: i32,
+    pub height: i32,
+    #[serde(with = &quot;crate::saveload::run_length_encoded&quot;)]
+    tiles: Vec&lt;Tile&gt;,
+    pub rooms: Vec&lt;Rect&gt;,
+    pub seen: BitGrid,
+
+    // (x, y) -&gt; (blocking_entity_count, entities_here)
+    #[serde(skip)]
+    tile_entities: HashMap&lt;(i32, i32), (i32, Vec&lt;EntityId&gt;)&gt;,
+
+    // zero-length non-zero-capacity vectors for reuse in tile_entities
+    #[serde(skip)]
+    empty_entity_vecs: Vec&lt;Vec&lt;EntityId&gt;&gt;,
+}
+</code></pre>
+<p>Note the <code>&quot;crate::saveload::run_length_encoded&quot;</code> annotation on the <code>tiles</code> field.
+This is how RuggRogue tells Serde that it wants to save the <code>tiles</code> field differently than how it normally would.
+In this case, we know that there would be a lot of redundancy when saving the tile data of the map, so to cut it down we want to handle this field specially.</p>
+<p>The way we want to cut down the size of the tile data that we save is by <a href="https://en.wikipedia.org/wiki/Run-length_encoding">run-length encoding</a> it.
+Instead of writing each tile individually, we want to write the tile followed by the number of repetitions until a different tile appears.
+This has a pretty dramatic impact on save file size: basic tests show that it reduces save file size by about two-thirds!</p>
+<p>The <code>&quot;crate::saveload::run_length_encoded&quot;</code> bit refers to the <code>run_length_encoded</code> module near the bottom of the <code>src/saveload.rs</code> file.
+The <code>serialize</code> function contained within just reads in tiles and tracks runs of repeated tiles into a temporary vector, and just serializes that vector.
+Conversely, the <code>deserialize</code> function reads in the vector in that format and uses some Rust iterator functions to convert it back into a normal vector of tiles that the <code>Map</code> struct actually wants.</p>
+<p>For the tiles of a map, that's all that we need to perform run-length encoding.
+However, we also want to apply run-length encoding to things like our fields of view, specifically to the <code>bv</code> field of our homegrown <code>BitGrid</code> struct in the <code>src/bitgrid.rs</code> file:</p>
+<pre><code class="language-rust ignore">/// A width-by-height-sized BitVec for convenient handling of a grid of boolean values.
+#[derive(Deserialize, Serialize)]
+pub struct BitGrid {
+    width: i32,
+    height: i32,
+    #[serde(with = &quot;crate::saveload::bit_vec&quot;)]
+    bv: BitVec,
+}
+</code></pre>
+<p>We have a <code>BitVec</code> here which is notably not Rust's standard <code>Vec</code> type that the <code>run_length_encoded</code> module wants.
+The <code>&quot;crate::saveload::bit_vec&quot;</code> bit refers to the <code>bit_vec</code> module at the very bottom of the <code>src/saveload.rs</code> file.
+The only job of this module is to convert the <code>BitVec</code> to and from a standard Rust <code>Vec&lt;u8&gt;</code> of ones and zeroes and then hand it off to the <code>run_length_encoded</code> module to apply its run-length encoding.
+The end result is run-length encoding for <code>BitVec</code> fields that decreases the amount of space needed to save them.</p>
+<p>A final note: apparently the <code>BitVec</code> type can be processed by Serde with an internal representation that's even more compact than the roundabout run-length encoding that RuggRogue uses.
+However, the documentation of that crate warns that its output isn't guaranteed to stay stable.
+What's more, even trying to use it as-is resulted in serialized output that the deserializer would choke on.
+In a sense, the run-length encoding that RuggRogue uses is actually a workaround for the <code>BitVec</code> type not serializing and deserializing correctly to begin with.</p>
+<h2 id="save-support-for-the-web-build"><a class="header" href="#save-support-for-the-web-build">Save Support for the Web Build</a></h2>
+<p>The native build of RuggRogue writes game data to the <code>savegame.txt</code> file in the same directory as the game itself, but what about the web build?
+Obviously the web build can't just write files to the visitor's local filesystem directly.
+The web version of RuggRogue is created using <a href="https://emscripten.org/">Emscripten</a>, which provides an in-memory file system by default called <a href="https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api-memfs"><code>MEMFS</code></a> that enables standard file operations to just work.
+The downside of this default system is that anything saved to this file system is lost the moment the player closes the tab.</p>
+<p>In order to allow the player to save the game and load it when visiting the game page at a later point in time, we need an Emscripten file system that will preserve the save file written into it.
+RuggRogue uses <a href="https://emscripten.org/docs/api_reference/Filesystem-API.html#filesystem-api-idbfs"><code>IDBFS</code></a> to accomplish this, which provides a file system backed by an <code>IndexedDB</code> instance provided by the web browser.</p>
+<p>The first step to using <code>IDBFS</code> is to link it in so it can be used at all.
+RuggRogue does this by passing <code>-lidbfs.js</code> as a linker option to the Emscripten toolchain in the <code>.cargo/config.toml</code> file.</p>
+<p>If you take a look near the top of the <code>src/saveload.rs</code> file, you may have noticed this bit regarding the location of the save file:</p>
+<pre><code class="language-rust ignore">#[cfg(target_os = &quot;emscripten&quot;)]
+const SAVE_FILENAME: &amp;str = &quot;/ruggrogue/savegame.txt&quot;;
+
+#[cfg(not(target_os = &quot;emscripten&quot;))]
+const SAVE_FILENAME: &amp;str = &quot;savegame.txt&quot;;
+</code></pre>
+<p>This sets the save file location to <code>savegame.txt</code> when building the native version of the game, while putting the save in the fixed <code>/ruggrogue/savegame.txt</code> location in the web version instead.
+The <code>/ruggrogue</code> directory is a location that we want to create in Emscripten's virtual file system, which will be mounted as an <code>IDBFS</code>.
+This is done with some JavaScript inside the <code>index.html</code> file:</p>
+<pre><code class="language-javascript">var Module = {
+    // ...
+    'preRun': [function () {
+        FS.mkdir(&quot;/ruggrogue&quot;);
+        FS.mount(IDBFS, {}, &quot;/ruggrogue&quot;);
+        FS.syncfs(true, function (err) {});
+    }],
+};
+</code></pre>
+<p>The above snippet creates <code>/ruggrogue</code> as a mount point in Emscripten's virtual file system, mounts an <code>IDBFS</code> instance there, and loads in any data saved in the web browser's IndexedDB into it.
+In theory, that's all that's needed to get saving and loading to work in the web version of RuggRogue.</p>
+<p>Unfortunately, this process is imperfect.
+The final <code>FS.syncfs</code> call above is asynchronous, and the callback provided is supposed to be called when it's done, but I couldn't work out how to make Emscripten wait for it to be called before jumping into the title screen of the game.
+If you take a peek at the menu logic in the <code>src/modes/title.rs</code> file, you can see that RuggRogue works around this by always including the load option and checking every update and draw whether to enable it.
+If you play the web version of the game, save the game and return later, you'll need to press a key on the title screen to get the load option to properly light up.</p>
+<p>The other caveat of this IndexedDB approach is that persistent IndexedDB instances aren't available in private browsing tabs.
+In that case, the game will silently fall back to the in-memory file system, so save files will be forgotten when the game page is closed.</p>
+<p>To be honest, I don't know if doing all of this the way I'm supposed to.
+Emscripten has a decent amount of reference documentation, but it's very thin on guidance, so a lot of what I did above was cobbled together from bits and pieces of the docs I could find.
+There feels like there should be a better and more reliable way to do what I've done here, but I haven't found one, so I just had to make do with what I could find.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="game-data.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="field-of-view.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="game-data.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="field-of-view.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

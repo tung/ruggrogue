@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en-us">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <style>
+        body {
+            background-color: #000;
+            margin: 0;
+        }
+
+        #canvas {
+            background-color: #000;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body onunload="FS.syncfs(false, function (err) {})">
+    <canvas id="canvas"></canvas>
+    <script>
+        var Module = {
+            'locateFile': function (path, prefix) {
+                if (path.endsWith(".data")) {
+                    return prefix + "deps/" + path;
+                }
+                return prefix + path;
+            },
+            'canvas': document.getElementById('canvas'),
+            'preRun': [function () {
+                FS.mkdir("/ruggrogue");
+                FS.mount(IDBFS, {}, "/ruggrogue");
+                FS.syncfs(true, function (err) {});
+            }],
+        };
+    </script>
+    <script src="ruggrogue.js"></script>
+</body>
+
+</html>

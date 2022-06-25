@@ -1,0 +1,315 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Hunger and Regeneration - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html" class="active"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="hunger-and-regeneration"><a class="header" href="#hunger-and-regeneration">Hunger and Regeneration</a></h1>
+<p>RuggRogue features a <em>hunger</em> mechanic: the player has a 'stomach fullness' level that slowly depletes over time.
+This fullness can be restored by finding and eating <em>rations</em> that spawn as consumable items on each level.
+If the player stays well-fed they will slowly regenerate hit points; conversely, being very hungry stops hit point regeneration.
+If fullness drops to zero, the player is considered starving and will <em>lose</em> hit points over time; this can kill the player.</p>
+<p>The hunger mechanic serves as a soft timer that urges the player to move forward instead of staying in any one place for too long.
+In addition, rations act as an extra incentive to explore unseen areas.</p>
+<h2 id="stomach-and-nutrition"><a class="header" href="#stomach-and-nutrition">Stomach and Nutrition</a></h2>
+<p>The fullness level of the player is stored in a <code>Stomach</code> component that looks like this in the <code>src/components.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub struct Stomach {
+    pub fullness: i32,
+    pub max_fullness: i32,
+    pub sub_hp: i32,
+}
+</code></pre>
+<p>The <code>fullness</code> field is the exact internal fullness level of the player; zero means the player is starving, while the <code>max_fullness</code> field simply caps its value.</p>
+<p>The <code>sub_hp</code> field is used to determine when the player should regenerate a hit point (or lose one, in case of starvation).
+It can be thought of as a 'fractional hit point', serving as the numerator with the denominator decided elsewhere.
+This is explained later in this chapter.</p>
+<p>The player is the only entity in the game with a <code>Stomach</code> component and is thus the only entity that can regenerate hit points or starve.
+The player is created with a <code>Stomach</code> component with <code>fullness</code> and <code>max_fullness</code> both set to 1500 in the <code>spawn_player</code> function in the <code>src/spawn.rs</code> file.</p>
+<p>The player can restore the fullness of their stomach by eating a ration.
+The <code>Nutrition</code> component attached to rations is what enables this:</p>
+<pre><code class="language-rust ignore">pub struct Nutrition(pub i32);
+</code></pre>
+<p>A ration provides 750 points of nutrition, as per its creation in the <code>spawn_ration</code> function in the <code>src/spawn.rs</code> file.
+Rations work like any other consumable item, restoring nutrition as an effect in the <code>item::use_item</code> function in the <code>src/item.rs</code> file.</p>
+<h2 id="hunger-states"><a class="header" href="#hunger-states">Hunger States</a></h2>
+<p>Fullness is tracked internally as a continuous value, like hit points, but all of the visible effects of hunger involve first converting that value into a discrete <em>hunger state</em>.
+This is represented by the <code>HungerState</code> enum defined in the <code>src/hunger.rs</code> file:</p>
+<pre><code class="language-rust ignore">enum HungerState {
+    Starving,
+    Famished,
+    VeryHungry,
+    Hungry,
+    Normal,
+    Full,
+}
+</code></pre>
+<p>Each variant maps to a range of <code>i32</code> values according to the <code>HungerState::from</code> function as follows:</p>
+<ul>
+<li><code>Starving</code>: 0</li>
+<li><code>Famished</code>: 1 to 150</li>
+<li><code>VeryHungry</code>: 151 to 300</li>
+<li><code>Hungry</code>: 301 to 750</li>
+<li><code>Normal</code>: 751 to 1200</li>
+<li><code>Full</code>: 1201 and above</li>
+</ul>
+<p>These values are hard-coded and probably should have been calculated relative to the <code>max_fullness</code> field of the <code>Stomach</code> struct, but since there's only one <code>Stomach</code> component in the whole game, it's been left as-is.</p>
+<p>The hunger state is what appears in the sidebar, not the raw value.
+The hunger state determines whether the player regenerates or loses hit points, and messages appear in the message log when it changes.</p>
+<h2 id="sidebar-hunger-display"><a class="header" href="#sidebar-hunger-display">Sidebar Hunger Display</a></h2>
+<p>The hunger state appears in the sidebar in a label that looks like &quot;Hunger: Normal&quot;.
+This hunger state label is drawn along with other player status information by the <code>draw_status</code> function in the <code>src/ui.rs</code> file.</p>
+<p>The label and its foreground and background colors are determined by consulting the <code>hunger::player_hunger_label</code> function back in the <code>src/hunger.rs</code> file.
+Different foreground and background colors are used to draw the player's attention to their hunger state according to urgency.</p>
+<h2 id="regeneration-and-starvation"><a class="header" href="#regeneration-and-starvation">Regeneration and Starvation</a></h2>
+<p>There are two hunger-related tasks that must be handled on a per-turn basis: decrementing fullness and changing hit points based on hunger state.
+These tasks are handled by the <code>hunger::tick_hunger</code> function found at the bottom of the <code>src/hunger.rs</code> file.
+This function is called by the <code>DungeonMode::update</code> function in the <code>src/modes/dungeon.rs</code> file after handling of monster turns.</p>
+<p>The <code>hunger::tick_hunger</code> function depletes one point of fullness per turn.
+If the player's hunger state and hit points allow them to regenerate, an extra point of fullness is deducted from their stomach.</p>
+<p>The <code>hunger::tick_hunger</code> function is also responsible for changing hit points, either raising them for regeneration or depleting them for starvation.
+However, even though the function is called every turn, we don't want to alter hit points every turn.
+Instead, the function deals with what we could consider a 'partial' hit point in the form of the <code>sub_hp</code> field of the <code>Stomach</code> component.
+The field is used by the <code>hunger::tick_hunger</code> function to regenerate hit points as follows:</p>
+<ol>
+<li>The player's fullness level is converted into a <code>HungerState</code>.</li>
+<li>The <code>HungerState::turns_to_regen_to_max_hp</code> function is consulted.</li>
+<li>If it returned a number, add the maximum hit points of the player to the <code>sub_hp</code> field.</li>
+<li>If the <code>sub_hp</code> field is at least the value from step 2, integer divide <code>sub_hp</code> by the step 2 value, add the quotient to the player's hit points and keep the remainder in <code>sub_hp</code>.</li>
+</ol>
+<p>For example, if the player has 60 maximum hit points, is hurt and full, the <code>HungerState::turns_to_regen_to_max_hp</code> function will return <code>Some(300)</code>.
+This adds 60 to the <code>sub_hp</code> field each turn.
+When it reaches 300, the player regenerates a single hit point and 300 is subtracted from the <code>sub_hp</code> field.
+Since 300 divided by 60 produces 5, this player will regenerate a hit point every five turns, and indeed will be able to regenerate their full 60 hit points in 300 turns.</p>
+<p>The hunger states that permit regeneration are decided by whether or not the <code>HungerState::turns_to_regen_to_max_hp</code> function returns a number.
+The player can only regenerate when their hunger state is &quot;Full&quot;, &quot;Normal&quot; or &quot;Hungry&quot;.</p>
+<p>When the player's hunger state is &quot;Starving&quot;, they will <em>lose</em> hit points instead of regenerating them.
+The process plays in reverse: the <code>HungerState::turns_to_starve_from_max_hp</code> function is used instead, while the <code>sub_hp</code> and player's hit points are subtracted from instead of added to.
+According to the <code>HungerState::turns_to_starve_from_max_hp</code> function, the player will lose their maximum worth of hit points in 400 turns spent in the &quot;Starving&quot; hunger state.</p>
+<p>Since starving causes damage, the <code>hunger::tick_hunger</code> function is responsible for tracking the damage taken in the player's <code>Tally</code> component.
+It is possible for starvation to kill the player, so there's a <code>HurtBy::Starvation</code> cause attached to the player entity in case of death to show on the game over screen.</p>
+<h2 id="hunger-messages"><a class="header" href="#hunger-messages">Hunger Messages</a></h2>
+<p>The <code>hunger::tick_hunger</code> function compares hunger state before and after deducting fullness.
+If a change is detected and the new hunger state isn't just &quot;Normal&quot;, a message chosen by the <code>HungerState::reduced_to</code> function is logged, producing something like &quot;Player is getting hungry.&quot;</p>
+<p>If the player loses hit points due to starvation, they're informed with a message: &quot;Player aches with hunger!&quot;</p>
+<h2 id="hunger-and-auto-run"><a class="header" href="#hunger-and-auto-run">Hunger and Auto-Run</a></h2>
+<p>Changes to hunger state and losing hits points to starvation not only produce messages, but also interrupt all forms of auto-run.</p>
+<p>Hunger impacts the ability for the player to begin or continue resting in place, in the <code>wait_player</code> and <code>auto_run_next_step</code> functions found in the <code>src/player.rs</code> file respectively.
+They both hinge on the value returned by the <code>hunger::can_regen</code> function back in the <code>src/hunger.rs</code> file.
+It returns a variant of the <code>hunger::CanRegenResult</code> enum that can be found at the top of the <code>src/hunger.rs</code> file, which looks like this:</p>
+<pre><code class="language-rust ignore">pub enum CanRegenResult {
+    CanRegen,
+    NoRegen,
+    FullyRested,
+    TooHungry,
+}
+</code></pre>
+<p>The <code>CanRegen</code> variant allows resting in place to begin or continue; the other results represent reasons the player cannot regenerate hit points.
+The <code>NoRegen</code> variant means the player has no <code>Stomach</code> component, which shouldn't happen in normal play.
+<code>FullyRested</code> means the player's hit points are already at their maximum.
+<code>TooHungry</code> means that the <code>HungerState::turns_to_regen_to_max_hp</code> function is producing <code>None</code> because the player's fullness is too low to allow for hit point regeneration.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="items.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="experience-and-difficulty.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="items.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="experience-and-difficulty.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

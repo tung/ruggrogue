@@ -1,0 +1,287 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Map Population - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html" class="active"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="map-population"><a class="header" href="#map-population">Map Population</a></h1>
+<p>Once a map has been generated, the next task at hand is to place interesting things in it, such as monsters and items.</p>
+<h2 id="when-map-population-takes-place"><a class="header" href="#when-map-population-takes-place">When Map Population Takes Place</a></h2>
+<p>Maps are populated right after they're generated with the <code>map::generate_rooms_and_corridors</code> function, in two places:</p>
+<ol>
+<li>When starting a new game in the <code>new_game_setup</code> function in the <code>src/modes/title.rs</code> file.</li>
+<li>When the player descends a dungeon level in the <code>player_do_descend</code> function in the <code>src/player.rs</code> file.</li>
+</ol>
+<h2 id="placing-the-victory-item"><a class="header" href="#placing-the-victory-item">Placing the Victory Item</a></h2>
+<p>If the <code>map::generate_rooms_and_corridors</code> function doesn't place stairs, it will instead return a position where the victory item should be placed; this is the center of the last room in the room list.
+The code looks like this in both places it occurs:</p>
+<pre><code class="language-rust ignore">if let Some(victory_pos) = world.run(map::generate_rooms_and_corridors) {
+    spawn::spawn_present(world, victory_pos);
+}
+</code></pre>
+<p>The <code>spawn::spawn_present</code> function creates the victory item and places it in the given position on the map.
+The function can be found in the <code>src/spawn.rs</code> file.</p>
+<h2 id="placing-the-player"><a class="header" href="#placing-the-player">Placing the Player</a></h2>
+<p>The player entity exists beyond the life of any one map, so whenever a map isn't ready, the player entity lacks a <code>Coord</code> component.
+To place the player, this component is added again by calling the <code>player::add_coords_to_players</code> function defined in the <code>src/player.rs</code> file.
+The player can then be moved to their starting position on the map using the <code>map::place_player_in_first_room</code> function defined in the <code>src/map.rs</code> file.</p>
+<p>The player is guaranteed to start the map in a different room than the downstairs (or victory item), so long as the map has more than one room (which is almost always true).</p>
+<h2 id="placing-monsters-and-items"><a class="header" href="#placing-monsters-and-items">Placing Monsters and Items</a></h2>
+<p>With the player and possibly the victory item out of the way, all that's left is to fill the map with monsters and items.
+The function responsible for this is <code>spawn::fill_rooms_with_spawns</code>, defined in the <code>src/spawn.rs</code> file.
+This in turn kicks off three main tasks:</p>
+<ol>
+<li>Spawn any weapons or armor that should be guaranteed based on the map's dungeon depth.</li>
+<li>Spawn monsters and items in random rooms.</li>
+<li>Spawn a guaranteed ration somewhere on the level.</li>
+</ol>
+<p>A random number generator is created to decide how most, but not all, of this should play out; consult the <a href="randomness.html">Randomness chapter</a> for details.</p>
+<p>The exact order of these tasks doesn't matter, and they're simplest to talk about in reverse order, so we'll start with the ration.</p>
+<h2 id="guaranteed-ration"><a class="header" href="#guaranteed-ration">Guaranteed Ration</a></h2>
+<p>Every map is guaranteed to contain a single ration; this is the job of the <code>spawn_guaranteed_ration</code> function in the <code>src/spawn.rs</code> file.
+It uses the <code>pick_random_pos_in_room</code> function to pick a random spot in a random room, and spawns a ration there with the <code>spawn_ration</code> function; both of these helper functions are in the same file.</p>
+<h2 id="filling-the-rooms"><a class="header" href="#filling-the-rooms">Filling the Rooms</a></h2>
+<p>The <code>spawn::fill_rooms_with_spawns</code> function goes through every room and randomly decides to place monsters and items in it, except for the first room where the player starts.
+It calls the <code>fill_room_with_spawns</code> helper function (note the singular &quot;room&quot;) to do this.</p>
+<p>There is a 1-in-4 chance for an item to be spawned in each room.
+The <code>spawn_random_item_at</code> helper function chooses, creates and places items.
+The exact item selection is covered in a different chapter, but generally consists of consumable scrolls and potions, with the occasional weapon or armor.</p>
+<p>Each room also has a 1-in-2 chance of spawning between one to three monsters.
+Early levels limit the number of monsters that can spawn per room:</p>
+<ul>
+<li>Depths 1 and 2: one monster per room only.</li>
+<li>Depths 3 and 4: up to two monsters per room.</li>
+<li>Depth 5 and deeper: up to three monsters per room.</li>
+</ul>
+<p>Like item spawning, there's a <code>spawn_random_monster_at</code> helper function that chooses, creates and places monsters.
+Monster selection is a topic of a different chapter.</p>
+<p>Finally, the limit for the number of items and monsters that can be spawned per room increases by one every time the player beats the game and picks New Game Plus.</p>
+<h2 id="guaranteed-weapons-and-armor"><a class="header" href="#guaranteed-weapons-and-armor">Guaranteed Weapons and Armor</a></h2>
+<p>The <code>spawn_guaranteed_equipment</code> function in the <code>src/spawn.rs</code> file is responsible for creating and placing weapons and armor beyond those from random room filling.
+Unlike their random counterparts, guaranteed weapons and armor are always created at a power level appropriate for the current difficulty of the level.</p>
+<p>The first kind of guaranteed equipment is the starting weapon and armor.
+The game picks two random spots in the starting room and spawns and places the weapon and armor in them.</p>
+<p>The second kind of guaranteed equipment needs some explanation.
+As the player descends the dungeon, the monsters get stronger.
+The player's base attack and defense power rises as they gain levels, but it rises slower than the power of the monsters.
+To keep up, the player must pick up weapons and armor.
+If weapons and armor were only created at random, it would be possible for the player to be left far less powerful than the monsters they face for a very long time.</p>
+<p>To counter this issue, the game creates weapons and armors periodically according to the dungeon depth.
+The simplest approach would be to spawn such equipment once every, say, four levels.
+RuggRogue does essentially that, with a couple of twists to make the pattern less predictable:</p>
+<ol>
+<li>The <em>period offset</em> is adjusted per game, e.g. one run groups levels 1-4, 5-8, 9-12, etc. while another groups them 1-2, 3-6, 7-10, etc.</li>
+<li>The <em>chosen level</em> differs per group, e.g. pick level 2 out of levels 1-4, then level 7 out of levels 5-8, etc.</li>
+</ol>
+<p>There's no data carried between different levels to affect their generation.
+Instead, new random number generators are created that are seeded such that each level in a group gets the same seed; this is accomplished by integer dividing the map depth by the <code>EQUIPMENT_SPAWN_PERIOD</code> constant whose value is <code>4</code>.</p>
+<p>The <code>periodic_weapon_rng</code> uses the low bits of the game seed to adjust the period offset.
+A single random number from <code>0</code> to <code>2</code> is extracted from this random number generator (<code>3</code> is never chosen to avoid guaranteed equipment spawning in adjacent levels).
+This number is checked against the depth of the level within its group; a successful match spawns a weapon in a random room and position.</p>
+<p>This process is repeated for armor using <code>periodic_armor_rng</code>, except offsetting with the high game seed bits.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="map-generation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="auto-run.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="map-generation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="auto-run.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

@@ -1,0 +1,326 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Options - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html" class="active"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="options"><a class="header" href="#options">Options</a></h1>
+<p>RuggRogue provides the player with an <em>options dialog</em> that can be brought up by either pressing the Esc key during play or choosing &quot;Options&quot; at the title screen.
+This dialog allows the player to choose:</p>
+<ul>
+<li>whether the map uses a graphical tileset or an ASCII display with one of the fonts</li>
+<li>the font of the user interface (i.e. the sidebar and menus)</li>
+<li>1x or 2x zoom for the map</li>
+<li>1x or 2x zoom for the user interface</li>
+</ul>
+<p>The game offers two fonts: the 8-by-8 pixel Terminal font and the 8-by-14 pixel <a href="https://font.gohu.org/">GohuFont</a>.
+The graphical tileset available for the map is a monocolor version of the <a href="https://vurmux.itch.io/urizen-onebit-tilesets">Urizen OneBit Tilesets</a> by vurmux.</p>
+<p>If the options dialog is brought up while playing the game, it presents an option to save the game and exit back to the title screen.</p>
+<h2 id="options-data"><a class="header" href="#options-data">Options Data</a></h2>
+<p>The data for options exists in the form of the <code>Options</code> struct near the top of the <code>src/ui.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub struct Options {
+    pub tileset: u32,
+    pub font: u32,
+    pub map_zoom: u32,
+    pub text_zoom: u32,
+}
+</code></pre>
+<p>The <code>tileset</code> and <code>font</code> fields decide which of the fonts or tilesets are used when drawing the map and the user interface respectively.
+The game treats fonts as tilesets that can only display characters, so these fields are essentially indexes into a single list of tilesets.
+The game makes an effort to limit the <code>font</code> field to only the two 'font-like' tilesets, as will be explained later.</p>
+<p>The <code>map_zoom</code> field is the numeric zoom factor for the map display that can be toggled between 1x and 2x zoom.
+The <code>text_zoom</code> field serves the same purpose but for the user interface instead.</p>
+<p>The default values of these options are set all the way back in the <code>main</code> function in the <code>src/main.rs</code> file, like so:</p>
+<pre><code class="language-rust ignore">world.add_unique(Options {
+    tileset: 2,
+    font: 0,
+    map_zoom: 1,
+    text_zoom: 1,
+});
+</code></pre>
+<p>The above default values display the map using the Urizen graphical tileset, the user interface using GohuFont, and show them both at 1x zoom.</p>
+<p>The numeric indexes of the <code>tileset</code> and <code>font</code> fields refer to the tilesets loaded further down in the <code>main</code> function:</p>
+<pre><code class="language-rust ignore">let settings = RunSettings {
+    // ...
+    tileset_infos: vec![
+        TilesetInfo::&lt;GameSym&gt; {
+            image_path: PathBuf::from(&quot;assets/gohufont-8x14.png&quot;),
+            tile_size: (8, 14).into(),
+            tile_start: (0, 0).into(),
+            tile_gap: (0, 0).into(),
+            font_map: TilesetInfo::&lt;GameSym&gt;::map_code_page_437(),
+            symbol_map: HashMap::new(),
+        },
+        TilesetInfo::&lt;GameSym&gt; {
+            image_path: PathBuf::from(&quot;assets/terminal-8x8.png&quot;),
+            tile_size: (8, 8).into(),
+            tile_start: (0, 0).into(),
+            tile_gap: (0, 0).into(),
+            font_map: TilesetInfo::&lt;GameSym&gt;::map_code_page_437(),
+            symbol_map: HashMap::new(),
+        },
+        gamesym::urizen_tileset_info(),
+    ],
+};
+</code></pre>
+<p>In order, these are GohuFont, the Terminal font and the Urizen graphical tileset, referred to by the <code>tileset</code> and <code>font</code> fields of the <code>Options</code> struct as 0, 1 and 2 respectively.
+Note that the fonts are listed before the tileset; this fact is exploited by the options dialog to limit <code>font</code> customization to only the fonts.</p>
+<h2 id="the-options-dialog"><a class="header" href="#the-options-dialog">The Options Dialog</a></h2>
+<p>The options dialog is represented by the <code>OptionsMenuMode</code> that lives in the <code>src/modes/options_menu.rs</code> file.
+This dialog allows the player to view and change the game options to suit their preferences.</p>
+<p>There's a menu item labelled &quot;Back&quot; at the bottom of the dialog that dismisses it when chosen.
+If the options dialog is brought up in the middle of a game, it will read &quot;Save and Exit&quot; instead, and dismissing it will save the game and return the player to the title screen.
+The flag that controls this is the <code>prompt_to_save</code> boolean argument sent to the <code>OptionsMenuMode::new</code> function when the dialog is created.</p>
+<p>Pressing the left and right keys alters the values of the various options; this takes place in the <code>OptionsMenuMode::update</code> function.
+The &quot;Font&quot; option that controls the user interface font is limited to only fonts by being checked against the <code>NUM_FONTS</code> constant near the top of the <code>src/modes/options_menu.rs</code> file.
+It's currently hard-coded to be <code>2</code>; adding more fonts would require updating this value accordingly.</p>
+<h2 id="real-time-options-updates"><a class="header" href="#real-time-options-updates">Real-Time Options Updates</a></h2>
+<p>If you mess with the options a bit, you'll notice that changes to the options are reflected immediately on the screen.
+The rendering system consults the option values directly, so they'll update in real time.
+To understand how this happens, we need to recap some concepts from the <a href="rendering.html">Rendering</a> chapter:</p>
+<table><thead><tr><th>Concept</th><th>Description</th></tr></thead><tbody>
+<tr><td>Displayed tile grid</td><td>The physical appearance of a tile grid on the screen.</td></tr>
+<tr><td><code>TileGridView</code></td><td>The size, position and zoom factor associated with a tile grid.</td></tr>
+<tr><td>Tile grid texture</td><td>The GPU-side texture loaded with the pixels representing a tile grid.</td></tr>
+<tr><td>Tile grid pixel buffer</td><td>The CPU-side buffer of the tile grid pixels, uploaded to the GPU-side texture.</td></tr>
+<tr><td><code>tileset_index</code> field of <code>TileGrid</code></td><td>Index of the tileset that the tile grid should be rendered with.</td></tr>
+<tr><td><code>TileGrid</code> tile data</td><td>The logical cells of the tile grid.</td></tr>
+</tbody></table>
+<p>Most of the data above depend on other data in the table.
+The dependencies are as follows:</p>
+<ul>
+<li>Displayed tile grid
+<ul>
+<li><code>TileGridView</code></li>
+<li>Tile grid texture
+<ul>
+<li>Tile grid pixel buffer
+<ul>
+<li><code>tileset_index</code></li>
+<li>Tile data</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>Changes to the tileset and font in the options dialog affect the <code>tileset_index</code>.
+This invalidates the <em>tile grid pixel buffer</em>, <em>tile grid texture</em> and <em>displayed tile grid</em>.
+Changes to the <code>tileset_index</code> of tile grids are made through the <code>TileGrid::set_tileset</code> function in the <code>src/lib/tilegrid.rs</code> file that ensures that all this invalidation takes place.
+The <code>TileGrid::display</code> function ensures that any stale data is updated, thus enabling real-time option updates.</p>
+<p>Changes to the zoom options affect the <code>TileGridView</code> of different tile grids in the game.
+This invalidates the <em>displayed tile grid</em>.
+For &quot;Font&quot; zoom, the <code>text_zoom</code> field of the <code>Options</code> struct is directly read out by the various <code>prepare_grids</code> functions of most modes.
+It is then used to calculate the size, position and zoom factor for the <code>TileGridView</code> of each <code>TileGrid</code>.
+The common case of a tile grid centered in the screen is handled by the <code>TileGrid::view_centered</code> function, filling in the <code>TileGridView</code> with just a single call.</p>
+<p>The <code>map_zoom</code> field of the <code>Options</code> struct is specifically read out by the <code>ChunkedMapGrid::prepare_grid</code> function in the <code>src/chunked.rs</code> file.
+This function performs special sizing and positioning to ensure that the play area is covered and that there's a single center tile for the camera focus
+The <code>map_zoom</code> field impacts the pixel size of the tile grid cells on screen and thus must be accounted for here.</p>
+<p>Both preparing and displaying of tile grids must be done every single frame in response to potential window resize events, so option changes accounted for by these processes will occur in real time.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="user-interface.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="word-wrapping.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="user-interface.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="word-wrapping.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

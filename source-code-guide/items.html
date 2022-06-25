@@ -1,0 +1,427 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Items - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html" class="active"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="items"><a class="header" href="#items">Items</a></h1>
+<p>Items are scattered throughout the dungeon of RuggRogue; they reward the player for exploration.
+The player can pick up and drop items to add and remove them from their inventory.
+Weapons and armor are items that can be equipped by the player, conferring bonuses during combat.
+Other items can be applied (used) for a variety of effects, such as healing the player, hurting monsters and inflicting status effects.</p>
+<p>This chapter starts by giving a run-down of the items that exist in RuggRogue, their effects and how often they're found, with source code references sprinkled throughout.
+Following this is an overview of the interface used to interact with items, and how items move between the map, the player's inventory and equipment.
+Finally, targeting and effects of items that can be applied are described.</p>
+<h2 id="list-of-items"><a class="header" href="#list-of-items">List of Items</a></h2>
+<p>All items are spawned by calling functions named like <code>spawn_foo</code> in the <code>src/spawn.rs</code> file, where <code>foo</code> is the name of the item.
+The list is as follows:</p>
+<ul>
+<li><strong>Present</strong> (<code>spawn_present</code>) - The player wins the game when this item is used.</li>
+<li><strong>Ration</strong> (<code>spawn_ration</code>) - Consumable; restores 750 nutrition to the player.</li>
+<li><strong>Health Potion</strong> (<code>spawn_healh_potion</code>) - Consumble; restores 20 hit points if the player is hurt, or increases maximum hit points by 2 otherwise.</li>
+<li><strong>Magic Missile Scroll</strong> (<code>spawn_magic_missile_scroll</code>) - Consumable; inflicts 8 damage to a single target up to 6 tiles away.</li>
+<li><strong>Fireball Scroll</strong> (<code>spawn_fireball_scroll</code>) - Consumble; inflicts 20 damage to targets in a 3-tile area of effect up to 6 tiles away.</li>
+<li><strong>Sleep Scroll</strong> (<code>spawn_sleep_scroll</code>) - Consumable; inflicts the sleep status effect to targets in a 1-tile area of effect up to 6 tiles away.</li>
+<li><strong>Weapon</strong> (<code>spawn_weapon</code>) - Equipped in the &quot;Weapon&quot; slot; provides a bonus to attack.</li>
+<li><strong>Armor</strong> (<code>spawn_armor</code>) - Equipped in the &quot;Armor&quot; slot; provides a bonus to defense.</li>
+</ul>
+<p>Note that weapons only vary by appearance and combat bonuses and so are treated as a single item type; likewise for armor.</p>
+<h2 id="item-distribution"><a class="header" href="#item-distribution">Item Distribution</a></h2>
+<p>Items spawn in one of two broad ways: by room and by level.</p>
+<p>When a map is being populated, one in four rooms will spawn items, following the logic in the <code>fill_room_with_spawns</code> function in the <code>src/spawn.rs</code> file.
+Each such room generally spawns a single item, but may spawn an additional one for every win the player has accumulated.</p>
+<p>The distribution of room items is determined by the <code>spawn_random_item_at</code> function, and looks like this:</p>
+<ul>
+<li>1 / 11 - a weapon or armor with an extra +1 to +3 power bonus</li>
+<li>3 / 11 - Health Potion</li>
+<li>3 / 11 - Magic Missile Scroll</li>
+<li>2 / 11 - Fireball Scroll</li>
+<li>2 / 11 - Sleep Scroll</li>
+</ul>
+<p>Each level spawns a single Ration with the help of the <code>spawn_guaranteed_ration</code> function.
+The <code>spawn_guaranteed_equipment</code> function spawns a starting weapon and armor on the first level, and depth-appropriate weapon and armor at irregular depth intervals.
+The exact process for all of this is described in detail in the <a href="map-population.html">Map Population</a> chapter.</p>
+<h2 id="inventory-and-equipment"><a class="header" href="#inventory-and-equipment">Inventory and Equipment</a></h2>
+<p>For the player to pick up and use items, they need an <em>inventory</em> to serve as space to hold them.
+The list of items carried by the player is represented by the <code>Inventory</code> component, defined in the <code>src/components.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub struct Inventory {
+    pub items: Vec&lt;EntityId&gt;,
+}
+</code></pre>
+<p>The game will only allow entities to be picked up if they are marked with the <code>Item</code> tag component:</p>
+<pre><code class="language-rust ignore">pub struct Item;
+</code></pre>
+<p>The player can equip certain items from their inventory.
+The player's equipment slots are represented by the <code>Equipment</code> component:</p>
+<pre><code class="language-rust ignore">pub struct Equipment {
+    pub weapon: Option&lt;EntityId&gt;,
+    pub armor: Option&lt;EntityId&gt;,
+}
+</code></pre>
+<p>Note that equipment slots are separate from the inventory, so for example, equipping a weapon moves it <em>out</em> of the inventory and into the player's &quot;Weapon&quot; slot.
+Items that can be equipped are marked with an <code>EquipSlot</code> component:</p>
+<pre><code class="language-rust ignore">pub struct EquipSlot {
+    Weapon,
+    Armor,
+}
+</code></pre>
+<p>The exact value of the <code>EquipSlot</code> component determines which equipment slot the item will be moved into when it is equipped.</p>
+<h2 id="item-user-interface"><a class="header" href="#item-user-interface">Item User Interface</a></h2>
+<p>Most of the time spent playing the game that isn't moving around the dungeon or fighting monsters is spent dealing with items.
+As a result, about half of the interface code is dedicated solely to dealing with items.</p>
+<p>Although these item-related menus and dialogs allude to actions, note that they <em>never perform these actions themselves</em>.
+For example, if the player chooses to drop an item from the inventory, the inventory returns a <em>result</em> that captures that intent, and the job of dropping the item is handled elsewhere.</p>
+<h3 id="pick-up-menu"><a class="header" href="#pick-up-menu">Pick Up Menu</a></h3>
+<p>The player presses either the 'g' or the Comma key whenever they want to pick up an item at their position.
+This pushes onto the mode stack the <code>PickUpMenuMode</code>, defined in the <code>src/modes/pick_up_menu.rs</code> file.</p>
+<p>If the player isn't standing over any items, they're given a message saying as much and no menu appears.</p>
+<p>If the player is standing over at least one item, a menu appears, allowing them to select an item on the map to be picked up.
+This menu has cursor-based controls, along with most of the menus and dialogs in the game.
+The entity ID of the selected item is returned as part of the <code>PickUpMenuModeResult</code>.</p>
+<h3 id="inventory-menu"><a class="header" href="#inventory-menu">Inventory Menu</a></h3>
+<p>The player presses the 'i' key to bring up the inventory menu.
+This is the biggest and most advanced of the menus, represented as the <code>InventoryMode</code> in the <code>src/modes/inventory.rs</code> file.
+It shows the player's currently-equipped weapon and armor in a small section at the top, with a larger inventory listing beneath it.
+There's also an option to sort the inventory, which sorts inventory items according to hard-coded criteria.</p>
+<p>If an inventory item is selected, an <em>inventory action menu</em> is presented for it; a similar <em>equipment action menu</em> is presented if an equipped item is selected.
+Any action returned by either of these menus is relayed back as an <code>InventoryModeResult</code> with the item's entity ID, the action and a target location for items usable at range.</p>
+<h3 id="inventory-action-menu-and-equipment-action-menu"><a class="header" href="#inventory-action-menu-and-equipment-action-menu">Inventory Action Menu and Equipment Action Menu</a></h3>
+<p>Selecting an inventory item presents an inventory action menu, represented by the <code>InventoryActionMode</code> in the <code>src/modes/inventory_action.rs</code> file.
+It shows a list of possible actions that can be performed with the item, such as &quot;Equip&quot;, &quot;Apply&quot; and &quot;Drop&quot;.
+If one of these actions is chosen, it will be returned in the form of an <code>InventoryActionModeResult</code>.</p>
+<p>Selecting an equipped weapon or armor in the inventory menu brings up the equipment action menu, represented by the <code>EquipmentActionMode</code> in the <code>src/modes/equipment_action.rs</code> file.
+It presents &quot;Remove&quot; and &quot;Drop&quot; as possible actions, but otherwise works much the same as the <code>InventoryActionMode</code>.
+An <code>EquipmentActionModeResult</code> holds the selected action in this case.</p>
+<h3 id="ranged-item-targeting-mode"><a class="header" href="#ranged-item-targeting-mode">Ranged Item Targeting Mode</a></h3>
+<p>If &quot;Apply&quot; is chosen in the inventory action menu for an item that is usable at range, a targeting mode needs to be brought up to choose a target location.
+This is represented by the <code>TargetMode</code>, defined in the <code>src/modes/target.rs</code> file.</p>
+<p>Unlike everything listed up to this point, the <code>TargetMode</code> is <em>not</em> a menu!
+Instead, it draws the map and interface much like the <code>DungeonMode</code> in which most of the gameplay occurs.
+However, instead of performing actions and taking turns, the <code>TargetMode</code> highlights valid target tiles for the ranged item it was invoked for.</p>
+<p>The movement keys move around a cursor that allows the player to choose a target location out of the valid target tiles.
+This selected target location is returned as part of the <code>TargetModeResult</code>.</p>
+<h3 id="shortcut-menus"><a class="header" href="#shortcut-menus">Shortcut Menus</a></h3>
+<p>The inventory menu allows interacting with items in the player's possession through a single centralized menu, but players who already know what they want to do may find this cumbersome.
+RuggRogue provides shortcut menus to bypass the inventory in this case, brought up with these shortcut keys:</p>
+<ul>
+<li>'a' to &quot;Apply&quot;</li>
+<li>'e' or 'w' to &quot;Equip&quot;</li>
+<li>'r' to &quot;Remove&quot;</li>
+<li>'d' to &quot;Drop&quot;</li>
+</ul>
+<p>Shortcut keys and actions are associated in the <code>InventoryAction::from_key</code> function in the <code>src/modes/inventory_action.rs</code> file, separate from the definition of these shortcut menus.</p>
+<p>This shortens interaction from &quot;Inventory -&gt; Item -&gt; Action&quot; to just &quot;Action -&gt; Item&quot;.
+Pressing one of these keys brings up the <code>InventoryShortcutMode</code>, defined in the <code>src/modes/inventory_shortcut.rs</code>.
+This presents a prompt such as &quot;Apply which item?&quot; with a list of inventory items narrowed down to only those with which the action can be performed.
+The chosen item is encapsulated in the <code>InventoryShortcutModeResult</code> along with the action that brought the shortcut menu up in the first place.</p>
+<p>The &quot;Remove&quot; action brings up a similar <code>EquipmentShortcutMode</code> that returns an <code>EquipmentShortcutModeResult</code>.</p>
+<p>Note that the &quot;Drop&quot; shortcut menu only lists inventory items even though equipment can be directly dropped while equipped.
+This is a technical limitation due to how this was originally designed.</p>
+<p>The shortcut keys are used beyond these shortcut menus.
+For example, pressing any of them in the inventory will bring up the inventory action menu with the matching action pre-selected.
+Further, pressing them in the inventory action menu will move the cursor to the matching action, or confirm the action if it's already selected.</p>
+<h3 id="menu-memory"><a class="header" href="#menu-memory">Menu Memory</a></h3>
+<p>When a menu that deals with items is closed, the position of the cursor will be remembered upon reopening the menu.
+This makes it easier to perform the same action on a sequence of items in menus.</p>
+<p>This menu cursor memory is stored in the <code>MenuMemory</code> unique defined in the <code>src/menu_memory.rs</code> file.
+It's simply an array with an entry for a cursor position for each of the different item menus that the player will see:</p>
+<ul>
+<li><code>InventoryMode</code></li>
+<li><code>InventoryShortcutMode</code> for &quot;Equip&quot;</li>
+<li><code>InventoryShortcutMode</code> for &quot;Apply&quot;</li>
+<li><code>InventoryShortcutMode</code> for &quot;Drop&quot;</li>
+<li><code>EquipmentShortcutMode</code> for &quot;Remove&quot;</li>
+<li><code>EquipmentShortcutMode</code> for &quot;Drop&quot; (unused as described in the previous section)</li>
+<li><code>PickUpMenuMode</code></li>
+</ul>
+<p>For <code>PickUpMenuMode</code>, the <code>MenuMemory</code> will recall the map coordinates of the last time the <code>PickUpMenuMode</code> appeared.
+If the player's coordinates differ from last time, the <code>PickUpMenuMode</code> will reset the cursor memory.</p>
+<h2 id="moving-items-around"><a class="header" href="#moving-items-around">Moving Items Around</a></h2>
+<p>While the user interface permits the player to choose actions to perform with items, the task of performing the actions themselves falls upon mode result handling logic near the top of the <code>DungeonMode::update</code> function in the <code>src/modes/dungeon.rs</code> file.
+The most fundamental of these actions are the ones that simply move items around, such as picking up, dropping and equipping items.</p>
+<p>Items exist in one of three places:</p>
+<ol>
+<li>on the map,</li>
+<li>in an inventory, or</li>
+<li>equipped as a weapon or armor.</li>
+</ol>
+<p>An item on the map is like any other entity, and thus must have a <code>Coord</code> component with its map coordinates, as well as be present in the map's spatial cache (the <code>tile_entities</code> field of the <code>Map</code> struct).
+For the item to be visible but not over the player or any monsters, it must also have a <code>RenderOnFloor</code> tag component.</p>
+<p>An item in an inventory is listed by its entity ID in the <code>items</code> vector of the <code>Inventory</code> component.</p>
+<p>An item equipped as a weapon has its entity ID set in the <code>weapon</code> field of the relevant <code>Equipment</code> component.
+An equipped armor item is set to the <code>armor</code> field instead.</p>
+<p><strong>Picking up</strong> an item moves it from the map to the player's inventory.
+The <code>player::player_pick_up_item</code> function in the <code>src/player.rs</code> file encapsulates this action, calling upon the <code>item::remove_item_from_map</code> and <code>item::add_item_to_inventory</code> functions defined in the <code>src/item.rs</code> file to do the heavy lifting.</p>
+<p><strong>Dropping</strong> an item moves it from the player's inventory to the map.
+The <code>player::player_drop</code> item function in the <code>src/player.rs</code> file handles this with the help of the <code>item::remove_item_from_inventory</code> and <code>item::add_item_to_map</code> functions defined in the <code>src/item.rs</code> file.
+Equipment is dropped by the <code>item::drop_equipment</code> function with the help of an <code>unequip_item</code> helper function, both also in the <code>src/item.rs</code> file.</p>
+<p><strong>Equipping</strong> an item moves it from the inventory to an equipment slot.
+This is the task of the <code>item::equip_item</code> function in the <code>src/item.rs</code> file.
+The <code>EquipSlot</code> component of the item is checked here to determine if the item should be equipped as a weapon or as armor.</p>
+<p><strong>Unequipping</strong> an item moves it from an equipment slot back to the inventory.
+This is handled by the <code>item::remove_equipment</code> function in the <code>src/item.rs</code> file.
+This first unequips the item using the aforementioned <code>unequip_item</code> helper function, then moves it to the inventory with the <code>item::add_item_to_inventory</code> function.</p>
+<h2 id="using-items"><a class="header" href="#using-items">Using Items</a></h2>
+<p>The &quot;Apply&quot; action can be used on an item that is marked with either the <code>Consumable</code> or <code>Victory</code> tag components.
+If one of the item-related menus requests that an item be applied, the <code>DungeonMode::update</code> function will handle it by calling the <code>item::use_item</code> function defined in the <code>src/item.rs</code> file.</p>
+<h3 id="victory"><a class="header" href="#victory">Victory</a></h3>
+<p>The first thing the <code>item::use_item</code> function checks is if the item in question has a <code>Victory</code> tag component and the user is the player.
+If these conditions are true, the player has won the game!</p>
+<p>The first step of handling victory is to immediately perform an auto-save.
+The victory sequence involves <em>switching</em> from the <code>DungeonMode</code> to the <code>GameOverMode</code>.
+If the game window closes for whatever reason, there's no confirmation dialog or any chance to save the game, since those tasks would normally be handled by the <code>DungeonMode</code>.
+Auto-saving in advance mitigates this issue.</p>
+<p>The victory item is then deleted and the win counter is incremented.
+The <code>item::use_item</code> function returns a result that signals to the <code>DungeonMode::update</code> function that it should switch to the <code>GameOverMode</code>.</p>
+<p>The <code>GameOverMode</code> defined in the <code>src/modes/game_over.rs</code> file detects that the player is still alive and has thus won the game, showing a congratulatory message in response.
+Proceeding from the <code>GameOverMode</code> switches back to the <code>DungeonMode</code> to start a New Game Plus run.</p>
+<h3 id="gathering-targets"><a class="header" href="#gathering-targets">Gathering Targets</a></h3>
+<p>Back in the <code>item::use_item</code> function, most items won't win the game outright, so they must have some sort of effect.
+The first thing to do in this case is to figure out which entities should be affected by the item.</p>
+<p>Items with a <code>Ranged</code> component will already have target map coordinates chosen previously.
+Items that aren't used at range imply self-use; the coordinates of the entity using the item are used in this case.</p>
+<p>Affected entities are gathered by calling the <code>ruggrogue::field_of_view</code> function, centered about the target location.
+The radius of this field is either zero for just the target tile, or a non-zero value extracted from the <code>AreaOfEffect</code> component attached to the item.
+Using field of view calculation to determine targets like this prevents items with an area of effect from blasting through walls.</p>
+<h3 id="applying-item-effects"><a class="header" href="#applying-item-effects">Applying Item Effects</a></h3>
+<p>Items can have any number of effects according to the components attached to the item and the targets.</p>
+<p><strong>Nutrition</strong> is added to the target if the target entity has a <code>Stomach</code> component to fill.
+The <code>fullness</code> field of that <code>Stomach</code> component is filled according to the amount stated in the item's <code>Nutrition</code> component that found only on rations.</p>
+<p><strong>Healing</strong> is applied if the item has a <code>ProvidesHealing</code> component and the target has a <code>CombatStats</code> component.
+If the target is at less than full health, the hit points of that target are restored by the amount stated in the <code>ProvidesHealing</code> component, up to maximum hit points.
+If the target is at full health, their hit points and maximum hit points are increased by two.</p>
+<p><strong>Damage</strong> is applied if the item has an <code>InflictsDamage</code> component and the target has a <code>CombatStats</code> component.
+This does a few things:</p>
+<ol>
+<li>The target's hit points are reduced according to the amount stated in the <code>InflictsDamage</code> component.</li>
+<li>The target is given a <code>HurtBy::Someone(id)</code> component, where <code>id</code> is the entity ID of the item user so they can be credited if the target dies.</li>
+<li>If the user has a <code>Tally</code> component, add the damage amount to the <code>damage_dealt</code> field.</li>
+<li>If the target has a <code>Tally</code> component, add the damage amount to the <code>damage_taken</code> field.</li>
+</ol>
+<p><strong>Sleep</strong> is applied if the item has an <code>InflictsSleep</code> component and the target has a <code>CombatStats</code> component.
+It adds the <code>Asleep</code> component to the target with a <code>sleepiness</code> amount determined by the <code>InflictsSleep</code> component.</p>
+<p>Once all targets have been processed, if the item is marked with the <code>Consumable</code> tag component it is removed from the inventory of its user and then destroyed.</p>
+<h2 id="the-sleep-status-effect"><a class="header" href="#the-sleep-status-effect">The Sleep Status Effect</a></h2>
+<p>The sleep status effect renders the target unable to do anything other than pass turns until it wears off.
+It affects both the player and monsters.</p>
+<p>In the case of a sleeping player, there is sleep-related input handling near the top of the <code>player::player_input</code> function in the <code>src/player.rs</code> file.
+In this state, almost every key press will cause the player to automatically pass their turn.
+The wearing off of the sleep status is handled by calling the <code>item::handle_sleep_turn</code> function back in the <code>src/item.rs</code> file.</p>
+<p>Sleeping monsters are dealt with by the <code>do_turn_for_one_monster</code> function in the <code>src/monster.rs</code> file.
+A monster that is asleep simply calls the <code>item::handle_sleep_turn</code> function and bypasses the usual monster AI.</p>
+<p>The <code>item::handle_sleep_turn</code> function is responsible for counting down the sleepiness of sleep-afflicted entities and waking them back up.
+The sleepiness counter of the entity is decremented according to the following rules:</p>
+<ul>
+<li>-1 per turn.</li>
+<li>-1 if the entity is the player and a monster is in their field of view, or vice versa.</li>
+<li>-10 if the entity lost hit points since their last turn; the <code>Asleep</code> component tracks changes to hit points to detect this.</li>
+</ul>
+<p>Once the sleepiness counter reaches zero, the <code>Asleep</code> component is removed from the entity, waking them up.</p>
+<p>The Sleep Scroll inflicts 36 points of sleepiness, by its construction in the <code>spawn_sleep_scroll</code> function back in the <code>src/spawn.rs</code> file.
+This renders one sleeping monster vulnerable to three hits before waking up if the player wastes no turns to attack them.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="turn-order-and-combat.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="hunger-and-regeneration.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="turn-order-and-combat.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="hunger-and-regeneration.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

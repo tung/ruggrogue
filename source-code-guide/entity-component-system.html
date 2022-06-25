@@ -1,0 +1,540 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Entity Component System - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html" class="active"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="entity-component-system"><a class="header" href="#entity-component-system">Entity Component System</a></h1>
+<p>Up until now, most of the data that has been covered in this book has been about technical things that the game needs just to run, like input events, surfaces, textures and timing information.
+But beyond that is the data that defines RuggRogue as a game, such as the player, the map, monsters and items.
+This game-specific data is all managed by a crate named <a href="https://crates.io/crates/shipyard">Shipyard</a>, and this chapter is all about Shipyard and how RuggRogue uses it.</p>
+<p>By its own description:</p>
+<blockquote>
+<p>Shipyard is an Entity Component System focused on usability and speed.</p>
+</blockquote>
+<p>Here, an <em>entity</em> is a lightweight ID whose role is to associate groups of <em>components</em> that hold the data describing the entity.
+The main benefit of this is that it avoids the &quot;talking sword&quot; problem that you'd run into with an object-oriented approach: if you have NPCs that you can talk to, and a sword you can pick up and swing, how do you represent a talking sword?
+In the object-oriented style of modelling game data, problems like this end up poking holes in the encapsulation the classes are supposed to have, and functionality drifts up the inheritance tree into a gigantic all-encompassing mega-class.
+Game data modelled with entities and components instead avoids both of those issues; see Catherine West's RustConf 2018 closing keynote (<a href="https://www.youtube.com/watch?v=aKLntZcp27M">video</a> and <a href="https://kyren.github.io/2018/09/14/rustconf-talk.html">notes</a>) for more information.</p>
+<p>In a game built fully in the ECS-style, <em>systems</em> are just functions that manipulate groups of entities according to what components they have.
+However, RuggRogue mostly does <em>not</em> use Shipyard's systems, for reasons that will be discussed later.</p>
+<h2 id="shipyard-04"><a class="header" href="#shipyard-04">Shipyard 0.4</a></h2>
+<p>RuggRogue uses Shipyard <strong>0.4</strong>, but at the time of writing it is <em>not</em> the most recent version of Shipyard, which is <strong>0.5</strong>.
+So what gives?
+Well, 0.4 was the most up-to-date version of Shipyard when I started work on RuggRogue, and when 0.5 came out I ported the game over to it.
+Unfortunately, <a href="https://github.com/tung/ruggrogue/commit/76454e69aa5734d98bda91869bdcec75f8152732">this broke the web build</a>, so it had to be reverted.
+Therefore, RuggRogue uses Shipyard 0.4 and not 0.5.</p>
+<p>In order to understand how RuggRogue reads and modifies its own game data, you'll need to understand the basics of Shipyard 0.4.
+This is the point where I would link to the Shipyard 0.4 User's Guide that existed when I started writing the game, except it was replaced wholesale when Shipyard 0.5 came out, which has a bunch of differences.
+I could build and host that old guide myself, but putting up documentation for an older version of somebody else's library with no indication that it's stale would be problematic.
+As such, most of this chapter is going to serve as a crash course on Shipyard 0.4, which should provide a foundation for understanding the code in RuggRogue that works with game data.</p>
+<p>If you have Rust installed and you have the RuggRogue source code, you can peruse a detailed reference to Shipyard 0.4's API, along with all of the other crates used by RuggRogue, by typing <code>cargo doc --open</code>.
+Shipyard's source code also contains its user guide that can be built with <a href="https://crates.io/crates/mdbook">mdBook</a>, so you can check out older versions of its source code and run it through mdBook to read it.</p>
+<h2 id="the-world"><a class="header" href="#the-world">The World</a></h2>
+<p>All data in Shipyard is stored in a <code>World</code> that consists of:</p>
+<ul>
+<li><strong>Entities</strong>: They're just IDs, but the world tracks which ones are still alive.</li>
+<li><strong>Components</strong>: Associated with entities; Shipyard stores components of each unique type in separate storages.</li>
+<li><strong>Uniques</strong>: Like components, but not associated with any entity; often called <em>resources</em> in other Rust ECS crates.</li>
+</ul>
+<p>RuggRogue creates one as the very first thing in the <code>main</code> function in the <code>src/main.rs</code> file:</p>
+<pre><code class="language-rust ignore">let world = World::new();
+</code></pre>
+<p>Every bit of data specific to RuggRogue as a game is stored in the world, such as the map, the player, monsters and items.</p>
+<h2 id="uniques"><a class="header" href="#uniques">Uniques</a></h2>
+<p>As mentioned above, a <em>unique</em> is some data stored in the world that isn't associated with an entity like a component would be.
+They're not technically required in an ECS, but many Rust ECS crates provide something like them as a convenience.
+For example, here's how RuggRogue stores the current game seed:</p>
+<pre><code class="language-rust ignore">pub struct GameSeed(u64);
+
+<span class="boring">let world = World::new();
+</span>let game_seed = std::env::args()
+    .nth(1)
+    .and_then(|arg| arg.as_str().parse().ok())
+    .unwrap_or_else(rand::random);
+
+world.add_unique(GameSeed(game_seed)); // &lt;-- adding a unique to the world
+</code></pre>
+<p>Since RuggRogue uses a single world to store all game data and passes it everywhere, uniques effectively act like global variables, without a lot of the incidental downsides of actual global variables.</p>
+<p>Unique data is accessed by requesting a <code>UniqueView</code> or <code>UniqueViewMut</code> borrow out of the world with <code>World::borrow</code>:</p>
+<pre><code class="language-rust ignore">// immutable borrow of GameSeed unique
+let game_seed = world.borrow::&lt;UniqueView&lt;GameSeed&gt;&gt;();
+println!(&quot;{:?}&quot;, game_seed.0);
+</code></pre>
+<pre><code class="language-rust ignore">// mutable borrow of GameSeed unique
+let game_seed = world.borrow::&lt;UniqueViewMut&lt;GameSeed&gt;&gt;();
+game_seed.0 = 1234567890;
+</code></pre>
+<p>There is no way to remove or directly replace a unique in Shipyard 0.4.
+The ability to remove uniques was only added in Shipyard 0.5, so RuggRogue hacks around this limitation when it needs to.</p>
+<h2 id="entity-and-component-basics"><a class="header" href="#entity-and-component-basics">Entity and Component Basics</a></h2>
+<p>An <em>entity</em> is a lightweight ID that's just a number in Shipyard's case.
+A <em>component</em> is some data associated with an entity.
+Each entity can have zero or one component of each type associated with it.</p>
+<p>Entities are created with a special borrow of <code>EntitiesViewMut</code>, like so:</p>
+<pre><code class="language-rust ignore">// creating a empty entity with no components
+let mut entities = world.borrow::&lt;EntitiesViewMut&gt;();
+
+let entity_id = entities.add_entity((), ());
+</code></pre>
+<p>Entities are often made starting out with component data that is modified using <code>ViewMut</code>:</p>
+<pre><code class="language-rust ignore">struct Position {
+    x: i32,
+    y: i32,
+}
+
+struct Renderable {
+    ch: char,
+}
+
+let mut entities = world.borrow::&lt;EntitiesViewMut&gt;();
+let mut positions = world.borrow::&lt;ViewMut&lt;Position&gt;&gt;();
+let mut renderables = world.borrow::&lt;ViewMut&lt;Renderable&gt;&gt;();
+
+// creating an entity with a Position component and a Renderable component
+let entity_id = entities.add_entity(
+    (&amp;mut positions, &amp;mut renderables),
+    (
+        Position { x: 1, y: 2 },
+        Renderable { ch: '@' },
+    ),
+);
+</code></pre>
+<p>Deleting an entity requires clearing it out of every component storage, and thus requires the special <code>AllStoragesViewMut</code> borrow:</p>
+<pre><code class="language-rust ignore">let mut all_storages = world.borrow::&lt;AllStoragesViewMut&gt;();
+
+all_storages.delete(entity_id_to_delete);
+</code></pre>
+<p>Components can be added to entities after creation with an immutable <code>EntitiesView</code> borrow along with mutable <code>ViewMut</code> component borrows of the relevant storages:</p>
+<pre><code class="language-rust ignore">struct Name(String);
+
+struct GivesExperience(u64);
+
+let entities = world.borrow::&lt;EntitiesView&gt;();
+let mut gives_experiences = world.borrow::&lt;ViewMut&lt;GivesExperience&gt;&gt;();
+let mut names = world.borrow::&lt;ViewMut&lt;Name&gt;&gt;();
+
+// adding Name and GivesExperience components to goblin_entity_id
+entities.add_component(
+    (&amp;mut gives_experiences, &amp;mut names),
+    (
+        GivesExperience(20),
+        Name(&quot;Goblin&quot;.to_string()),
+    ),
+    goblin_entity_id,
+);
+</code></pre>
+<p>Components can be deleted from an entity on demand with just a mutable <code>ViewMut</code> borrow on the relevant component storage:</p>
+<pre><code class="language-rust ignore">let mut names = world.borrow::&lt;ViewMut&lt;Name&gt;&gt;();
+
+names.delete(entity_id_to_make_nameless);
+</code></pre>
+<p>To check if an entity has a component, we can check if the <code>View</code> of the component storage contains the entity ID:</p>
+<pre><code class="language-rust ignore">struct Monster; // &lt;-- empty tag struct
+
+if world.borrow::&lt;View&lt;Monster&gt;&gt;().contains(entity_id) {
+    // entity_id has a Monster component
+}
+</code></pre>
+<p>A component can be checked for and accessed via a <code>View</code> or <code>ViewMut</code> as well using Rust's <code>if let</code> pattern matching syntax:</p>
+<pre><code class="language-rust ignore">struct CombatStats {
+    hp: i32,
+}
+
+let mut combat_stats = world.borrow::&lt;ViewMut&gt;();
+
+if let Ok(combat_stats) = (&amp;mut combat_stats).try_get(entity_id) {
+    // entity_id has a CombatStats component, so do a bit of damage to it
+    combat_stats.hp -= 1;
+}
+</code></pre>
+<h2 id="iterating-entities-and-components"><a class="header" href="#iterating-entities-and-components">Iterating Entities and Components</a></h2>
+<p>A common operation in RuggRogue is to iterate over all entities that have a certain set of components on them.
+That can be achieved with the <code>iter</code> function of the <code>Shipyard::IntoIter</code> trait:</p>
+<pre><code class="language-rust ignore">use Shipyard::IntoIter;
+
+struct Name(String);
+
+struct Position {
+    x: i32,
+    y: i32,
+}
+
+let names = world.borrow::&lt;View&lt;Name&gt;&gt;();
+let positions = world.borrow::&lt;View&lt;Position&gt;&gt;();
+
+// iterate over all entities that have both Name and Position components
+for (name, pos) in (&amp;names, &amp;positions).iter() {
+    println!(&quot;{} is at ({},{})&quot;, name.0, pos.x, pos.y);
+}
+</code></pre>
+<p>The entity IDs can be retrieved as well using the <code>with_id</code> function from <code>Shipyard::Shiperator</code>:</p>
+<pre><code class="language-rust ignore">use Shipyard::IntoIter;
+use Shipyard::Shiperator;
+
+for (id, (name, pos)) in (&amp;names, &amp;positions).iter().with_id() {
+    // do something with id, name and pos
+}
+</code></pre>
+<p>I believe <code>Shipyard::IntoIter</code> and <code>Shipyard::Shiperator</code> are no longer needed in Shipyard 0.5; consult its current documentation if you want to know more.</p>
+<h2 id="the-entityid"><a class="header" href="#the-entityid">The EntityId</a></h2>
+<p>Entities are uniquely identified by the <code>Shipyard::EntityId</code> type, which, as mentioned before, is just a number internally.
+Since it's so lightweight, we can use it to model relationships between different entities.
+For example, here's what equipping a player entity with weapon and armor entities might look like:</p>
+<pre><code class="language-rust ignore">struct Equipment {
+    weapon: Option&lt;EntityId&gt;,
+    armor: Option&lt;EntityId&gt;,
+}
+
+struct AttackBonus(i32);
+
+struct DefenseBonus(i32);
+
+// create the player, weapon and armor entities
+let (player_id, weapon_id, armor_id) = {
+    let mut entities = world.borrow::&lt;EntitiesViewMut&gt;();
+    let mut attack_bonuses = world.borrow::&lt;ViewMut&lt;AttackBonus&gt;&gt;();
+    let mut defense_bonuses = world.borrow::&lt;ViewMut&lt;DefenseBonus&gt;&gt;();
+    let mut equipments = world.borrow::&lt;ViewMut&lt;Equipment&gt;&gt;();
+
+    // Equipment component for the player
+    let player_id = entities.add_entity(
+        &amp;mut equipments,
+        Equipment {
+            weapon: None,
+            armor: None,
+        },
+    );
+
+    // AttackBonus component for the weapon
+    let weapon_id = entities.add_entity(&amp;mut attack_bonuses, AttackBonus(2));
+
+    // DefenseBonus component for the armor
+    let armor_id = entities.add_entity(&amp;mut defense_bonuses, DefenseBonus(1));
+
+    (player_id, weapon_id, armor_id)
+};
+
+// later on...
+{
+    let mut equipments = world.borrow::&lt;ViewMut&lt;Equipment&gt;&gt;();
+
+    // equip the player if they have an Equipment component
+    if let Ok(player_equip) = (&amp;mut equipments).try_get(player_id) {
+        // put the weapon and armor in the player's Equipment component
+        player_equip.weapon = Some(weapon_id);
+        player_equip.armor = Some(armor_id);
+    }
+}
+</code></pre>
+<p>This pretty much covers all of the ways that RuggRogue uses Shipyard to handle its own game data.</p>
+<h2 id="why-not-use-systems"><a class="header" href="#why-not-use-systems">Why not use Systems?</a></h2>
+<p>As mentioned earlier, RuggRogue uses Shipyard for entities and components, but it mostly does <em>not</em> use its systems.
+From my prior experience of reading the source code of open source roguelikes, and sometimes tinkering with it too, the order and conditions under which logic is supposed to run needs to be precise.
+With systems, a lot of synchronizing data is needed to define this precision; for example see how the Rust Roguelike Tutorial uses a <a href="https://bfnightly.bracketproductions.com/chapter_7.html#player-attacking-and-killing-things">&quot;WantsToAttack&quot; component</a> as an ad-hoc queue to synchronize systems.
+(I'd use an actual queue in that case, but that's still extra synchronizing data that's needed.)
+Just sticking with functions, branches and loops avoids all of that, and it's what I'm more comfortable with, so it's the approach I chose for RuggRogue.
+It seems like I arrived at a similar conclusion as Bob Nystrom in his talk about ECS and roguelikes (<a href="https://www.youtube.com/watch?v=JxI3Eu5DPwE">video</a>).</p>
+<p>However, if you read the source code of RuggRogue for a while, you'll see a fair number of uses of a <code>World::run</code> function with a closure:</p>
+<pre><code class="language-rust ignore">world.run(|names: View&lt;Name&gt;, positions: View&lt;Position&gt;| {
+    // Name and Position component storages borrowed in here
+});
+</code></pre>
+<p>That's equivalent to this:</p>
+<pre><code class="language-rust ignore">{
+    let names = world.borrow::&lt;View&lt;Name&gt;&gt;();
+    let positions = world.borrow::&lt;View&lt;Position&gt;&gt;();
+
+    // Name and Position component storages borrowed in here
+}
+</code></pre>
+<p><code>World::run</code> is also used with functions:</p>
+<pre><code class="language-rust ignore">fn do_something(names: View&lt;Name&gt;, positions: View&lt;Position&gt;) {
+    // Name and Position component storages borrowed in here
+}
+
+// somewhere else...
+world.run(do_something);
+</code></pre>
+<p>So what's <code>World::run</code> running here?
+The functions and closures being put through <code>World::run</code> are <em>systems</em>, in Shipyard's terms.
+So I lied a bit: RuggRogue does use systems.
+What it doesn't use are Shipyard's notion of <em>workloads</em>, which are bundles of systems that are designed to be run together.
+By avoiding workloads, RuggRogue is able to precisely dictate how and when logic runs without having to manage explicit synchronizing data.</p>
+<p>In most of the code samples above, <code>World::borrow</code> is preferred over <code>World::run</code>.
+In the RuggRogue source code in general, older code tended to use a lot of <code>World::run</code>, while newer code mostly prefers <code>World::borrow</code>.
+But in the code we just saw, the code for the <code>World::run</code> versions is shorter and more convenient.
+So why does RuggRogue prefer <code>World::borrow</code> over <code>World::run</code>?</p>
+<p>Due to Rust's borrowing rules, a system cannot easily be called from within another system.
+For instance, the following code will not compile:</p>
+<pre><code class="language-rust ignore">fn my_subsystem(cs: View&lt;C&gt;) {
+    // do stuff from cs...
+}
+
+{
+    world.run(|bs: View&lt;b&gt;| {
+        // do stuff with bs...
+        world.run(my_subsystem); // &lt;-- Can't borrow 'world' twice!!!
+    });
+}
+</code></pre>
+<p>This could be reworked to compile by borrowing the <code>C</code> components <em>alongside</em> the <code>B</code> components, like so:</p>
+<pre><code class="language-rust ignore">fn my_subsystem(cs: &amp;View&lt;C&gt;) {
+    // do stuff with cs...
+}
+
+{
+    world.run(|bs: View&lt;B&gt;, cs: View&lt;C&gt;| {
+        // do stuff with bs...
+        my_subsystem(&amp;cs);
+    });
+}
+</code></pre>
+<p>But it gets clumsier when introducing another system deeper in that wants, say, <code>D</code> components:</p>
+<pre><code class="language-rust ignore">fn my_sub_subsystem(ds: &amp;View&lt;D&gt;) {
+    // do stuff with ds...
+}
+
+fn my_subsystem(cs: &amp;View&lt;C&gt;, ds: &amp;View&lt;D&gt;) { // &lt;-- Getting longer...
+    // do stuff with cs...
+    my_sub_subsystem(ds);
+}
+
+{
+    world.run(|bs: View&lt;B&gt;, cs: View&lt;C&gt;, ds: View&lt;D&gt;| { // &lt;-- Getting longer...
+        // do stuff with bs...
+        my_subsystem(&amp;cs, &amp;ds); // &lt;-- Getting longer...
+    });
+}
+</code></pre>
+<p>Using <code>world::borrow</code> instead of <code>world::run</code> allows for fine-grained on-demand component access instead.
+Here's the equivalent code the above, but using <code>world::borrow</code> instead of <code>world::run</code>:</p>
+<pre><code class="language-rust ignore">fn my_sub_system(world: &amp;World) {
+    let ds = world.borrow::&lt;View&lt;D&gt;&gt;();
+    // do stuff with ds...
+}
+
+fn my_subsystem(world:&amp;World) {
+    let cs = world.borrow::&lt;View&lt;C&gt;&gt;();
+    // do stuff with cs...
+    my_sub_subsystem(world);
+}
+
+{
+    let bs = world.borrow::&lt;View&lt;B&gt;&gt;();
+    // do stuff with bs...
+    my_subsystem(world);
+}
+</code></pre>
+<p>RuggRogue works with many different component types and functions that call each other, so <code>world:borrow</code> ends up being much easier to use most of the time.
+<code>world::run</code> tends to be used with small, self-contained functions that don't call many other functions.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>You should now have a general idea of how RuggRogue stores and accesses its data using Shipyard.
+Insofar as Rust ECS crates go, I'm so-so on Shipyard, since it came with a lot of functionality that I never used.
+I could use it for future projects, but I can just as easily see myself exploring other options or even cobbling my own data storage to suit my own needs.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="word-wrapping.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="game-data.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="word-wrapping.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="game-data.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

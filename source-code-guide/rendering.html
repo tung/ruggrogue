@@ -1,0 +1,443 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Rendering - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html" class="active"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="rendering"><a class="header" href="#rendering">Rendering</a></h1>
+<p>This chapter is about how RuggRogue uses SDL to display things on the screen.
+This will cover the game's overall rendering strategy, the use of tile grids to organize what's displayed, tilesets, the overarching phases involved in displaying things and finally a couple of strategies to improve drawing performance.</p>
+<h2 id="rendering-strategy"><a class="header" href="#rendering-strategy">Rendering Strategy</a></h2>
+<p>For a 2D tile-based roguelike game such as RuggRogue, there are two common strategies to getting pixels onto the screen when considering modern video hardware.
+There's <em>software rendering</em>, where the CPU decides what each pixel on screen should look like, then uploads the whole screen as a texture for the GPU to ultimately display.
+This is simple, but slow, especially considering that the CPU also has to deal with game logic.
+On the other hand, there's the <em>hardware rendering</em> approach using <em>texture atlasses</em>, where tilesets are uploaded for the GPU in advance and the CPU feeds data buffers that describe where said tiles should be displayed on screen for the GPU.
+This is much faster than the software approach, but a fair bit more complex, on top of of requiring an API that can create graphics pipelines with custom shaders.</p>
+<p>Instead of either of those things, RuggRogue adopts a <em>hybrid rendering</em> strategy that combines elements of both software and hardware rendering.
+The game breaks down what it wants to display on screen into tile grids whose contents are rendered by the CPU in a software rendering fashion.
+It then uses SDL's drawing API to arrange those tile grids on screen, which is aware of video hardware and thus makes up the hardware rendering portion of the strategy.</p>
+<p>So why hybrid rendering?
+Early in development, RuggRogue rendered its grids by drawing the background of each cell as a colored rectangle, followed by the contents of the cell in the foreground color.
+This approach was unplayably slow, to the point that transitioning to pure software rendering was a noticeable performance improvement.
+The source of this slowness is the approach to drawing used by many 2D graphics libraries and game engines that advertise &quot;hardware-accelerated graphics&quot;.
+These libraries and engines provide ad-hoc drawing APIs where, at any time, the CPU can tell the GPU to draw something.
+This approach is known as <em>immediate mode drawing</em>, which is impossible for accelerated graphics hardware to handle quickly.
+Any 2D drawing API that doesn't use or allow the creation of a graphics pipeline to feed data into shaders will be slow in this way.
+SDL's bundled drawing API, like many others, falls in this performance pit.
+SDL provides an OpenGL escape hatch, but OpenGL is its own can of worms that I didn't feel like dealing with when I just wanted to get things on screen fast.</p>
+<p>SDL's immediate mode drawing approach isn't useless though.
+SDL's drawing API in general avoids the complexity of graphics APIs that require the creation of full-blown graphics pipelines, shader compilation and linking.
+It also only really suffers performance issues when it's used to draw a lot of small things; it's actually quite fast when drawing a few large things instead.
+In RuggRogue, these large things are tile grids, and this is how the hybrid rendering strategy came to be.
+It's probably not as fast as a proper graphics pipeline, but it's much simpler to put together.
+It also separates the drawing of the contents of a tile grid from where and how it's shown on screen, which makes drawing and arranging tile grids on screen easier.</p>
+<p>Just before diving into the rest of this, there a couple of SDL-specific things to keep in mind.
+SDL's drawing API stores image data in two ways: surfaces and textures.
+An SDL surface is an image buffer in RAM that the CPU can render into.
+An SDL texture is image data that exists in video hardware that the GPU can sample from and display on screen.
+RuggRogue uses both of these things, typically by rendering into an SDL surface and uploading its contents into an SDL texture for display.</p>
+<h2 id="tile-grids"><a class="header" href="#tile-grids">Tile Grids</a></h2>
+<p>As you may have guessed, a tile grid is a grid of tiles (surprise).
+Everything that RuggRogue displays is a tile grid, from the main gameplay screen and sidebar to the smallest dialog.
+There are three parts to the tile grid system: tile grid layers that hold tile grids, tilesets and the tile grids themselves.</p>
+<h3 id="tile-grid-layers"><a class="header" href="#tile-grid-layers">Tile Grid Layers</a></h3>
+<p><code>TileGridLayer</code> can be found at the bottom of <code>src/lib/tilegrid.rs</code>.
+Its definition is rather boring: a vector of tile grids along with a drawing-related flag.
+What matters more is its purpose and usage.
+A <code>TileGridLayer</code> represents all of the tile grids that belong to a specific mode in the mode stack.
+The main game loop (in the <code>run</code> function in <code>src/lib/run.rs</code>) composes tile grid layers into a vector stored in the <code>layers</code> variable.
+The mode stack (at the bottom of <code>src/modes/mod.rs</code>) receives the <code>layers</code> vector and is responsible for ensuring that each of its modes gets a corresponding <code>TileGridLayer</code>.
+The mode stack also sets the <code>draw_behind</code> flag that the main game loop later uses to determine the bottom-most visible <code>TileGridLayer</code> whose tile grids should be displayed on screen.
+In this way, the <code>layers</code> variable in the main game loop is effectively the game's scene graph.</p>
+<h3 id="tilesets"><a class="header" href="#tilesets">Tilesets</a></h3>
+<p>Tilesets are represented by the appropriately-named <code>Tileset</code> struct that can be found towards the top of <code>src/lib/tilegrid.rs</code>.
+Tilesets hold image data representing individual tiles that are drawn into tile grid buffers.
+Tilesets perform three main tasks:</p>
+<ol>
+<li>Loading and storing tile image data for quick rendering later.</li>
+<li>Converting tile image data into grayscale to enable recoloring.</li>
+<li>Rendering tile image data onto surfaces provided by tile grids themselves.</li>
+</ol>
+<p>Loading of a tileset is controlled by the <code>TilesetInfo</code> struct near the top of <code>src/lib/tilegrid.rs</code>.
+They can be seen in action in the <code>main</code> function in <code>src/main.rs</code>, where they define basic font and tileset information for loading.
+The definition of <code>TilesetInfo</code> is well-commented, but the <code>font_map</code> and <code>symbol_map</code> are worth mentioning.
+They hold the information needed for tilesets to translate their logical grid cell contents into tile images.</p>
+<p>Tile image data is prepared specifically to facilitate fast rendering.
+The tileset image is reduced down to only the tiles that the <code>font_map</code> and <code>symbol_map</code> refer to; all other tile image data is discarded after the loading process is done.
+In addition, the surviving tile images are arranged as a one-tile-wide surface.
+Image data is stored in row-major order, so this arrangement ensures that the different pixel rows of each tile image are as closely packed as possible to minimize cache misses while rendering.</p>
+<p>To support recoloring, tile image data is stored in grayscale.
+The grayscaling process occurs in the <code>Tileset::transfer_tiles</code> function.
+A &quot;grayness&quot; value is calculated from the input image data.
+A &quot;grayness&quot; of zero is set to transparent black, while anything else is set to white with &quot;grayness&quot; serving as alpha.</p>
+<p>The job of rendering tile image data onto a surface is done by the <code>Tileset::draw_tile_to</code> function.
+If you read the source code of this function, you'll notice references to <code>CellSym</code> and <code>text_fallback</code>.
+<code>CellSym</code> will be covered in the next section.
+<code>text_fallback</code> refers to the <code>Symbol::text_fallback</code> function all the way at the top of <code>src/lib/tilegrid.rs</code>.
+<code>Symbol</code> itself is a Rust trait, and the purpose of <code>text_fallback</code> is to provide a font alternative to a game symbol if it doesn't define a graphical tile image.
+RuggRogue's fallbacks can be found in the <code>GameSym::text_fallback</code> function in <code>src/gamesym.rs</code>, which is the <code>text_fallback</code> function inside the <code>impl Symbol for GameSym</code> block if you're not used to reading Rust syntax.
+Apart from symbol fallback handling, <code>Tileset::draw_tile_to</code> recolors tiles using the SDL-provided <code>set_color_mod</code> function that multiplies the foreground color with the grayscaled tile image data from before.
+The rendering proper is handled by calling the SDL-provided <code>blit</code> function, which performs surface-to-surface software rendering.</p>
+<h3 id="tile-grids-1"><a class="header" href="#tile-grids-1">Tile Grids</a></h3>
+<p>The <code>TileGrid</code> struct defined around the middle of <code>src/lib/tilegrid.rs</code> covers a lot of different responsibilities.
+It probably has too many responsibilities and I'd consider splitting it up if I were to do this again, but endless refactoring also means endless game development cycles.
+So keep in mind that what I'm about to describe is the state I left it in when I decided that the game eventually needed to be finished and is not necessarily an ideal design.
+I'll briefly touch on all of the key players involved before covering how stuff works.</p>
+<p>A <code>TileGrid</code> consists of a few major parts:</p>
+<ul>
+<li>Two <code>RawTileGrid</code> structs: one holds the logical contents of the grid, while the other is the same data from the previous frame.</li>
+<li>An SDL surface <code>buffer</code> that holds the grid contents rendered with the tile grid's associated tileset.</li>
+<li>An SDL texture that serves as the GPU-side destination of the contents of that buffer.</li>
+<li>A <code>TileGridView</code> that describes where and how the tile grid should appear on the screen.</li>
+<li>A bunch of dirty flags to avoid redoing work that isn't needed.</li>
+</ul>
+<p>The <code>RawTileGrid</code> is defined above the <code>TileGrid</code> struct in <code>src/lib/tilegrid.rs</code>.
+It holds a grid of <code>Cell</code>s (itself defined above <code>RawTileGrid</code> and not to be confused with the Rust standard library struct) that consist of a <code>CellSym</code>, a foreground color and a background color.
+The role of <code>CellSym</code> (defined above <code>Cell</code>) is to hold either a character or a symbol.
+This symbol is a non-library type that implements the <code>Symbol</code> trait whose definition is a the top of <code>src/lib/tilegrid.rs</code>.
+The <code>Symbol</code> trait is implemented on the game side by the <code>GameSym</code> enum that can be found in <code>src/gamesym.rs</code>.
+The purpose of <code>GameSym</code> is to provide distinct symbolic names to tile appearances, such as &quot;Player&quot;, &quot;Ration&quot;, &quot;DownStairs&quot; or &quot;WallNe&quot; (north-east wall corner).
+This allows drawing code to use these symbolic names to represent tile appearances in a flexible manner.</p>
+<p><code>TileGridView</code> is defined just above <code>TileGrid</code> in <code>src/lib/tilegrid.rs</code>.
+It holds the position, size and offset within a bounding box in which its <code>TileGrid</code> owner will be clipped.
+The <code>color_mod</code> field alters the color of the whole tile grid at display time, which is mainly used to dim tile grids associated with inactive background modes.
+It also holds an integer zoom factor that the options menu can alter to zoom the map and the user interface.</p>
+<h2 id="the-rendering-process"><a class="header" href="#the-rendering-process">The Rendering Process</a></h2>
+<p>Up until now, I've been using the terms &quot;draw&quot;, &quot;display&quot; and &quot;render&quot; rather loosely.
+To make this process easier to understand, I'll switch to these specific terms that describe how a tile goes from being drawn to displayed on screen, in this order:</p>
+<ol>
+<li><strong>Draw</strong>: Plotting of a character or symbol into a tile grid cell with foreground and background colors.</li>
+<li><strong>Render</strong>: Combining tile grid cells and colors with tileset data to produce a pixel appearance in a tile grid's buffer.</li>
+<li><strong>Upload</strong>: Uploading a tile grid's rendered buffer into the GPU-accessible texture associated with the tile grid.</li>
+<li><strong>Display</strong>: Putting the tile grid on the screen using the information in the <code>TileGridView</code>.</li>
+</ol>
+<p><strong>Drawing</strong> is the first thing that happens when the game wants something to appear on screen.
+Drawing happens through the public functions of <code>TileGrid</code>, such as <code>TileGrid::print</code> and <code>TileGrid::put_sym_color</code>.
+These functions are called from the <code>draw</code> functions of modes that can typically be found at the bottom of any of the files in the <code>src/modes/</code> directory.
+Map drawing specifically occurs near the bottom of <code>src/chunked.rs</code>; a file that is covered in its own section a bit later.
+Entity drawing happens in the deceptively-named <code>src/render.rs</code> file that, despite its name, only handles entity 'drawing' and not 'rendering' in these terms.
+The <code>TileGrid</code> drawing functions dispatch to similar functions in <code>RawTileGrid</code> that perform the actual drawing by setting the cell (a character or symbol) along with its foreground and background colors.</p>
+<p><strong>Rendering</strong> is how cells are turned into pixel data.
+This happens in the <code>TileGrid::render</code> function that is called near the top of <code>TileGrid::display</code> just before that function goes about its business.
+Recall the two <code>RawTileGrid</code>s in <code>TileGrid</code>.
+The <code>front</code> tile grid holds what the game logic has drawn to the tile grid, while the <code>back</code> tile grid is the same data but from the previous frame.
+The <code>TileGrid::render</code> function renders a logical tile into its corresponding buffer location only if the same cell in the <code>front</code> and <code>back</code> grids are visibly different.
+If a tile doesn't change, it doesn't get rendered.
+The end of <code>TileGrid::render</code> updates the back grid with the contents of the front grid in preparation for the next frame.</p>
+<p><strong>Uploading</strong> occurs after rendering to update the contents of the tile grid's GPU-side texture with its CPU-side rendered buffer.
+This is the <code>texture.update(...)</code> part of the <code>TileGrid::display</code> function, provided by SDL.</p>
+<p><strong>Displaying</strong> the uploaded tile grid texture is, unsurprisingly, the job of the <code>TileGrid::display</code> function.
+The main loop all the way over in <code>src/lib/run.rs</code> goes through all of the tile grid layers in its <code>layers</code> vector, and then calls this function on each tile grid in each layer.
+The majority of the <code>TileGrid::display</code> function is dedicated to calculating where and how the tile grid should appear and calling <code>canvas.copy(...)</code> to put the tile grid texture on screen.
+This is what happens in the straightforward case, but if you read the code in this function you'll notice there's a lot more going on.
+Why are there four separate calls to <code>canvas.copy</code>?
+In order to understand this, I'm going to need to go into the technique I've used here that I call &quot;wrapped offset rendering&quot;.</p>
+<h2 id="improving-rendering-performance-with-wrapped-offset-rendering"><a class="header" href="#improving-rendering-performance-with-wrapped-offset-rendering">Improving Rendering Performance with Wrapped Offset Rendering</a></h2>
+<p>When playing RuggRogue, the camera is generally always centered on the player, so when the player moves, the entire view of the map shifts accordingly.
+Consider the following scenario.
+If the player moves one tile to the right, the player is drawn stationary in the center tile of the tile grid while the entire dungeon is drawn one tile over to the left.
+According to our tile grid rendering strategy, the player's tile is in the same place, so they won't need to be rendered again.
+However, every single dungeon tile has shifted, so any tile that wasn't next to an identical tile will need to be rendered again, even though it's only the player that really moved.
+Rendering multiple shifted dungeon tiles versus a single player tile seems pretty inefficient.
+There must be some way to render only the player and their immediate surroundings while avoiding the need to render most of the visible dungeon tiles again.</p>
+<p>What if, when the player moves one tile to the right, we <em>offset</em> all drawing one tile to the right internally as well?
+This would normally cause drawing in the far right cell columns to overflow, so we need to <em>wrap</em> them over to the now-unused left cell columns instead.
+The rendering phase will pick up that the player has moved one tile to the right, while the dungeon map remains stationary.
+But the whole point of drawing the player at the center of the screen is, well, to have them centered.</p>
+<p>This is where we get clever.
+At display time, we <em>undo</em> the offset that was set when drawing, so the player that was drawn a tile over to the right is shifted a tile <em>back</em> to the left, thus recentering everything.
+The wrapped column of cells that was drawn in the left column can then be split off and displayed over on the right side, where they were originally intended to be.
+Presto!
+We only had to render the player and immediate surroundings again, while the rest of the dungeon tiles can be skipped during rendering.
+It is this central idea that underpins what I call <em>wrapped offset rendering</em>.</p>
+<p>As you can probably guess from the example, wrapped offset rendering is used to reduce the number of dungeon tiles that need to be rendered when the player moves around.
+The tile grid representing the dungeon map is given the player's position via its <code>TileGrid::set_draw_offset</code> function, which immediately passes it over to <code>RawTileGrid::set_draw_offset</code>, since the <code>RawTileGrid</code> handles drawing.
+The <code>RawTileGrid::index</code> function underpins how all drawing functions 'see' the grid cell storage, and this is where the offset and wrapping are applied to affect drawing operations.
+Meanwhile, the rendering process is blind to all of this offset business and renders whatever it sees.</p>
+<p>This sets the stage for understanding why <code>TileGrid::display</code> calls <code>canvas.copy</code> (up to) four separate times.
+All of the calculations in the lower half of <code>TileGrid::display</code> are to undo the wrapped offset rendering to display everything in the right place.
+Only one <code>canvas.copy</code> call is needed if the offset is <code>(0, 0)</code>.
+Two <code>canvas.copy</code> calls are needed if exactly one of the x-axis or the y-axis have a non-zero offset.
+Finally, four <code>canvas.copy</code> calls are needed if both the x-axis and y-axis have non-zero offsets.
+These additional calls take wrapped rows and columns of the grid and put them on the opposite side of the tile grid at display time, all in the name of reducing tile rendering.</p>
+<p>If you're considering using this wrapped offset rendering technique in your own projects, there's a couple of points to keep in mind.
+First, this is probably only really effective for software rendering and not hardware rendering, since graphics hardware renders all pixels every frame anyway.
+Second, this approach won't work as well if tiles are constantly changing, like if they're being animated.
+It is the unique combination of partial software rendering, a player-centric camera and a mostly static dungeon that makes wrapped offset rendering an effective performance-improving technique for RuggRogue.</p>
+<p>In order for wrapped offset rendering to work, it needs an appropriate offset.
+This happens early on in the <code>ChunkedMapGrid::draw</code> function in the <code>src/chunked.rs</code> file, which feeds the top-left corner of the top-left map chunk on screen into <code>TileGrid::set_draw_offset</code>, and all is well.</p>
+<p>...</p>
+<p>Wait, what's a &quot;chunk&quot;?</p>
+<h2 id="improving-map-drawing-performance-with-chunked-drawing"><a class="header" href="#improving-map-drawing-performance-with-chunked-drawing">Improving Map Drawing Performance with Chunked Drawing</a></h2>
+<p>It turns out that the performance rabbit hole goes even deeper than mere wrapped offset rendering.
+Some time after I had finished work on getting wrapped offset rendering into a functioning state, I found myself profiling the web version of the game.
+Performance still wasn't great at this time, and I wanted to know why.
+What I saw in the profile data stuck out to me: <em>drawing</em> of the map was dominating execution time.
+Not rendering, where all the pixels of each tile have to be handled, but just deciding what tiles were going to look like to begin with?
+Well, I suppose that's what happens when you optimize a bottleneck: it moves elsewhere, and here it moved from rendering to map drawing.
+It's worth noting that RuggRogue has a resizable window, but it doesn't stretch or zoom its contents to fit the window size.
+Instead, it adds or removes space to accommodate more or less tiles.
+In other words, if RuggRogue's window is very large, the game has to draw <em>a lot</em> of tiles, and the web version of the game was struggling with this.
+In fact, it wasn't even strictly map drawing that was the bottleneck, the sheer number of tile grid cells that could potentially <em>show</em> a map tile was the performance bottleneck.
+I had to do something to reduce the number of tile grid cells that had to be considered when drawing the map.</p>
+<p>So I made a deal with the Programming Devil: I traded code simplicity for performance by pursuing a <a href="https://wiki.c2.com/?DirtyRectangles">dirty rectangles</a> approach to map drawing.
+The idea here is that instead of deciding the appearance of every single cell in the map tile grid every single frame, I'd divide the map tile grid into <em>chunks</em> of 8-by-8 tiles that would be drawn once and would only be revisited on request.
+Therefore, the tile grid associated with the map is the only tile grid in the game whose contents are not fully redrawn every single frame.
+I refer to this approach as <em>chunked map drawing</em>.</p>
+<p>The entirety of the chunked map drawing implementation can be found in the aptly-named <code>src/chunked.rs</code> file.
+The most important part of that file is the <code>ChunkedMapGrid</code> struct that contains all of the book-keeping and logic required to make chunked map drawing a reality.
+The <code>screen_chunks</code> field of <code>ChunkedMapGrid</code> is a vector of small <code>ScreenChunk</code> structs.
+The data in the <code>ScreenChunk</code> is the chunk of the map to be drawn, while the position of each <code>ScreenChunk</code> in the vector implies its position on the screen, i.e. the map tile grid.</p>
+<p>In order to maximize performance, we want to avoid the need to constantly redraw partial chunks near the edges of the screen whenever the camera moves.
+Therefore, we must maintain a map tile grid whose dimensions are a whole multiple of the chunk size (i.e. 8 tiles) and is big enough to cover the available screen space given to it.
+These calculations are performed in the <code>ChunkedMapGrid::prepare_grid</code> function, and the results are stored in the <code>new_chunks_across</code> and <code>new_chunks_down</code> variables.
+Special care is taken to ensure the width and height of this grid is strictly greater than its screen dimension if the screen width or height is exactly a multiple of the chunk pixel dimensions to enable shifting.</p>
+<p>Now that we have a map tile grid whose bounds exceed the screen space, we need to ensure that the display of the grid itself is shifted so that the camera is centered on screen.
+There are two values we need to know in order to calculate how much to shift the map tile grid by:</p>
+<ol>
+<li>the pixel width of the screen, halved</li>
+<li>the x-value of the central pixel of the tile relative to the left edge of the map tile grid</li>
+</ol>
+<p>The latter value is the sum of the pixels between the central chunk and the left edge, and the pixels between the center of the camera tile and the left edge of the central chunk in which it resides.
+The difference between those two values is computed early in the <code>ChunkedMapGrid::draw</code> function and stored in <code>grid.view.dx</code> in order to shift the grid the correct amount.
+A similar process is used to fill <code>grid.view.dy</code> as well, substituting &quot;x&quot; with &quot;y&quot; and &quot;width&quot; with &quot;height&quot;.</p>
+<p>With size and position sorted, the next thing to work out is which screen chunk shows which map chunk.
+This is the job of the <code>screen_chunks</code> field of the <code>ChunkedMapGrid</code> struct.
+This is a vector of <code>ScreenChunk</code> structs that holds metadata for each chunk of the map tile grid that needs to be filled in.
+Screen chunks are stored in this vector in row-major order, so <code>0</code> is the top-left 8-by-8 chunk of grid cells, <code>1</code> would be next to it on the right, and so on.
+The <code>map_chunk</code> stores the 8-by-8 chunk of map tiles that the screen chunk should be showing.
+Map chunks are stored as pairs of integers, but the idea is the same as for screen chunks, except representing map chunks instead, so <code>(0, 0)</code> is the top-left 8-by-8 chunk of map tiles, <code>(0, 1)</code> is to the left, <code>(1, 0)</code> is below, and so on.</p>
+<p>The screen chunks are filled with map chunk data by figuring out which map chunk the top-left screen chunk should be showing, and populating the other screen chunks from there.
+This is the task of the <code>ChunkedMapGrid::screen_top_left_map_chunk</code> function.
+It takes the tile position of the camera on the map, and subtracts half a screen's width- and height-worth of tiles from it; whatever map chunk it lands in is assigned to be shown in the top-left screen chunk.</p>
+<p>Each screen chunk is accompanied by a <code>dirty</code> flag.
+When map chunks are assigned to a screen chunk, the new map chunk value is compared against the existing value remembered by the screen chunk.
+If a change is detected, the dirty flag is set.
+The presence of the dirty flag triggers the final checking and drawing of map tiles onto the tile grid on screen.
+Map rendering is minimized by feeding the top-left tile of the top-left screen chunk into the <code>TileGrid::set_draw_offset</code> function, tying into the wrapped offset rendering described in the previous section.
+All of this work is done by the <code>ChunkedMapGrid::draw</code> function.</p>
+<p>If we stopped here, we'd only be redrawing chunks of the map as they enter from the edges of the screen.
+We still need to handle the player, whose actions cause the contents of the map grid in their field of view to change pretty much every single turn.
+When the player, or really the camera, moves around the map, the <code>ChunkedMapGrid::mark_dirty</code> function sets the dirty flags of the corresponding screen chunks.
+When the player descends into a new map, the <code>ChunkedMapGrid::mark_all_dirty</code> function sets the dirty flags of every screen chunk.
+These calls are made in the <code>DungeonMode::update</code> function after it performs most of its logic.</p>
+<h2 id="wrap-up"><a class="header" href="#wrap-up">Wrap Up</a></h2>
+<p>Whew, I think that's everything.
+As you can see, rendering is a simple process involving hybrid rendering, tile grids, tile grid layers, tilesets, raw tile grids, surfaces, textures, tile grid views, cells, cellsyms, symbols, drawing, rendering, uploading, displaying, wrapped offset rendering and chunked map drawing.</p>
+<p>...</p>
+<p>Okay, maybe it's not so simple.
+So after all of that, how's the performance of the game?
+The performance of the web version is... passable.
+It's far better than the initial version, but I can't improve it any further short of rethinking the web port from the ground-up.
+In contrast, the native build of the game is butter smooth, both the debug build but especially the release build.
+I'm really happy about how this all turned out.</p>
+<p>If you've read this far, congratulations.
+<code>src/lib/tilegrid.rs</code> is the longest source code file in the game, and <code>src/chunked.rs</code> is probably the most complicated.
+Future chapters shouldn't be anywhere near as complicated as this one.
+Hopefully this gives an idea about how 2D tile grid rendering works overall, and some hints about what's involved in pulling it all together.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="event-handling.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="user-interface.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="event-handling.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="user-interface.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

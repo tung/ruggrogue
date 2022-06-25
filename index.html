@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="A simple web-playable roguelike.">
+<link rel="icon" href="/favicon.png" type="image/png">
+<title>RuggRogue - A simple web-playable roguelike</title>
+<style>
+body {
+    background-color: #000;
+    color: #ffc;
+    font-family: Menlo, Consolas, Monaco, Liberation Mono, Lucida Console, monospace;
+    margin: 1em auto;
+    max-width: 700px;
+}
+a {
+    color: #fc0;
+}
+h1 {
+    color: #fc0;
+    text-align: center;
+    padding: 0;
+    width: 100%;
+}
+h1 > img {
+    image-rendering: pixelated;
+}
+h2 {
+    font-size: 14pt;
+    font-style: italic;
+    text-align: center;
+    width: 100%;
+}
+#two-button {
+    display: flex;
+    justify-content: space-evenly;
+    margin: 2em 0;
+}
+#two-button > a {
+    background-color: #da0;
+    box-shadow: 8px 8px #850;
+    color: #000;
+    display: table;
+    padding: 1em;
+    text-align: center;
+    text-decoration: none;
+    width: 12em;
+}
+#two-button > a:hover {
+    background-color: #fc0;
+    box-shadow: 8px 8px #a70;
+}
+#two-button > a > b {
+    display: table-cell;
+    vertical-align: middle;
+}
+#two-button > a > sub {
+    font-size: 9pt;
+}
+ul {
+    list-style: square;
+}
+</style>
+</head>
+<body>
+
+<h1><img src="img/logo.png" width="398" height="234" alt="RuggRogue"></h1>
+
+<h2>A simple web-playable roguelike.</h2>
+
+<div id="two-button">
+<a href="play/"><b>Play in Browser</b></a>
+<a href="https://github.com/tung/ruggrogue/releases">Download<br><sub><i>for Windows and Linux</i></sub></a>
+</div>
+
+<p>More info for developers:</p>
+
+<ul>
+<li><a href="https://github.com/tung/ruggrogue">Source Code on GitHub</a> - Made with Rust and SDL.</li>
+<li><a href="source-code-guide/">RuggRogue Source Code Guide</a> - A web book about the ideas, algorithms and structure of the source code.</li>
+</ul>
+
+</body>
+</html>

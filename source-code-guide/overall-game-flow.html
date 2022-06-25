@@ -1,0 +1,322 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Overall Game Flow - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html" class="active"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="overall-game-flow"><a class="header" href="#overall-game-flow">Overall Game Flow</a></h1>
+<p>The overall flow of the game can be divided into three main parts:</p>
+<ol>
+<li>initialization</li>
+<li>the main game loop</li>
+<li>the mode stack that the main game loop continuously updates</li>
+</ol>
+<p>We'll look at each of these in turn.</p>
+<h2 id="initialization"><a class="header" href="#initialization">Initialization</a></h2>
+<p>The <code>main</code> function in <code>src/main.rs</code> is where it all begins.
+One of the most important things initialized is the <em>world</em>, courtesy of the Shipyard crate, whose sole purpose is to store and provide access to all game-related data.
+There's a bunch of calls to <code>world.add_unique</code> to add <em>uniques</em>, which are the closest thing the game has to global variables.
+&quot;Uniques&quot; are Shipyard's term for &quot;resources&quot;, which is the term used by other Rust ECS crates such as <a href="https://crates.io/crates/specs">Specs</a>, <a href="https://crates.io/crates/legion">Legion</a> and <a href="https://crates.io/crates/bevy_ecs">bevy_ecs</a>.
+In any case, the uniques that RuggRogue adds to its world are a mix of essential and dummy data.
+Inserting dummy data now means it can be replaced unconditionally later, simplifying that code.</p>
+<p>The most important thing initialized is the <em>mode stack</em>, which is initialized with a mode representing the title screen.
+The mode stack deserves its own section, so that will be covered later; just keep it in mind for now.</p>
+<p>The final bit of initialization in the <code>main</code> function is <code>RunSettings</code>, which controls the behavior of the <code>ruggrogue::run</code> function that launches the main loop of the game.
+Alongside the basic window settings and frames per second is the <code>tileset_infos</code> field.
+If you want to add new tilesets and fonts, this is where they're added.
+The game's option menu assumes that fonts come before tilesets.
+Note that if you add or remove fonts, you'll want to change the <code>NUM_FONTS</code> constant in <code>src/modes/options_menu.rs</code> to match your changes.
+If you want to add a tileset, check out the <code>urizen_tileset_info</code> function in <code>src/gamesym.rs</code> for an example of how to map display symbols to tiles.</p>
+<p>At the end of the <code>main</code> function is a call to <code>ruggrogue::run</code> that launches the main game loop with a callback that continuously updates the aforementioned mode stack.</p>
+<h2 id="the-main-game-loop"><a class="header" href="#the-main-game-loop">The Main Game Loop</a></h2>
+<p>The main game loop lives in the <code>run</code> function that can be found in <code>src/lib/run.rs</code>.
+Note that we've gone from the binary crate to the library crate at this point.
+We can start the game loop now, right?</p>
+<p>I lied, there's more initialization.
+This initialization is a lot more technical than the stuff that <code>main</code> was setting up before.
+Most of the initialization here is to use SDL to prepare a window, a canvas representing the drawable area of that window and an event pump, which is how the game can react to player inputs and window resizing.</p>
+<p>Beyond SDL, the <code>layers</code> variable is noteworthy.
+It's a vector of <code>TileGridLayer</code>s, which in turn are vectors of <code>TileGrid</code>s.
+Everything that appears on screen does so via this structure; it can be thought of as a hand-rolled scene graph.
+<code>TileGrid</code>s and <code>TileGridLayer</code>s will be covered in more detail in a later chapter.</p>
+<p>Alright, we can finally move onto the game loop proper, that is, everything inside <code>while !done { ... }</code>.
+The game loop is modelled directly from the one described under &quot;Play catch up&quot; in the <a href="https://gameprogrammingpatterns.com/game-loop.html#play-catch-up">Game Programming Patterns book</a>.
+The idea of this kind of game loop is that you think of wall clock time as producing a resource that is repeatedly consumed in fixed amounts by running the update logic.
+However, it's heavily adapted to the needs of RuggRogue, which are kind of unusual compared to a conventional video game.</p>
+<p>The biggest thing I wanted to avoid with RuggRogue was constantly spending CPU time running update logic when there was nothing to update.
+I didn't want RuggRogue to turn the player's laptop into a hand warmer because they left the game window open while doing something else.
+In this respect, RuggRogue's game loop is closer to that of a GUI program than a video game.
+This sole requirement unfortunately rules out the use of almost every single Rust game engine, including <a href="https://crates.io/crates/bracket-lib">bracket-lib</a> and <a href="https://bevyengine.org/">Bevy</a> (at least in its current pre-editor state).
+Virtually all of the Rust game engines out there have their own game loop that they want you to use, with no way to tell it to wait for an event before updating again.
+To be honest, I wasn't intending to write my own game engine for RuggRogue, but this one requirement kind of forced me into it, and the rest is history.</p>
+<p>There are two parts to making RuggRogue wait for input when needed: the <code>active_update</code> flag and the <code>RunControl</code> enum.
+When <code>active_update</code> is true, updates are continuously requested at the desired FPS rate, and when it's <code>false</code> it'll wait for an event before updating instead.
+The <code>active_update</code> flag is initially set, since the game needs to update at least once in order to draw the title screen.
+The <code>RunControl</code> enum found at the top of <code>src/lib/run.rs</code> is how updates tell the game loop to set the <code>active_update</code> flag.
+Every update function from the main gameplay to the smallest dialog returns one of the variants of <code>RunControl</code>.
+Anything that finishes its work in a single frame returns <code>RunControl::WaitForEvent</code>, such as the player moving a single step or moving a menu cursor.
+Things that require repeated updates instead return <code>RunControl::Update</code>, such as the player auto-running along a corridor or resting until healed.
+<code>RunControl::Quit</code> is only returned when the mode stack empties out, which means there's nothing left to update or show on screen.</p>
+<p>If you're reading the code, you may wonder why there's a big <code>if</code> with two whole branches that run the <code>update</code> callback.
+This is to ensure correct time book-keeping when going back and forth between active and and inactive updating.
+For example, say that there's an update, then the player waits for ten seconds before pressing a key that triggers active updates.
+If the game is set to run at 30 FPS with active updates, this would trigger 300 catch-up updates without special handling!</p>
+<h2 id="the-mode-stack"><a class="header" href="#the-mode-stack">The Mode Stack</a></h2>
+<p>I've hinted at this idea of a &quot;mode stack&quot; before, so it's time to go into it in more detail.
+The idea of a <em>mode</em> is a unit of state with associated update and drawing logic that has exclusive, or <em>modal</em> (hence the name), access to update and control logic at any given time.
+The game has a single <em>mode stack</em> that houses all of the modes, drawing all of the modes in their stacked order while updating only the top mode.</p>
+<p>At this point, you might be thinking,
+&quot;Hey, wait a minute, isn't this just a <em>game state stack</em>?
+Why come up with a different name for something everybody else has already settled on?&quot;
+Indeed, you'll get a lot more useful results from search engines if you type &quot;game state stack&quot; instead of whatever the heck I'm calling it.
+However, I didn't come up with a different name for no reason.
+There is a dizzying amount of writing about game development on the Internet that goes over how to do different things, but in very similar and easy-to-confuse terms.
+&quot;State&quot; is one of those words that means slightly different things to different people.
+&quot;State&quot; refers to the pattern of bits in memory and allocated resources, but &quot;state&quot; is also a computer science concept for finite state machines.
+Using different names for different ideas makes thinking about complex problems easier, and I refer to &quot;modes&quot; instead of &quot;states&quot; here for this reason.
+My original inspiration for this approach comes from <a href="https://web.archive.org/web/20160306054512/http://director-online.dasdeck.com/buildArticle.php?id=1134">&quot;The <em>Interface</em> Stack Model&quot;</a> (emphasis mine), but &quot;interface&quot; is unfortunately already a term used in object-oriented programming.
+This approach is also somewhat similar to <a href="https://gameprogrammingpatterns.com/state.html#pushdown-automata">&quot;Pushdown Automata&quot;</a> from the Game Programming Patterns book.
+Anyway, enough about names, you can substitute &quot;mode&quot; with &quot;state&quot; and everything here should still make sense.</p>
+<p>If RuggRogue is a living being, the main game loop would be its heart, pumping updates, while the mode stack would be its brain, deciding how to react to inputs and what gets drawn on screen.
+The mode stack can be found near the bottom of <code>src/modes/mod.rs</code>, which is back in the binary crate.
+This might seem strange; surely something as general as this mode stack belongs in the library crate instead, right?
+However, my experience on this game says otherwise.
+The original mode stack was much simpler than the one that exists in the game code now.
+I treated it as a living, breathing thing and evolved it to suit the needs of the game, and you can't really put something that constantly evolves into a library that presents a stable interface.
+The mode stack must be game code, not library code.</p>
+<p>The mode stack is represented by the <code>ModeStack</code> struct (surprise), which is just a vector of <code>Mode</code> structs, along with a single <code>ModeStack::update</code> function.
+The <code>ModeStack::update</code> function more or less does the following:</p>
+<ol>
+<li>Call <code>Mode::prepare_grids</code> on all of the modes in the stack to create and position tile grids that the modes draw onto.</li>
+<li>Call <code>Mode::update</code> on the top mode and catch its result.</li>
+<li>React to the returned result if needed, e.g. to push a new mode or pop the top mode.</li>
+<li>Call <code>Mode::draw</code> on all of the modes in the stack to fill in the contents of tile grids that will later be displayed on screen.</li>
+</ol>
+<p>These mode-related functions exist just above the mode stack code inside the <code>impl Mode</code> block.
+The purpose of these functions is to dispatch to the function of the same name in each mode according to its type.
+For example, if there's a <code>YesNoDialogMode</code> at the top of the mode stack, <code>ModeStack::update</code> would call <code>Mode::update</code> which in turn would call <code>YesNoDialogMode::update</code>, which can be found in <code>src/modes/yes_no_dialog.rs</code>.
+You'll notice that the dispatching code is mostly a copy-paste job; there are a couple of alternatives that would have been much more concise, but I decided against using.
+Idiomatic Rust code would have made a <code>Mode</code> trait instead of an enum and relied on dynamic dispatch using <code>Box&lt;dyn Mode&gt;</code>, but having every mode living in different parts of heap memory was something I wanted to avoid for performance reasons.
+There's also an <a href="https://crates.io/crates/enum_dispatch">enum_dispatch</a> crate that does what I did by hand automatically, but I didn't want to pull in dependencies for things I could easily write myself.</p>
+<p><code>Mode::update</code> returns a 2-tuple of <code>ModeControl</code> and <code>ModeUpdate</code>, whose definitions are just above <code>impl Mode</code> in <code>src/modes/mod.rs</code>.
+<code>ModeControl</code> represents what the <code>update</code> function of any given mode wants to have done to the stack, like <code>ModeControl::Switch</code>, <code>ModeControl::Push</code> or <code>ModeControl::Pop</code>.
+Note the <code>ModeResult</code> in <code>ModeControl::Pop</code>: every mode is accompanied by a corresponding <em>mode result</em>, e.g. <code>YesNoDialogMode</code> can pop itself off the stack and return either <code>YesNoDialogModeResult::Yes</code> or <code>YesNoDialogModeResult::No</code>.
+The next mode whose <code>update</code> function is called will receive this result via its <code>pop_result</code> parameter.
+Rust's expressive type system is invaluable for dispatch logic based on types like this.
+A lot of articles written about game state stacks gloss over result handling, but it's the difference between a dialog returning something meaningful and just vanishing into thin air, so if you want proper dialogs and not just inert windows, it's crucial.</p>
+<p><code>ModeUpdate</code> determines what should happen after <code>ModeStack::update</code> is done.
+<code>ModeUpdate::Update</code> and <code>ModeUpdate::WaitForEvent</code> correspond to active and inactive-style of main game loop updating described earlier.
+You may have noticed the <code>while</code> loop surrounding most of the code in <code>ModeStack::update</code>; <code>ModeUpdate::Immediate</code> exists solely as a fallthrough case to repeat that loop.
+<code>ModeUpdate::Immediate</code> is used to make the next mode's <code>update</code> function run in the <em>current</em> frame instead of the next.
+This is useful to handle the result of a dialog straight away when it closes instead of lagging for a frame.</p>
+<p>One last detail I left out is <code>Mode::draw_behind</code>.
+Remember how modes represent screens as well as menus and dialogs?
+There's no need to draw behind a mode that covers the entire screen, so <code>Mode::prepare_grids</code> and <code>Mode::draw</code> are skipped for other modes behind fullscreen modes like this, and <code>Mode::draw_behind</code> is what decides if a mode is fullscreen.</p>
+<p>If you want an example of a simple mode, the simplest one can be found in <code>src/modes/yes_no_dialog.rs</code>.
+The most important mode is probably <code>DungeonMode</code>, which represents the main gameplay screen and handles player and monster turn distribution; this can be found in <code>src/modes/dungeon.rs</code>.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="source-code-layout.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="event-handling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="source-code-layout.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="event-handling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

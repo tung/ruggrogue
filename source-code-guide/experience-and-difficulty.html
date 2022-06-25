@@ -1,0 +1,355 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Experience and Difficulty - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html" class="active"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="experience-and-difficulty"><a class="header" href="#experience-and-difficulty">Experience and Difficulty</a></h1>
+<p>Combat between the player and the monsters is at the core of RuggRogue.
+Combat is defined by the damage formula described in the <a href="turn-order-and-combat.html">Turn Order and Combat</a> chapter, but that by itself isn't enough; the formula operates on numbers that still need to be decided.
+These numbers include the hit points, attack and defense of the player and the monsters, as well as the attack and defense bonuses of weapons and armor.
+The values of these numbers need to be able to answer questions such as how many hits are needed for a player to defeat a monster of equal level.</p>
+<p>There's another problem.
+Like many roguelikes and RPGs, the player in RuggRogue earns experience points when defeating monsters.
+When enough experience points are earned, the player gains a level, rewarding them with more power.
+How does the game avoid becoming easier over time?</p>
+<h2 id="game-balance"><a class="header" href="#game-balance">Game Balance</a></h2>
+<p>Questions about picking numbers are really questions about how easy or hard the game should be; in other words, they're questions about game balance.
+For game balance to be reasoned about, we need to consider the relationship between the numbers of the player and those that make up the challenges and rewards encountered in the dungeon.</p>
+<p>If the player has an experience level, the game must spawn monsters with some concept of a level as well.
+Rewards that the player finds in the dungeon, such as weapons and armor, must also consider the concept of a level, if only to avoid being too strong or too weak when found.</p>
+<p>Everything that becomes more powerful over time is created with an experience level, but exactly how powerful should each level be?
+We definitely don't want level 2 to be twice as powerful as level 1, for example.
+RuggRogue defines a <em>level factor</em> to control how powerful each level should be.
+It's definition can be found in the <code>src/experience.rs</code> file, and looks like this:</p>
+<pre><code class="language-rust ignore">fn level_factor(level: i32) -&gt; f32 {
+    (1.0 + (level - 1) as f32 * 0.1).max(0.1)
+}
+</code></pre>
+<p>The level factor is 1.0 at level 1, 1.1 at level 2, 1.2 for level 3, and so on.
+In other words, every level is 10% more powerful than level 1.</p>
+<p>The level factor is used to derive every other number that grows more powerful over time.
+The formulas are described as functions in the <code>src/experience.rs</code> file:</p>
+<table><thead><tr><th>Function Name</th><th>Formula (f = level factor)</th><th>Description</th></tr></thead><tbody>
+<tr><td><code>calc_player_max_hp</code></td><td>(f * 30.0).round() as i32</td><td>Player maximum hit points</td></tr>
+<tr><td><code>calc_player_attack</code></td><td>f * 4.8</td><td>Player base attack</td></tr>
+<tr><td><code>calc_player_defense</code></td><td>f * 2.4</td><td>Player base defense</td></tr>
+<tr><td><code>calc_monster_max_hp</code></td><td>(f * 14.0).round() as i32</td><td>Monster maximum hit points</td></tr>
+<tr><td><code>calc_monster_attack</code></td><td>f * 8.0</td><td>Monster attack</td></tr>
+<tr><td><code>calc_monster_defense</code></td><td>f * 4.0</td><td>Monster defense</td></tr>
+<tr><td><code>calc_monster_exp</code></td><td>(f * 10.0).ceil() as u64</td><td>Experience points for defeating monster</td></tr>
+<tr><td><code>calc_weapon_attack</code></td><td>f * 3.2</td><td>Weapon attack bonus</td></tr>
+<tr><td><code>calc_armor_defense</code></td><td>f * 1.6</td><td>Armor defense bonus</td></tr>
+</tbody></table>
+<p>For example, consider a player at experience level 6.
+The level factor at level 6 is <code>(1.0 + (6 - 1) as f32 * 0.1).max(0.1) = 1.5</code>.
+Such a player thus has <code>(1.5 * 30.0).round() as i32 = 45</code> maximum hit points, <code>1.5 * 4.8 = 7.2</code> base attack and <code>1.5 * 2.4 = 3.6</code> base defense.
+Note that attack and defense values are internally stored and handled as floating point values; the interface rounds them to whole numbers for display purposes.</p>
+<p>Defining numbers in terms of the level factor like this allows us to make statements about things when their experience levels are equal:</p>
+<ul>
+<li>The sum of player attack (4.8) and weapon attack (3.2) is 8.0, which is equal to monster attack (8.0).</li>
+<li>Likewise, the sum of player defense (2.4) and armor defense (1.6) is 4.0, which is equal to monster defense (4.0).</li>
+</ul>
+<p>According to the damage formula described in the <a href="turn-order-and-combat.html">Turn Order and Combat</a> chapter, melee hits cause 50% of the attack value worth of damage when attack is twice defense.
+A melee hit of 8.0 attack versus 4.0 defense causes 4.0 damage.
+This allows us to talk about how tough the player and monsters are:</p>
+<ul>
+<li>A player with 30 maximum hit points is defeated by 4.0-damage monster attacks in 7.5 turns.</li>
+<li>A monster with 14 maximum hit points is defeated by 4.0-damage player attacks in 3.5 turns.</li>
+</ul>
+<p>Statements like this establish numeric relationships that form the foundation of game balance in RuggRogue.</p>
+<h2 id="player-experience"><a class="header" href="#player-experience">Player Experience</a></h2>
+<p>The experience data for the player is stored in an <code>Experience</code> component defined in the <code>src/experience.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub struct Experience {
+    pub level: i32,
+    pub exp: u64,
+    pub next: u64,
+    pub base: u64,
+}
+</code></pre>
+<p>The <code>level</code> field is the player's experience level.
+The <code>exp</code> field is the number of experience points the player has accumulated.
+When it reaches the threshold value stored in the <code>next</code> field, the player gains a level, <code>next</code> is deducted from <code>exp</code> and <code>next</code> is increased to a larger value.
+The <code>base</code> field stores the total amount of experience points that have been cashed in as levels.
+The sum of <code>base</code> and <code>exp</code> is the total number of experience points earned by the player, which is shown in the sidebar while playing the game.
+The player is initially spawned with a <code>level</code> of 1 and <code>next</code> set to 50 experience points to gain for their next level, as defined in the <code>spawn::spawn_player</code> function in the <code>src/spawn.rs</code> file.</p>
+<p>Meanwhile, the number of experience points awarded for defeating a monster is stored in a <code>GivesExperience</code> component attached to monster entities, defined in the <code>src/components.rs</code> file like so:</p>
+<pre><code class="language-rust ignore">pub struct GivesExperience(pub u64);
+</code></pre>
+<p>When the player attacks a monster, the monster is tagged with a <code>HurtBy</code> component that credits the player for the damage.
+This is done within the <code>damage::melee_attack</code> function in the <code>src/damage.rs</code> file.
+If the hit kills the monster, the <code>damage::handle_dead_entities</code> function in the same file will award the experience points in the monster's <code>GivesExperience</code> component to the player's <code>Experience</code> component.</p>
+<h2 id="gaining-levels"><a class="header" href="#gaining-levels">Gaining Levels</a></h2>
+<p>The experience points stored in <code>Experience</code> components are checked when the <code>DungeonMode::update</code> function in the <code>src/modes/dungeon.rs</code> file calls the <code>experience::gain_levels</code> function in the <code>src/experience.rs</code> file.
+These calls occur whenever experience could have been awarded, i.e. when time passes.</p>
+<p>The <code>experience::gain_levels</code> function checks if the <code>exp</code> value exceeds the <code>next</code> value; if so:</p>
+<ul>
+<li>The entity's level is increased by 1.</li>
+<li><code>next</code> is deducted from <code>exp</code>.</li>
+<li><code>next</code> is added to <code>base</code>.</li>
+<li><code>next</code> is increased by 10% of its current value.</li>
+</ul>
+<p>If the entity has a <code>CombatStats</code> component, then their hit points, attack and defense are increased to match their freshly-gained level.
+For players, this involves the <code>calc_player_max_hp</code>, <code>calc_player_attack</code> and <code>calc_player_defense</code> functions.
+If monsters could gain levels, they would use the <code>calc_monster_max_hp</code>, <code>calc_monster_attack</code> and <code>calc_monster_defense</code> functions instead.
+Care is taken to preserve any maximum hit points gained from drinking health potions while fully healed.</p>
+<p>Finally, a message is logged if the entity gaining the level happens to be the player.</p>
+<h2 id="difficulty-tracker"><a class="header" href="#difficulty-tracker">Difficulty Tracker</a></h2>
+<p>The player gains experience levels over time while playing the game and thus becomes more powerful over time.
+If the game never increased the levels of spawned monsters, the game would get easier over time!
+But how quickly should the level of spawned monsters increase?
+Too slowly and game would still get easier over time.
+Too quickly and the player would eventually be overwhelmed.</p>
+<p>It would be tempting to solve this by simply spawning monsters with the same level as the player.
+However, this would lead to <em>rubber banding</em>, which can make players feel like they're being punished for playing too well.</p>
+<p>RuggRogue takes a different approach in the form of a <em>difficulty tracker</em>.
+The difficulty tracker is associated with an entity that has an <code>Experience</code> component and is thus able to gain experience and levels, but is invisible and has no <code>CombatStats</code> component.
+The <code>spawn::spawn_difficulty</code> function in the <code>src/spawn.rs</code> file creates this entity when called from the <code>title::new_game_setup</code> function in the <code>src/modes/title.rs</code> file.</p>
+<p>The difficulty tracker itself is a unique <code>Difficulty</code> struct defined in the <code>src/experience.rs</code> file as follows:</p>
+<pre><code class="language-rust ignore">pub struct Difficulty {
+    pub id: EntityId,
+    exp_for_next_depth: u64,
+}
+</code></pre>
+<p>The difficulty tracker gains experience in a different way to the player:
+After map population, the <code>experience::calc_exp_for_next_depth</code> function defined in the <code>src/experience.rs</code> file is called.
+This sums the experience carried by all monsters on the map and saves it to the <code>exp_for_next_depth</code> field.
+When the player descends, the points saved in the <code>exp_for_next_depth</code> field are transferred to the difficulty tracker entity.
+From there, the <code>experience::gain_levels</code> function is called so the difficulty tracker entity can gain levels if it needs to.</p>
+<p>The level of the difficulty tracker entity determines the maximum level of monsters to spawn.
+It also decides the base power level of spawned weapons and armor.</p>
+<p>Oftentimes, the difficulty tracker will be part-way towards the next level in experience points.
+For example, if the difficulty tracker is at level 4 and has 10% of the experience points needed for level 5, it will effectively be considered level 4.1 for the purpose of spawning monsters, weapons and armor.
+If an integer level is needed, the <code>Difficulty::get_round_random</code> function in the <code>src/experience.rs</code> file will return something like &quot;5&quot; 10% of the time and &quot;4&quot; the remaining 90% of the time.
+Spawning code will also often want the direct &quot;4.1&quot; value, retrieved via the <code>Difficulty::as_f32</code> function in the same file.
+Such code will often use the <code>experience::f32_round_random</code> helper function to turn it into an integer after processing if needed.</p>
+<h2 id="monster-selection"><a class="header" href="#monster-selection">Monster Selection</a></h2>
+<p>The level of a spawned monster decides its name and appearance.
+This data is stored in the <code>MONSTERS</code> array at the top of the <code>src/spawn.rs</code> file, which is consulted by the <code>spawn_random_monster_at</code> function in the same file.</p>
+<p>The <code>spawn_random_monster_at</code> function doesn't always spawn a monster matching the level of the difficulty tracker; this would lead to a very monotonous dungeon population.
+Instead, it considers the level provided by the difficulty tracker as the <em>highest</em> level to spawn a monster, then picks one of the following outcomes:</p>
+<ul>
+<li>20% for a level-matching monster</li>
+<li>40% for a monster 1 to 3 levels lower</li>
+<li>40% for an even lower-level monster</li>
+</ul>
+<p>The final level chosen decides the name and appearance for the monster.
+The correct numbers for such a monster at the chosen level is filled in by the <code>spawn_monster</code> function with the help of the monster-related functions in the <code>src/experience.rs</code> file: <code>calc_monster_max_hp</code>, <code>calc_monster_attack</code>, <code>calc_monster_defense</code> and <code>calc_monster_exp</code>.</p>
+<h2 id="weapon-and-armor-selection"><a class="header" href="#weapon-and-armor-selection">Weapon and Armor Selection</a></h2>
+<p>The name and appearance of weapons is determined by the <code>WEAPONS</code> array near the top of the <code>src/spawn.rs</code> file.
+The <code>spawn_weapon</code> function in the same file accepts the difficulty tracker's level externally at either the <code>spawn_random_item_at</code> or <code>spawn_guaranteed_equipment</code> functions.
+The <code>WEAPONS</code> array is shorter than the <code>MONSTERS</code> array, so the <code>rescale_level</code> function in the same file is used to cycle through the <code>WEAPONS</code> array at a slower pace.</p>
+<p>The name and appearance of armor works exactly like those of the weapons, except using an <code>ARMORS</code> array consulted by the <code>spawn_armor</code> function.</p>
+<p>Weapons and armor spawned by the <code>spawn_random_item_at</code> function are granted a +1 to +3 bonus to their power, but this doesn't affect the name and appearance chosen for them.</p>
+<h2 id="picking-the-final-dungeon-level"><a class="header" href="#picking-the-final-dungeon-level">Picking the Final Dungeon Level</a></h2>
+<p>The <code>MONSTERS</code> array at the top of the <code>src/spawn.rs</code> file has 25 entries.
+Once the difficulty tracker has allowed them all to spawn, there are no new monsters to be seen; the player has effectively seen all of the content the game has to offer.
+Since monsters are chosen directly from the level of the difficulty tracker, this point is reached once the difficulty tracker reaches level 25.
+If this point has been reached when a new map is spawned by the <code>map::generate_rooms_and_corridors</code> function in the <code>src/map.rs</code> file, the downstairs is replaced by the location for the victory item that ends the game.
+Depending on how many monsters spawn over the course of the game, the final dungeon depth usually ends up being between 25 to 30 levels deep.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="hunger-and-regeneration.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="monsters.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="hunger-and-regeneration.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="monsters.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

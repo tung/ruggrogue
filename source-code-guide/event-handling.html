@@ -1,0 +1,283 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Event Handling - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html" class="active"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="event-handling"><a class="header" href="#event-handling">Event Handling</a></h1>
+<p>As a game, it's crucial for RuggRogue to react to <em>events</em>.
+The most important events are the key presses of the player playing the game, but there are other kinds that need to be handled too, like window resizing, mouse inputs and attempts to close the game window.
+This chapter will talk about where events come from and how the game responds to them.</p>
+<h2 id="receiving-events"><a class="header" href="#receiving-events">Receiving Events</a></h2>
+<p>Our journey begins in the <code>ruggrogue::run</code> function in the <code>src/lib/run.rs</code> file.
+The <code>sdl2</code> crate provides what's called an <em>event pump</em>, which is the source of all events that the game will see.
+This event pump is stored in the aptly-named <code>event_pump</code> variable so that the main game loop can pull events out of it with its <code>wait_event</code> and <code>poll_iter</code> methods.</p>
+<p>Each event from the event pump is handled in two phases:</p>
+<ol>
+<li>Do things that need to be handled straight away.</li>
+<li>Enqueue the event in an input buffer so that it can be handled later during a proper game tick.</li>
+</ol>
+<p>Some events are directly handled only and aren't enqueued, such as window resizing and mouse inputs.
+On the other hand, key press events have a little bit of direct handling before being enqueued for the game logic to handle them properly later.
+Events that the game doesn't care about are simply ignored.</p>
+<h2 id="direct-event-handling"><a class="header" href="#direct-event-handling">Direct Event Handling</a></h2>
+<p>There are three kinds of events that are handled directly in the game's main loop: window resizing, mouse inputs and a couple of rendering-related events.</p>
+<p>Window resize events update the <code>window_size</code> variable in the main loop with the new window size.
+This is later sent into the <code>update</code> callback that was given to the <code>ruggrogue::run</code> function so that the updating and drawing logic are always aware of the size of the game window.
+The updating logic in particular needs this info so that menus know how far to scroll when pressing the page up and page down keys.</p>
+<p>The game hides the mouse cursor in response to key presses; mouse input events reveal it again.
+These include mouse movement, mouse button presses and mouse wheel movement.</p>
+<p>The two rendering-related events that need direct handling are both things that can happen on Windows with DirectX being used as the graphics backend for SDL:</p>
+<ul>
+<li><code>sdl2::event::Event::RenderTargetsReset</code> happens when graphical texture data needs to be updated.</li>
+<li><code>sdl2::event::Event::RenderDeviceReset</code> happens when textures have been lost and need to be recreated entirely.</li>
+</ul>
+<p>In both cases the game will flag its graphics-related data to do the right thing the next time that they need to be drawn to the screen.</p>
+<h2 id="the-input-buffer"><a class="header" href="#the-input-buffer">The Input Buffer</a></h2>
+<p>Once any direct handling is done, the event may be added to the <em>input buffer</em>.
+The game logic will almost always run less often than the main loop, so the purpose of the input buffer is to save events from the main loop so that the game logic can react to them later.</p>
+<p>The <code>inputs</code> variable in the <code>ruggrogue::run</code> function holds the input buffer.
+This is an <code>InputBuffer</code> struct that enqueues mainly keyboard events when its <code>InputBuffer::handle_event</code> function is called with an event.</p>
+<p>The <code>InputBuffer</code> struct is defined in the <code>src/lib/input_buffer.rs</code> file.
+When the game logic wishes to check for input events, it follows these steps:</p>
+<ol>
+<li>The game logic calls the <code>InputBuffer::prepare_input</code> function to retrieve a single input event from the buffer.</li>
+<li>The game logic calls the <code>InputBuffer::get_input</code> function to check the prepared input event.</li>
+<li>The end of the game loop calls the <code>InputBuffer::clear_input</code> function to make way for the next call to the <code>InputBuffer::prepare_input</code> function.</li>
+</ol>
+<p>The events stored in the <code>InputBuffer</code> struct are a stripped-down form of SDL's events in the form of small <code>InputEvent</code> enums that mainly hold SDL key codes that are unique for each keyboard key.
+As <code>InputEvent</code>s are pulled from the <code>InputBuffer</code>, the <code>InputBuffer</code> tracks the press state of the <em>modifier keys</em> (i.e. <code>Shift</code>, <code>Ctrl</code> and <code>Alt</code>) that the game logic can read using the <code>InputBuffer::get_mods</code> function.</p>
+<p>The game logic will typically combine the prepared input and modifier key state into a logical <em>game key</em>, represented by the <code>GameKey</code> enum defined in the <code>src/gamekey.rs</code> file.
+The <code>gamekey::from_keycode</code> function in that file translates the SDL key code values into logical game key values.
+Note that multiple key codes can translate into a single game key, e.g. the up cursor key, <code>8</code> on the number pad and <code>k</code> all translate into the <code>GameKey::Up</code> value.</p>
+<h2 id="player-input-logic"><a class="header" href="#player-input-logic">Player Input Logic</a></h2>
+<p>Every game mode pulls inputs from the input buffer, but the most important of these modes is <code>DungeonMode</code>.
+The <code>DungeonMode::update</code> function defined in the <code>src/modes/dungeon.rs</code> file is the central place that drives player and monster turns.
+Player inputs are handed off from this function to the <code>player::player_input</code> function defined near the bottom of the <code>src/player.rs</code> file.</p>
+<p>Under normal circumstances, where the player is not asleep or auto-running, the <code>player::player_input</code> function will prepare, retrieve and translate an input event into a game key.
+How each game key is handled falls into one of three categories:</p>
+<ol>
+<li><em>Movement</em> - Move the player or melee attack an adjacent enemy with the <code>try_move_player</code> helper function.</li>
+<li><em>Wait in place</em> - Cause the player to wait a single turn with the <code>wait_player</code> helper function.</li>
+<li><em>Anything else</em> - Return a value that the <code>DungeonMode::update</code> function should handle instead, usually by manipulating the mode stack to show a dialog or menu.</li>
+</ol>
+<p>The return value of the <code>player::player_input</code> function is a <code>PlayerInputResult</code> enum variant whose definition is found near the top of the <code>src/player.rs</code> file.
+The most important values are <code>PlayerInputResult::NoResult</code> and <code>PlayerInputResult::TurnDone</code>, which control whether or not the <code>DungeonMode::update</code> function should finish the player's turn and advance time.
+Valid player actions will typically alter the world state during the <code>player::player_input</code> function call and then cause it to return the <code>PlayerInputResult::TurnDone</code> value.</p>
+<h2 id="the-appquit-event"><a class="header" href="#the-appquit-event">The <code>AppQuit</code> Event</a></h2>
+<p>In the native build of RuggRogue, when the player attempts to close the game window, the <code>sdl2</code> crate emits the <code>sdl2::event::Event::Quit</code> event.
+This is translated into an <code>InputEvent::AppQuit</code> event that gets inserted into the <code>InputBuffer</code> in the <code>InputBuffer::handle_event</code> function.
+This means that every place in the game logic that checks for input must also respond to this <code>InputEvent::AppQuit</code> event.
+Responses fall into one of three categories:</p>
+<ol>
+<li>Most modes pop themselves off the mode stack and return an <code>AppQuit</code> result, e.g. a <code>FooMode::update</code> function returns a <code>FooModeResult::AppQuit</code> result.</li>
+<li><code>DungeonMode</code> pushes an instance of <code>AppQuitDialogMode</code> (defined in the <code>src/modes/app_quit_dialog.rs</code> file) to show a save-and-exit confirm dialog; it also does this if any mode on top of it in the mode stack returns its own <code>AppQuit</code> result.</li>
+<li><code>AppQuitDialogMode</code> ignores <code>AppQuit</code> events while waiting for the player to pick a response.</li>
+</ol>
+<p>The combined effect of these responses will either quit the game outright (by emptying out the mode stack) or show a save-and-exit confirm dialog if the player is in the middle of playing the game (the <code>DungeonMode</code> catches <code>AppQuit</code> events and mode results to show the dialog).</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="overall-game-flow.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="rendering.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="overall-game-flow.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="rendering.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Pathfinding - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html" class="active"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="pathfinding"><a class="header" href="#pathfinding">Pathfinding</a></h1>
+<p>As the player explores the dungeon in RuggRogue they'll encounter monsters.
+When a monster sees the player they will move towards the player to attack them.
+The path taken by that monster is determined by <em>pathfinding</em>, which makes up the most important part of their AI.
+This chapter touches on the algorithm used for pathfinding, then covers the details needed to make it work in the context of the game.</p>
+<h2 id="the-a-search-algorithm"><a class="header" href="#the-a-search-algorithm">The A* Search Algorithm</a></h2>
+<p>Getting a monster to approach the player is about finding a path between their positions on the map.
+The traditional approach to calculating a path in this context is the <em>A* search algorithm</em> (pronounced &quot;a-star&quot;).
+Unlike shadow casting approaches in the <a href="field-of-view.html">Field of View chapter</a>, all A* search implementations have a similar structure.
+Instead of painstakingly describing it here, I'll link to Red Blob Games instead:</p>
+<blockquote>
+<p><a href="https://www.redblobgames.com/pathfinding/a-star/introduction.html">Introduction to the A* Algorithm at Red Blob Games</a></p>
+</blockquote>
+<p><strong>The A* search algorithm is an enhancement to breadth-first search that prioritizes fringe nodes by the sum of the distance travelled plus estimated distance to the destination based on a heuristic function.</strong>
+If any part of that sentence did not make sense, you should read the Red Blob Games link first and come back here later.
+The rest of this chapter will address implementation details surrounding the use of the A* search algorithm in RuggRogue and less the algorithm itself.</p>
+<h2 id="overview-of-pathfinding-in-ruggrogue"><a class="header" href="#overview-of-pathfinding-in-ruggrogue">Overview of Pathfinding in RuggRogue</a></h2>
+<p>Pathfinding in RuggRogue can be broken down into several parts:</p>
+<ul>
+<li>The monster AI that uses pathfinding.</li>
+<li>Deciding which map tiles are blocked and which are walkable for the purposes of pathfinding.</li>
+<li>The front-end pathfinding function and the iterator it prepares and returns.</li>
+<li>The back-end function that forms the core of the pathfinding implementation.</li>
+</ul>
+<p>The monster AI lives in the <code>do_turn_for_one_monster</code> function in the <code>src/monster.rs</code> file.
+It calls the <code>ruggrogue::find_path</code> function to find a path to the player and takes a single step towards them.</p>
+<p>The map informs the pathfinding system about which of its tiles are blocked and which are walkable by implementing the <code>ruggrogue::PathableMap</code> trait defined in the <code>src/lib/path_find.rs</code> file.
+The map defines a single <code>is_blocked</code> function for this trait in the <code>src/map.rs</code> file to do this, the result of which is based on the type of tile at that position, along with any entities there.</p>
+<p>The <code>ruggrogue::find_path</code> function is the front-end function for pathfinding, defined in the <code>src/lib/path_find.rs</code> file.
+It calls the back-end <code>a_star</code> function in the same file to calculate the raw path data, then prepares the path it finds into an <code>AStarIter</code> struct, which is an iterator describing that path.</p>
+<h2 id="pathfinding-in-monster-ai"><a class="header" href="#pathfinding-in-monster-ai">Pathfinding in Monster AI</a></h2>
+<p>The <code>do_turn_for_one_monster</code> function in the <code>src/monster.rs</code> file handles the AI for a single monster turn.
+The following code runs when the monster can see the player:</p>
+<pre><code class="language-rust ignore">if let Some(step) = ruggrogue::find_path(&amp;*map, pos, player_pos, 4, true).nth(1) {
+    if step == player_pos {
+        damage::melee_attack(world, monster, player_id.0);
+    } else {
+        let blocks = world.borrow::&lt;View&lt;BlocksTile&gt;&gt;();
+        let mut coords = world.borrow::&lt;ViewMut&lt;Coord&gt;&gt;();
+        let mut fovs = world.borrow::&lt;ViewMut&lt;FieldOfView&gt;&gt;();
+
+        map.move_entity(monster, pos, step, blocks.contains(monster));
+        (&amp;mut coords).get(monster).0 = step.into();
+        (&amp;mut fovs).get(monster).dirty = true;
+    }
+}
+</code></pre>
+<p>The call to the <code>ruggrogue::find_path</code> function retrieves the path from the monster to the player as an <code>AStarIter</code> instance, which is an iterator that returns the position of each step in that path.
+Since this handles only single turn, we want the monster to only take the next step towards the player.
+The first step of the <code>AStarIter</code> iterator is the starting position of the monster, so we need to use <code>nth(1)</code> for the next step.
+This whole thing is wrapped in an <code>if let</code> block, so if the monster cannot find a path to the player it will simply do nothing.</p>
+<p>Assuming that the monster finds a path, if that next step is the player's position, the monster performs a melee attack, otherwise it takes a step.
+When the monster moves, its position is updated for the map by the <code>Map::move_entity</code> function defined in the <code>src/map.rs</code> file.
+The <code>Coord</code> component of the monster entity needs to be similarly updated.
+Finally, the monster's field of view needs to be recalculated based on its new position, so its <code>FieldOfView</code> component is marked dirty.</p>
+<h2 id="blocked-map-tiles"><a class="header" href="#blocked-map-tiles">Blocked Map Tiles</a></h2>
+<p>RuggRogue uses the A* search algorithm to find a path from a monster to the player.
+This path has two main concerns:</p>
+<ol>
+<li>Don't walk through walls.</li>
+<li>Don't walk through other monsters.</li>
+</ol>
+<p>The <code>Map</code> struct (defined in <code>src/map.rs</code>) implements the <code>ruggrogue::PathableMap</code> trait (defined in <code>src/lib/path_find.rs</code>) to tell the pathfinding code about these two things.
+The implementation itself can be found in the lower half of the <code>src/map.rs</code> file, and looks like this:</p>
+<pre><code class="language-rust ignore">impl ruggrogue::PathableMap for Map {
+    fn is_blocked(&amp;self, x: i32, y: i32) -&gt; bool {
+        matches!(self.get_tile(x, y), &amp;Tile::Wall)
+            || self
+                .tile_entities
+                .get(&amp;(x, y))
+                .map_or(false, |(block_count, _)| *block_count &gt; 0)
+    }
+}
+</code></pre>
+<p>The wall check should be self-explanatory, but the part concerning entities warrants some explanation.
+The position of all entities placed on the map is stored in their <code>Coord</code> component, but it's also redundantly stored in the <code>tile_entities</code> field of the <code>Map</code> struct, which is the <em>spatial entity cache</em>:</p>
+<pre><code class="language-rust ignore">pub struct Map {
+    // ...
+
+    // (x, y) -&gt; (blocking_entity_count, entities_here)
+    #[serde(skip)]
+    tile_entities: HashMap&lt;(i32, i32), (i32, Vec&lt;EntityId&gt;)&gt;,
+
+    // ...
+}
+</code></pre>
+<p>The keys of the <code>tile_entities</code> hash map are map positions.
+The value is made up of two parts: a count and a list of entities present at that map position.
+As you might have guessed from the comment in the code above, the count tracks the number of entities in the list that block pathfinding.
+All entities that block pathfinding are marked with a <code>BlocksTile</code> component, and every monster is spawned with this component in the <code>spawn_monster</code> function in the <code>src/spawn.rs</code> file.</p>
+<p>The maintenance of the spatial entity cache is managed by three functions associated with the <code>Map</code> struct:</p>
+<ul>
+<li><code>Map::place_entity</code></li>
+<li><code>Map::remove_entity</code></li>
+<li><code>Map::move_entity</code></li>
+</ul>
+<p>These functions are called in numerous places for all entities, such as when starting or loading a game, player movement, and picking up and dropping of items.
+They are especially important when called for monsters in order to update the blocking entity count of tile positions in the spatial entity cache when they move or are spawned or despawned.</p>
+<p>Based on all of this, the <code>is_blocked</code> function from earlier can therefore determine if a tile contains a blocking entity by simply checking the spatial entity cache for a non-zero blocking entity count, saving it from having to scan the whole entity list for entities with a <code>BlocksTile</code> component.</p>
+<h2 id="the-ruggroguefind_path-function-and-astariter-struct"><a class="header" href="#the-ruggroguefind_path-function-and-astariter-struct">The <code>ruggrogue::find_path</code> Function and <code>AStarIter</code> Struct</a></h2>
+<p>When the monster AI wants to find a path to the player, it requests it by calling the <code>ruggrogue::find_path</code> function defined in the <code>src/lib/path_find.rs</code> file.
+This function returns its result as an instance of the <code>AStarIter</code> struct, which is an iterator that yields each step in the path that it finds from the starting position to the destination.</p>
+<p>The first thing the <code>ruggrogue::find_path</code> function does is prepare a hash map for the back-end <code>a_star</code> function to fill in with raw pathfinding data:</p>
+<pre><code class="language-rust ignore">let mut came_from: HashMap&lt;(i32, i32), (i32, i32)&gt; = HashMap::new();
+</code></pre>
+<p>The key of this hash map is a tile position, while the value is the position of the pathfinding step taken to get to this tile.
+Following this linkage of steps from any keyed position will eventually lead back to the starting position.
+In other words, the path data that will be stored in here will be backwards; that will be dealt with later.</p>
+<p>The <code>ruggrogue::find_path</code> function calls the <code>a_star</code> function defined above it to perform the pathfinding itself:</p>
+<pre><code class="language-rust ignore">let closest = a_star(map, start, dest, bound_pad, &amp;mut came_from);
+</code></pre>
+<p>The first thing to note is the <code>bound_pad</code> argument.
+In order to avoid excessive path exploration when no path exists between a monster and the player, pathfinding in RuggRogue is not typically performed over the entire map.
+Instead, pathfinding is bounded by a rectangle of tiles that includes the monster and player positions as corners.
+If the <code>bound_pad</code> argument is non-zero, this rectangle is expanded to include <code>bound_pad</code>-worth of extra tiles on all sides; a zero <code>bound_pad</code> causes pathfinding to explore the whole map if needed.</p>
+<p>The call to the <code>a_star</code> function populates the <code>came_from</code> hash map, but it also returns the position of the tile closest to the destination out of all the tiles that it explored.
+If a path is found to the destination, this <code>closest</code> tile will be the destination itself.
+If there is no such path, the caller of <code>ruggrogue::find_path</code> can opt into receiving a path to this closest tile instead by setting the <code>fallback_closest</code> argument to true; monster AI uses this to allow multiple monsters to pursue the player down a single-tile-wide corridor for example.</p>
+<p>As mentioned earlier, the raw path data in the <code>came_from</code> hash map has each tile point <em>backwards</em> to the tile it was reached via and is thus backwards from how the caller of <code>ruggrogue::find_path</code> needs it.
+The links of the path need to be reversed so that each tile on the path points forwards and not backwards.
+The code looks like this:</p>
+<pre><code class="language-rust ignore">// Reverse the path from closest to start.
+let mut current = came_from.get(&amp;closest).copied();
+let mut prev = closest;
+
+came_from.remove(&amp;closest);
+
+while let Some(c) = current {
+    let next = came_from.get(&amp;c).copied();
+
+    came_from.insert(c, prev);
+    prev = c;
+    current = next;
+}
+</code></pre>
+<p>This is the same kind of logic used to reverse a linked list.</p>
+<p>If you're clever, you might be wondering why the <code>ruggrogue::find_path</code> function doesn't just reverse the start and destination positions to avoid having to manually reverse path data.
+Doing that would only save work if a path is definitely found between a monster and the player.
+If no path exists, the closest tile position is useless since it's only reachable from the destination and not the starting position; a second pathfinding run starting from the starting position would be needed anyway in that case.</p>
+<h2 id="the-a_star-function"><a class="header" href="#the-a_star-function">The <code>a_star</code> Function</a></h2>
+<p>The <code>a_star</code> function lives just above the <code>ruggrogue::find_path</code> function in the <code>src/lib/path_find.rs</code> file; this is where the A* search algorithm is implemented in the game code.
+Its main job is to populate the <code>came_from</code> hash map passed into it with path data that hopefully connects the start and destination positions; to do this it needs some supporting data:</p>
+<pre><code class="language-rust ignore">// (priority, (x, y))
+let mut frontier: BinaryHeap&lt;(Reverse&lt;i32&gt;, (i32, i32))&gt; = BinaryHeap::new();
+// ((x, y), cost)
+let mut cost_so_far: HashMap&lt;(i32, i32), i32&gt; = HashMap::new();
+</code></pre>
+<p>The <code>frontier</code> holds the set of tiles that the A* search algorithm will want to explore next; this is sometimes referred to as the <em>open set</em>.
+To minimize the number of explored tiles, tiles need to be popped out of the frontier based on how long the algorithm <em>thinks</em> the final path will be if it were to go through those tiles.
+Tiles therefore need to be popped out of the frontier in priority order: the <code>BinaryHeap</code> collection from Rust's standard library is perfect for this purpose.
+The data held in the <code>frontier</code> binary heap is a priority paired with a tile position.
+Rust's <code>BinaryHeap</code> type pops values out with highest numeric priority first, but we want the <em>shortest</em> path, not the longest, hence the <code>Reverse&lt;i32&gt;</code> type that reverses comparison order of numbers held within it.</p>
+<p>There's one more piece of data that needs to be remembered for each tile explored by the path finding algorithm: the path cost from the starting position to that tile.
+This is held in the <code>cost_so_far</code> hash map whose keys are tile positions and values are the distance from the starting position.</p>
+<p>As part of the A* search algorithm, the priority of a tile in the frontier is the sum of the distance so far and the estimated distance to the destination.
+This estimate is calculated using a <em>heuristic function</em>; the one used by the <code>a_star</code> function looks like this:</p>
+<pre><code class="language-rust ignore">let dist100 = |(x1, y1), (x2, y2)| {
+    let x_diff = if x1 &lt; x2 { x2 - x1 } else { x1 - x2 };
+    let y_diff = if y1 &lt; y2 { y2 - y1 } else { y1 - y2 };
+    let (low_diff, high_diff) = if x_diff &lt; y_diff {
+        (x_diff, y_diff)
+    } else {
+        (y_diff, x_diff)
+    };
+
+    // Prefer axis-aligning with (x2, y2).
+    low_diff * 141 + (high_diff - low_diff) * 99
+};
+</code></pre>
+<p>This function calculates the approximate distance between two points, times 100 to avoid having to convert between integers and floating point values.
+This estimates the path cost where every diagonal step costs 141 (i.e. the square root of 2, multiplied by 100) and every cardinal step thereafter costs 100...</p>
+<p>Wait, why is there a multiplication by &quot;99&quot; and not &quot;100&quot;?</p>
+<p>To understand why this is, we need to go all the way back to monster AI.
+A monster will only pursue the player if they can see the player; if the monster loses sight of the player it will no longer give chase.
+If the player retreats down a corridor, a monster's best chance of keeping the player in its sights involves lining up with the player directly on either the horizontal or vertical axes.
+In other words, a monster wants to maximize the number of cardinal moves left in its path to the player while minimizing the number of diagonal moves left.
+By making cardinal moves cost 99 instead of 100 in the heuristic function, the monster's path will &quot;hoard&quot; cardinal steps by taking diagonal steps as early as possible.
+Take a moment to think through why this works: it definitely took me some time to wrap my head around at first.
+Just remember that <code>dist100</code> is only a heuristic function; it doesn't actually affect the real path cost, just the priority of tiles explored in the frontier.</p>
+<p>There's another oddity about this heuristic function that, unlike the quirk above, is also reflected in the real path cost.
+Diagonal steps have an extra cost compared to cardinal moves in all of this pathfinding code, but steps in all eight directions cost a single turn during actual gameplay; why the discrepancy?
+Using Euclidean distance for pathfinding like this leads to paths that look more like what a human would choose.
+Using the exact distance calculations used by the gameplay instead leads to many intermediate frontier tiles with equal priority values, and the tie-breaking involved often leads to technically correct shortest paths that look ugly or bizarre.</p>
+<p>The big <code>while</code> loop in the <code>a_star</code> function performs the main part of the A* search algorithm: pop a tile from the frontier, terminate if it's the destination and add surrounding tiles to the frontier based on path cost priority.
+However, there's a little bit of extra tracking data:</p>
+<pre><code class="language-rust ignore">let mut closest = start;
+let mut closest_cost = 0;
+let mut closest_dist = dist100(start, dest);
+</code></pre>
+<p>Each tile popped from the frontier is additionally checked to see if it's the closest to the destination.
+The big <code>while</code> loop updates this so that there's a fallback destination to take a path towards if the real destination cannot be reached.</p>
+<h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
+<p>The pathfinding code in RuggRogue was written fairly early in its life cycle, so it does things a bit strangely compared to how I would author the code nowadays.</p>
+<p>Astute readers may notice that the code calculates the whole path for a monster, takes just a single step and recalculates the path again on its next turn.
+This is less wasteful than it seems: the book-keeping data for the A* search algorithm has to be allocated anyway even for a single step, so discarding it immediately doesn't differ much from creating an iterator, taking a single step and throwing away the iterator.</p>
+<p>The tweak to the heuristic function to get monsters to line up with the player to chase them down corridors works pretty well.
+It's still possible to juke monsters by leaving their fields of view, but it makes it more likely that monsters in a room that see a player in a corridor will chase the player down that corridor.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="field-of-view.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="randomness.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="field-of-view.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="randomness.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

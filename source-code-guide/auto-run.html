@@ -1,0 +1,590 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Auto-Run - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html" class="active"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="auto-run"><a class="header" href="#auto-run">Auto-Run</a></h1>
+<p>Most of the time playing RuggRogue is spent moving around the dungeon.
+Instead of repeatedly pressing the movement keys, the player can tell the game to move in a direction for them until something interesting is seen.
+This feature is known as <em>auto-running</em>.</p>
+<p>Auto-run is activated by holding the Shift key while pressing a movement key.
+There are three types of auto-run:</p>
+<ol>
+<li><em>Resting in place</em>: Pressing Shift+Space will wait in place until the player is fully healed.</li>
+<li><em>Straight auto-run</em>: Pressing Shift+direction in open space or against a wall will move in a straight line until the open space or wall ends.</li>
+<li><em>Corridor auto-run</em>: Pressing Shift+direction in a corridor will follow that corridor until it branches or opens up.</li>
+</ol>
+<p>Once auto-run starts the game will move the player until it's interrupted by:</p>
+<ul>
+<li>the player pressing a key</li>
+<li>a monster appearing in the player's field of view</li>
+<li>the player moving next to an item or the downstairs tile</li>
+<li>the player getting hungrier or losing hit points to starvation</li>
+</ul>
+<h2 id="auto-run-data-structures"><a class="header" href="#auto-run-data-structures">Auto-Run Data Structures</a></h2>
+<p>Auto-running requires the game to perform actions across multiple frames.
+This means it needs to remember that auto-run was requested, as well as type of auto-run and desired movement direction.
+This means that the state of auto-running needs to be stored in data structures.</p>
+<p>Everything that auto-run needs to operate is stored in the <code>Player</code> struct in the <code>src/components.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub struct Player {
+    pub auto_run: Option&lt;AutoRun&gt;,
+}
+</code></pre>
+<p>If the value of the <code>auto_run</code> field here is <code>None</code> it means that auto-run is not happening and the game will wait on the player for input.
+On the other hand, a <code>Some(...)</code> value here means that auto-run is active, and the data within keeps track of the state of auto-running.</p>
+<p>The rest of the data structures relating to auto-run, as well as most of the logic, live in the <code>src/player.rs</code> file.
+The <code>AutoRun</code> struct is what's held in the aforementioned <code>auto_run</code> field, and appears as follows:</p>
+<pre><code class="language-rust ignore">pub struct AutoRun {
+    limit: i32,
+    dir: (i32, i32),
+    run_type: AutoRunType,
+}
+</code></pre>
+<p>The <code>limit</code> field is the maximum number of steps that auto-run can proceed by itself, and exists mostly as a fail-safe against the possibility of any bugs that could cause infinite auto-running.</p>
+<p>The <code>dir</code> field holds the last direction that the player moved, which determines the direction that auto-running will proceed.
+This direction is interpreted as a <code>(dx, dy)</code> pair where the two values are one of <code>-1</code>, <code>0</code> or <code>1</code>.</p>
+<p>The <code>run_type</code> field determines the type of auto-running that should occur; it's set when auto-run is requested and doesn't change.
+It holds one of the three values of the <code>AutoRunType</code> enum that looks like this:</p>
+<pre><code class="language-rust ignore">enum AutoRunType {
+    RestInPlace,
+    Corridor,
+    Straight { expect_wall: AutoRunWallSide },
+}
+</code></pre>
+<p>These enum variants each correspond to the three types of auto-running that were described earlier.</p>
+<p>The <code>AutoRunType::Straight</code> variant holds extra data that it needs to remember that the other two <code>AutoRunType</code> variants don't need.
+This <code>expect_wall</code> field holds one of the variants of the <code>AutoRunWallSide</code> enum that looks like this:</p>
+<pre><code class="language-rust ignore">enum AutoRunWallSide {
+    Neither,
+    Left,
+    Right,
+}
+</code></pre>
+<p>Straight auto-run keeps track of walls and open tiles to the left and right of the direction that the player is auto-running.</p>
+<ul>
+<li><code>AutoRunWallSide::Neither</code>: Expect neither left nor right walls, i.e. both sides of the player should be fully open.</li>
+<li><code>AutoRunWallSide::Left</code>: Expect a solid wall on the left and open space on the right.</li>
+<li><code>AutoRunWallSide::Right</code>: Expect a solid wall on the right and open space on the left.</li>
+</ul>
+<p>Straight auto-run is stopped if the arrangement of tiles falls into a different category than expected, or doesn't fit into any of these categories.</p>
+<h2 id="auto-run-control-flow"><a class="header" href="#auto-run-control-flow">Auto-Run Control Flow</a></h2>
+<p>Auto-run integrates with the input and control flow logic as follows:</p>
+<ol>
+<li>The player holds Shift when pressing a movement key, handling the turn as usual but also filling in the <code>auto_run</code> field of the <code>Player</code> struct to start auto-running.</li>
+<li>While auto-running, the end of the <code>DungeonMode::update</code> function tells the game loop to run on the next frame instead of waiting for an event as it normally would.</li>
+<li>While auto-running, auto-run checks if it should proceed; if so, it automatically moves the player instead of doing the usual input handling logic.</li>
+</ol>
+<p>The Shift key during normal input handling is picked up in the <code>player::player_input</code> function in the <code>src/player.rs</code> file.
+This is handed off as a boolean value to either the <code>try_move_player</code> or <code>wait_player</code> functions, which fills in the <code>auto_run</code> field of the <code>Player</code> struct after doing their usual business.
+This kicks off the auto-run process.</p>
+<p>The <code>player::player_input</code> function is called from the <code>DungeonMode::update</code> function in the <code>src/modes/dungeon.rs</code> file.
+Its return value controls when the next update should happen, and looks roughly like this:</p>
+<pre><code class="language-rust ignore">impl DungeonMode {
+    fn update(/* ... */) -&gt; (ModeControl, ModeUpdate) {
+        if world.run(player::player_is_alive) {
+            //
+            // A *lot* of stuff skipped here...
+            //
+
+            (
+                ModeControl::Stay,
+                if world.run(player::player_is_alive) &amp;&amp; world.run(player::player_is_auto_running) {
+                    ModeUpdate::Update // &lt;-- !!!
+                } else {
+                    ModeUpdate::WaitForEvent
+                },
+            )
+        } else if player::player_is_dead_input(inputs) {
+            // ...
+        } else {
+            // ...
+        }
+    }
+}
+</code></pre>
+<p>In the above code, if the player is alive and auto-running, the <code>DungeonMode::update</code> function returns <code>ModeUpdate::Update</code> instead of <code>ModeUpdate::WaitForEvent</code>.
+This causes the main loop further up in the call stack to run the <code>DungeonMode::update</code> function again on the next frame, even if the input buffer is empty.</p>
+<p>On subsequent updates while auto-run is active, the control flow through the <code>player::player_input</code> function looks different.
+Here's a rough outline of that function:</p>
+<pre><code class="language-rust ignore">pub fn player_input(/* ... */) -&gt; PlayerInputResult {
+    let player_id = world.borrow::&lt;UniqueView&lt;PlayerId&gt;&gt;();
+
+    inputs.prepare_input();
+
+    if item::is_asleep(world, player_id.0) {
+        //
+        // sleep input handling...
+        //
+    } else if world.run(player_is_auto_running) {
+        //
+        // --&gt; AUTO-RUN LOGIC HERE &lt;--
+        //
+    } else if let Some(InputEvent::AppQuit) = inputs.get_input() {
+        PlayerInputResult::AppQuit
+    } else if let Some(InputEvent::Press(keycode)) = inputs.get_input() {
+        //
+        // normal player input handling here...
+        //
+    } else {
+        PlayerInputResult::NoResult
+    }
+}
+</code></pre>
+<p>In the above code, the process of auto-running overrides normal player input handling.</p>
+<p>The first thing that the auto-run logic in the <code>player::player_input</code> function does is check for reasons to stop, such as:</p>
+<ul>
+<li>receiving the <code>AppQuit</code> input event</li>
+<li>receiving any keyboard input event from the player</li>
+<li>the player stepping onto or next to something interesting (checked by the <code>player_check_frontier</code> function)</li>
+<li>the player seeing any monsters (checked by the <code>player_sees_foes</code> function)</li>
+</ul>
+<p>Auto-run is stopped by the <code>player::player_stop_auto_run</code> function, which simply clears the <code>auto_run</code> field of the <code>Player</code> struct to <code>None</code>.</p>
+<p>Auto-run logic then decrements the <code>limit_reached</code> field of the <code>AutoRun</code> struct, and when it hits zero also stops auto-run.</p>
+<p>At this point, auto-run logic needs to perform final checks that vary based on the different auto-run types: resting in place, straight auto-run and corridor auto-run.
+This is the job of the <code>auto_run_next_step</code> function, which works as follows:</p>
+<ul>
+<li>Resting in place returns <code>Some((0, 0))</code> if the player can still heal by resting (i.e. below maximum hit points and isn't starving) or <code>None</code> otherwise.</li>
+<li>Straight auto-run and corridor auto-run check the tiles around the player and return <code>Some((dx, dy))</code> to run in the desired direction or <code>None</code> to stop.</li>
+</ul>
+<p>In the case that it returns <code>Some(...)</code>, the direction value within is unpacked and causes the auto-run logic to call either the <code>try_move_player</code> or <code>wait_player</code> functions to perform the auto-run step.
+Note that these two functions are exactly the same ones called during normal input handling, so auto-run effectively acts like smart automatic input handling.</p>
+<h2 id="resting-in-place"><a class="header" href="#resting-in-place">Resting in Place</a></h2>
+<p>RuggRogue has a regeneration mechanic based on hunger level.
+The hunger levels are &quot;Full&quot;, &quot;Normal&quot;, &quot;Hungry&quot;, &quot;Very Hungry&quot;, &quot;Famished&quot; and &quot;Starving&quot;.
+The player will gradually regenerate lost hit points over time as long as the player is &quot;Full&quot;, &quot;Normal&quot; or &quot;Hungry&quot;.</p>
+<p>Sometimes the player may wish to simply pass turns in order to recover hit points.
+Instead of passing turns manually, the player can press Shift+Space to <em>rest in place</em>.
+Resting in place will pass turns automatically until the player can no longer recover (due to maximum hit points or hunger) or is interrupted by a monster.</p>
+<p>The choice of the Shift+Space key combination might seem odd, given that the usual key to wait a turn is Period.
+However, Shift+Period produces the greater-than sign, which is the ASCII character for the downstairs tile and therefore (one of) the inputs that lets the player move downstairs.
+Since Shift+Period is already spoken for, and the Space key is the alternate key for waiting a turn, resting in place is thus triggered by Shift+Space.</p>
+<p>In terms of code, resting in place starts when the normal input logic detects the Shift+Space key combination.
+The Space key triggers the usual logic for waiting a turn, so the <code>wait_player</code> function is called as usual.
+The pressing of the Shift key causes the <code>rest_in_place</code> argument of that function to be set to <code>true</code>.</p>
+<p>The first thing that the <code>wait_player</code> function does in this case is check for any reason that resting in place should not start.
+If any monsters are present in the player's field of view, the player gets a message and no turns are spent waiting.
+The game then calls the <code>hunger::can_regen</code> function (defined in the <code>src/hunger.rs</code> file) to perform hunger-related checks; any hunger-related reason to not rest appears as a message and prevents any waiting from taking place.</p>
+<p>Assuming that there is no reason to prevent it, resting in place is started by setting the <code>auto_run</code> field of the <code>Player</code> struct with a <code>run_type</code> of <code>AutoRunType::RestInPlace</code>.
+Auto-run then takes over as described earlier in the auto-run control flow section.</p>
+<p>For each turn that auto-run is about to spend resting in place, the <code>auto_run_next_step</code> function consults the result of the <code>hunger::can_regen</code> function to determine if it should continue.</p>
+<p>The final unique detail of resting in place is that, unlike other forms of auto-run, it ignores the presence of items and downstairs in adjacent tiles.
+The <code>player_check_frontier</code> function that normally performs this check contains an early return if the <code>run_type</code> is <code>AutoRunType::RestInPlace</code>.</p>
+<h2 id="straight-auto-run"><a class="header" href="#straight-auto-run">Straight Auto-Run</a></h2>
+<p>Oftentimes the player will find themselves in a room with no monsters in sight.
+By holding Shift while pressing a direction, the player will perform a <em>straight auto-run</em>, moving in a single direction until they're blocked or something interesting appears.
+This allows the player to quickly cross empty and cleared-out rooms.</p>
+<p>Straight auto-run that starts in the open will advance until the player finds themselves adjacent to any walls.
+Straight auto-run that starts with a wall to one side of the player will advance until that wall ends.</p>
+<p>The logic for auto-running in a direction starts when normal movement code detects that the Shift key is being held down.
+As per usual, the move is handled with a call to the <code>try_move_player</code> function, but the Shift key sets the <code>start_run</code> argument to <code>true</code>.</p>
+<p>If the player tries to start auto-running but a monster is in their field of view, the move is cancelled with a corresponding message.</p>
+<p>After the usual movement logic, if the player indeed moved, the game must decide between engaging straight auto-run or corridor auto-run.
+This decision is made by checking the pattern of walls and open tiles around the player.
+Corridor wall patterns are checked for first by the <code>auto_run_corridor_check</code> function; we'll assume that its check fails for the sake of this section.</p>
+<p>With the corridor check out of the way, the game decides if straight auto-run should be engaged with the result of the <code>auto_run_straight_check</code> function.
+This function wants to check for patterns of walls and open tiles, but the exact tiles to check differ based on the player's movement direction.
+The player can move in eight directions, but we don't want to repeat similar code for every direction.
+This repetition can be avoided with the help of <em>rotation</em>.</p>
+<h3 id="rotating-by-movement-direction"><a class="header" href="#rotating-by-movement-direction">Rotating by Movement Direction</a></h3>
+<p>The <code>auto_run_straight_check</code> function needs to check the tile straight ahead of the player, as well as the tiles to either side.
+To cut down on repeated code it uses logical dx and dy values such that it only needs to check tiles for the player moving right (cardinally) and up-right (diagonally).
+Every other direction can be represented by rotating the logical dx and dy values to match the player's movement direction, resulting in real map coordinates.</p>
+<p>To perform the correct rotation, the <code>auto_run_straight_check</code> function feeds the player's movement direction into another function named <code>rotate_view</code>, filling in these variables:</p>
+<ul>
+<li><code>real_x_from_x</code></li>
+<li><code>real_x_from_y</code></li>
+<li><code>real_y_from_x</code></li>
+<li><code>real_y_from_y</code></li>
+</ul>
+<p>With the convention of positive y pointing upwards, these variables are filled in based on the player's movement direction (<code>dx</code> and <code>dy</code>) as follows:</p>
+<table><thead><tr><th><code>dx</code></th><th><code>dy</code></th><th><code>real_x_from_x</code></th><th><code>real_x_from_y</code></th><th><code>real_y_from_x</code></th><th><code>real_y_from_y</code></th></tr></thead><tbody>
+<tr><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>1</td><td>1</td><td>1</td><td>0</td><td>0</td><td>1</td></tr>
+<tr><td>0</td><td>1</td><td>0</td><td>-1</td><td>1</td><td>0</td></tr>
+<tr><td>-1</td><td>1</td><td>0</td><td>-1</td><td>1</td><td>0</td></tr>
+<tr><td>-1</td><td>0</td><td>-1</td><td>0</td><td>0</td><td>-1</td></tr>
+<tr><td>-1</td><td>-1</td><td>-1</td><td>0</td><td>0</td><td>-1</td></tr>
+<tr><td>0</td><td>-1</td><td>0</td><td>1</td><td>-1</td><td>0</td></tr>
+<tr><td>1</td><td>-1</td><td>0</td><td>1</td><td>-1</td><td>0</td></tr>
+</tbody></table>
+<p>If <code>player_x</code> and <code>player_y</code> represent the player's map coordinates, the following helper closures can then rotate logical dx and dy values to get real map coordinates:</p>
+<pre><code class="language-rust ignore">let real_x = |dx, dy| player_x + dx * real_x_from_x + dy * real_x_from_y;
+let real_y = |dx, dy| player_y + dx * real_y_from_x + dy * real_y_from_y;
+</code></pre>
+<p>The <code>dx</code> and <code>dy</code> values here are the x and y deltas of the tile we want to check relative to the player's position, assuming the player is moving right or up-right.</p>
+<p>For example, if the player is moving right or up-right, <code>real_x_from_x</code> and <code>real_y_from_y</code> are both set to 1 by the <code>rotate_view</code> function, leading to results similar to this:</p>
+<pre><code class="language-rust ignore">let real_x = |dx, dy| player_x + dx * 1 + dy * 0;
+let real_y = |dx, dy| player_y + dx * 0 + dy * 1;
+
+// simplified
+let real_x = |dx, _| player_x + dx * 1;
+let real_y = |_, dy| player_y + dy * 1;
+</code></pre>
+<p>Above, changes to <code>dx</code> and <code>dy</code> match one-to-one to the same changes in real map coordinates.</p>
+<p>As another example, suppose the player is moving up or up-left.
+This requires a 90-degree counter-clockwise rotation for the <code>dx</code> and <code>dy</code> values.
+The values returned by the <code>rotate_view</code> function in this case fill <code>real_x_from_y</code> with -1 and <code>real_y_from_x</code> with 1, leading to something like this:</p>
+<pre><code class="language-rust ignore">let real_x = |dx, dy| player_x + dx * 0 + dy * -1;
+let real_y = |dx, dy| player_y + dx * 1 + dy * 0;
+
+// simplified
+let real_x = |_, dy| player_x + dy * -1;
+let real_y = |dx, _| player_y + dx * 1;
+</code></pre>
+<p>Above, you'll notice that changes to the logical <code>dy</code> value lead to <em>reversed</em> changes to real x, e.g. logical upwards steps travel left in reality.
+Meanwhile, logical <code>dx</code> value changes lead to non-reversed changes to real y, e.g. logical rightward steps travel up in reality.</p>
+<p>Savvy readers will notice that conversions of logical <code>dx</code> and <code>dy</code> values into real map coordinates like this are <em>affine transformations</em>, involving rotating according to player movement direction and translation to the player's real map coordinates.</p>
+<h3 id="checking-walls-and-open-space"><a class="header" href="#checking-walls-and-open-space">Checking Walls and Open Space</a></h3>
+<p>Armed with the <code>real_x</code> and <code>real_y</code> helper closures, the <code>auto_run_straight_check</code> function can now tie them together into a single helper closure that checks real map coordinates for the presence of walls:</p>
+<pre><code class="language-rust ignore">let check_wall = |dx, dy| map.wall_or_oob(real_x(dx, dy), real_y(dx, dy));
+</code></pre>
+<p>The <code>Map::wall_or_oob</code> function defined in the <code>src/map.rs</code> file is just a little helper function that returns <code>true</code> if the given tile coordinates are a wall or out-of-bounds.</p>
+<p><code>check_wall</code> is used like this: If the player is moving cardinally, <code>check_wall(1, 0)</code> checks the tile in front of the player, <code>check_wall(0, 1)</code> checks the tile to their left and <code>check_wall(0, -1)</code> the tile to their right.
+For a diagonally moving player, the tile in front is checked using <code>check_wall(1, 1)</code>.</p>
+<p>This brings us to the whole purpose of the <code>auto_run_straight_check</code> function: to look at tiles adjacent to the player according to their movement direction to yield one of these possible return values:</p>
+<ul>
+<li><code>Some(AutoRunWallSide::Left)</code> - A complete wall to the left of the player and completely open tiles on the right.</li>
+<li><code>Some(AutoRunWallSide::Right)</code> - A complete wall to the right of the player and completely open tiles on the left.</li>
+<li><code>Some(AutoRunWallSide::Neither)</code> - Completely open tiles to the left and right of the player.</li>
+<li><code>None</code> - Anything else.</li>
+</ul>
+<p>If the first call to <code>auto_run_straight_check</code> made in the <code>try_move_player</code> function returns one of the <code>Some(...)</code> values, that value is stored in the <code>expect_wall</code> field of the <code>AutoRunType::Straight</code> enum variant.
+Each step of straight auto-run calls <code>auto_run_straight_check</code> again in the <code>auto_run_next_step</code> function and compares the result with the <code>expect_wall</code> field, only continuing if they match.
+This is the crux of straight auto-run.</p>
+<p>For cardinal movement, the exact tiles that need to be checked are marked below, where <code>@</code> is the player and <code>f</code>/<code>1</code>/<code>2</code> are the tiles to check:</p>
+<pre><code class="language-plaintext">.11
+.@f
+.22
+</code></pre>
+<p><code>f</code> is the tile in front of the player (<code>check_wall(1, 0)</code>) and must be open for straight auto-run to proceed.</p>
+<p>The <code>1</code> tiles are to the left of the player (<code>check_wall(0, 1)</code> and <code>check_wall(1, 1)</code>), as if the player is logically moving right.
+These tiles must be either both walls (implying <code>AutoRunWallSide::Left</code>) or both open (implying <code>AutoRunWallSide::Right</code> or <code>AutoRunWallSide::Neither</code>).
+Mismatching tiles here means that there is a partial wall to the left, so the <code>auto_run_straight_check</code> function should return <code>None</code> to prevent straight auto-running.</p>
+<p>The <code>2</code> tiles are to the right of the player (<code>check_wall(0, -1)</code> and <code>check_wall(1, -1)</code>), and are checked the same way as the tiles to the left.</p>
+<p>For diagonal movement, the pattern is different, but otherwise all the checks are the same as for cardinal movement.
+Again, <code>@</code> is the player, and <code>f</code>/<code>1</code>/<code>2</code> are the tiles to check:</p>
+<pre><code class="language-plaintext">11f
+.@2
+..2
+</code></pre>
+<p>That's it for the <code>auto_run_straight_check</code> function.</p>
+<h3 id="checking-for-items-and-downstairs"><a class="header" href="#checking-for-items-and-downstairs">Checking for Items and Downstairs</a></h3>
+<p>Recall that that the auto-run control flow in the <code>player::player_input</code> function needs to stop auto-running if the player finds themselves on top of or next to an item or the downstairs.
+This is the job of the <code>player_check_frontier</code> function, which returns <code>true</code> if either of these things are found or <code>false</code> otherwise.</p>
+<p>The <code>player_check_frontier</code> function does pretty much the same rotation trick as the <code>auto_run_straight_check</code> function.
+This time the checks are for items and downstairs (or rather, any tile that isn't a wall or floor).</p>
+<p>For cardinal movement, the <code>@</code> and <code>!</code> tiles are checked, where the <code>!</code> tiles are newly adjacent:</p>
+<pre><code class="language-plaintext">..!
+.@!
+..!
+</code></pre>
+<p>Likewise, for diagonal movement:</p>
+<pre><code class="language-plaintext">!!!
+.@!
+..!
+</code></pre>
+<h2 id="corridor-auto-run"><a class="header" href="#corridor-auto-run">Corridor Auto-Run</a></h2>
+<p>The rooms of any given dungeon map are connected with corridors that are single tile wide.
+If the player holds Shift while moving in a corridor, <em>corridor auto-run</em> will engage, automatically moving them along the corridor until it opens up or ends.
+This allows the player to quickly move between rooms on the current dungeon level.</p>
+<p>In order to implement corridor auto-run, the game must check the tiles near and around the player according to their movement direction, much like straight auto-run.
+At each step, corridor auto-run checks for a single open tile in the direction of movement for the player to step into, and walls for other surrounding tiles.
+This means corridor auto-run <em>changes</em> the player's movement direction at each step; the job of the <code>auto_run_corridor_check</code> function is thus to check for a pattern of corridor-like surrounding walls and produce this direction.
+The direction change is dealt with in the <code>auto_run_next_step</code> function under the handling for <code>AutoRunType::Corridor</code>.</p>
+<p>The same idea of rotation from straight auto-run carries into the logic for corridor auto-run in the <code>auto_run_corridor_check</code> function.
+However, corridor auto-run needs to check for many more patterns of walls and open tiles.
+To make this easier, the state of each of these tiles is represented by a single bit in an unsigned 16-bit integer variable named <code>nearby_walls</code>.</p>
+<p>The code near the top of the <code>auto_run_corridor_check</code> function populates the bits of the <code>nearby_walls</code> variable using a different helper closure to that used by the straight auto-run logic:</p>
+<pre><code class="language-rust ignore">let check_unknown_or_wall = |dx, dy| {
+    !player_fov.get((real_x(dx, dy), real_y(dx, dy)))
+        || map.wall_or_oob(real_x(dx, dy), real_y(dx, dy))
+};
+</code></pre>
+<p>The <code>check_wall</code> helper closure has transformed into this new <code>check_unknown_or_wall</code> that treats tiles outside the player's field of view like walls for corridor-testing purposes.
+This is used to test tiles that are two tiles away from the player, which is needed to test for some of the more unusual corridor wall tile patterns.</p>
+<h3 id="single-tile-cases"><a class="header" href="#single-tile-cases">Single-Tile Cases</a></h3>
+<p>A lot of the time, corridor auto-run logic is looking for a single tile to advance into that requires no more than a 90-degree turn to the left or right, with walls for all other possible steps.
+If the player is moving cardinally, the code exploits rotation so it only has to work as if the player is moving right.
+In the ASCII diagrams below, <code>@</code> is the player moving right, <code>#</code> is a wall and the numbers are the direction of the next step to take:</p>
+<pre><code class="language-plaintext">#1#  .#2  .##  .##  .##
+.@#  .@#  .@3  .@#  .@#
+.##  .##  .##  .#4  #5#
+</code></pre>
+<p>Note the extra wall tile needed for cases 1 and 5 to ensure that the open tile is enclosed by walls and is thus corridor-like.</p>
+<p>If the player is moving diagonally, rotation allows the code to treat all diagonals as if the player is moving up-right.
+The diagonal cases look like this:</p>
+<pre><code class="language-plaintext">1##  #2#  ##3  ###  ###
+#@#  .@#  .@#  .@4  .@#
+..#  ..#  ..#  ..#  .#5
+</code></pre>
+<p>Each of these cases can be represented as data as follows:</p>
+<ul>
+<li><em>Mask bits</em> that confine our wall-or-open tile pattern matching to only the tiles we care about.</li>
+<li><em>Open bits</em> for any tiles that must be open.</li>
+<li>A <em>direction</em> that corridor auto-run should take the player on their next step.</li>
+</ul>
+<p>Each of the cases above is stored in a table of mask bits, open bits and directions, with separate tables for cardinal versus diagonal movement.
+Each pattern is tested as follows:</p>
+<ol>
+<li>Obtain a masked version of the nearby tiles by applying the bitwise AND operation to <code>nearby_walls</code> and the pattern's mask bits.</li>
+<li>Separately, obtain the desired pattern by applying the bitwise AND operation to the pattern's mask bits and open bits.</li>
+<li>If the two values are equal, we have a match, so return with the corresponding direction.</li>
+</ol>
+<p>The final wrinkle in all of this is that the dx and dy values of the direction are hard-coded in the table for the player moving right or up-right.
+They need to be converted to real map directions, which involves the parameters retrieved from the <code>rotate_view</code> function call based on the player's current movement direction.
+Thus the returned direction is processed for final consumption like this:</p>
+<pre><code class="language-rust ignore">return Some((
+    move_dx * real_x_from_x + move_dy * real_x_from_y,
+    move_dx * real_y_from_x + move_dy * real_y_from_y,
+));
+</code></pre>
+<h3 id="handling-corridor-corners"><a class="header" href="#handling-corridor-corners">Handling Corridor Corners</a></h3>
+<p>Most of the time when the player is auto-running in a corridor, there will be one obvious tile to move into as described in the previous section.
+However, what happens when the player encounters the corner of a corridor?
+Suppose the player is moving to the right and encounters the corner of a corridor:</p>
+<pre><code class="language-plaintext">  #.#
+###!#
+..@!#
+#####
+</code></pre>
+<p>There are now <em>two</em> adjacent open tiles for the player to step into, marked as <code>!</code> above.
+The simple single-tile cases fail to recognize that the player is still in a corridor, so we need more patterns to handle this.
+What's more, these patterns need to check tiles that are <em>two</em> steps away from the player, which is why the <code>nearby_walls</code> variable needed them earlier.</p>
+<p>If the player is moving cardinally, the corresponding rightward-moving patterns for corridor corners look like this:</p>
+<pre><code class="language-plaintext">##
+#66  #7   ###   ##
+ @#  @7#  @8#   @#
+ ##  ###  #8   #99
+               ##
+</code></pre>
+<p>The cases for 7 and 8 are the most common, corresponding to a corridor corner taking a 90 degree turn either left or right respectively.
+The more exotic cases for 6 and 9 handle little zig-zags that a corridor might choose to take.</p>
+<p>If a corner case is matched, corridor auto-run could choose either of the two numbered open tiles to step into.
+RuggRogue prefers to step into the corner, but it could just as easily cut the corner with just minor changes to the pattern tables.</p>
+<p>If the player is moving diagonally, the corresponding up-right-moving patterns are as follows:</p>
+<pre><code class="language-plaintext"> ##  ##
+66#  #77  #8   ###
+#@#   @#  @8#  @9#
+           ##  #9
+</code></pre>
+<p>These cases are rather exotic, and are mostly triggered when the player chooses to start auto-running when stepping diagonally into the entrance of a corridor.</p>
+<p>The choice of which tiles to check for corners tries to strike a balance of permissiveness to allow corridor auto-run as often as possible, and strictness to prevent it when it isn't wanted.
+Settling on these patterns involved some trial-and-error, so improvements and simplifications to them might exist.</p>
+<h2 id="interrupting-auto-run-for-hunger"><a class="header" href="#interrupting-auto-run-for-hunger">Interrupting Auto-Run for Hunger</a></h2>
+<p>Aside from player input, tile layout, items and monsters, there are two final reasons that the game may interrupt auto-run, both related to hunger:</p>
+<ol>
+<li>The player drops down a hunger level.</li>
+<li>The player loses hit points due to starvation.</li>
+</ol>
+<p>Both of these cases are handled in the <code>tick_hunger</code> function in the <code>src/hunger.rs</code> file.</p>
+<p>The player's current hunger level is shown in the sidebar as one of these labels: &quot;Full&quot;, &quot;Normal&quot;, &quot;Hungry&quot;, &quot;Very Hungry&quot;, &quot;Famished&quot; and &quot;Starving&quot;.
+If the hunger level drops and the new hunger level is not &quot;Normal&quot; then auto-run is interrupted by setting the <code>auto_run</code> field of the <code>Player</code> struct to <code>None</code>.</p>
+<p>If the player's hunger level is &quot;Starving&quot; then they'll periodically lose hit points (&quot;Player aches with hunger!&quot;).
+Each time this happens auto-run will also be interrupted to prevent the player auto-running themselves into a starvation death.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="map-population.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="turn-order-and-combat.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="map-population.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="turn-order-and-combat.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

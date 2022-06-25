@@ -1,0 +1,382 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Map Generation - RuggRogue Source Code Guide</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Design and source code breakdown of a simple roguelike">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="book/outlink.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Introduction</a></li><li class="chapter-item expanded "><a href="dependencies.html"><strong aria-hidden="true">1.</strong> Dependencies</a></li><li class="chapter-item expanded "><a href="source-code-layout.html"><strong aria-hidden="true">2.</strong> Source Code Layout</a></li><li class="chapter-item expanded "><a href="overall-game-flow.html"><strong aria-hidden="true">3.</strong> Overall Game Flow</a></li><li class="chapter-item expanded "><a href="event-handling.html"><strong aria-hidden="true">4.</strong> Event Handling</a></li><li class="chapter-item expanded "><a href="rendering.html"><strong aria-hidden="true">5.</strong> Rendering</a></li><li class="chapter-item expanded "><a href="user-interface.html"><strong aria-hidden="true">6.</strong> User Interface</a></li><li class="chapter-item expanded "><a href="options.html"><strong aria-hidden="true">7.</strong> Options</a></li><li class="chapter-item expanded "><a href="word-wrapping.html"><strong aria-hidden="true">8.</strong> Word Wrapping</a></li><li class="chapter-item expanded "><a href="entity-component-system.html"><strong aria-hidden="true">9.</strong> Entity Component System</a></li><li class="chapter-item expanded "><a href="game-data.html"><strong aria-hidden="true">10.</strong> Game Data</a></li><li class="chapter-item expanded "><a href="saving-and-loading.html"><strong aria-hidden="true">11.</strong> Saving and Loading</a></li><li class="chapter-item expanded "><a href="field-of-view.html"><strong aria-hidden="true">12.</strong> Field of View</a></li><li class="chapter-item expanded "><a href="pathfinding.html"><strong aria-hidden="true">13.</strong> Pathfinding</a></li><li class="chapter-item expanded "><a href="randomness.html"><strong aria-hidden="true">14.</strong> Randomness</a></li><li class="chapter-item expanded "><a href="map-generation.html" class="active"><strong aria-hidden="true">15.</strong> Map Generation</a></li><li class="chapter-item expanded "><a href="map-population.html"><strong aria-hidden="true">16.</strong> Map Population</a></li><li class="chapter-item expanded "><a href="auto-run.html"><strong aria-hidden="true">17.</strong> Auto-Run</a></li><li class="chapter-item expanded "><a href="turn-order-and-combat.html"><strong aria-hidden="true">18.</strong> Turn Order and Combat</a></li><li class="chapter-item expanded "><a href="items.html"><strong aria-hidden="true">19.</strong> Items</a></li><li class="chapter-item expanded "><a href="hunger-and-regeneration.html"><strong aria-hidden="true">20.</strong> Hunger and Regeneration</a></li><li class="chapter-item expanded "><a href="experience-and-difficulty.html"><strong aria-hidden="true">21.</strong> Experience and Difficulty</a></li><li class="chapter-item expanded "><a href="monsters.html"><strong aria-hidden="true">22.</strong> Monsters</a></li><li class="chapter-item expanded "><a href="new-game-plus.html"><strong aria-hidden="true">23.</strong> New Game Plus</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">RuggRogue Source Code Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="map-generation"><a class="header" href="#map-generation">Map Generation</a></h1>
+<p>As the player descends the dungeon, the game procedurally generates new levels that are unique to the game seed and dungeon depth.
+Levels are created in two phases: laying out the map and placing interesting things in it like monsters and items.
+This chapter is about map layout: deciding where rooms and corridors should appear, then drawing them out with wall and floor tiles.</p>
+<h2 id="map-data"><a class="header" href="#map-data">Map Data</a></h2>
+<p>Before diving into the logic, it helps to be familiar with how the map is represented in terms of data.
+The main data structure involved is the <code>Map</code> struct that can be found in the <code>src/map.rs</code> file.
+The relevant parts of it are reproduced below:</p>
+<pre><code class="language-rust ignore">pub struct Map {
+    pub depth: i32,
+    pub width: i32,
+    pub height: i32,
+    tiles: Vec&lt;Tile&gt;,
+    pub rooms: Vec&lt;Rect&gt;,
+    // ...
+}
+</code></pre>
+<p>The <code>depth</code> field is the dungeon depth of the map; this is <code>1</code> for the first level.
+The <code>width</code> and <code>height</code> fields hold the dimensions of the map in terms of tiles.
+The <code>tiles</code> field contains the tiles themselves, stored in <em>row-major</em> order, i.e. store a full row of tiles, then the next row, then the next and so on.
+The <code>Tile</code> enum is defined higher up in the <code>src/map.rs</code> file:</p>
+<pre><code class="language-rust ignore">pub enum Tile {
+    Floor,
+    Wall,
+    DownStairs,
+}
+</code></pre>
+<p>The final relevant field of the <code>Map</code> struct is the <code>rooms</code> field.
+This is a list of <code>Rect</code> structs, one for each room:</p>
+<pre><code class="language-rust ignore">pub struct Rect {
+    pub x1: i32,
+    pub y1: i32,
+    pub x2: i32,
+    pub y2: i32,
+}
+</code></pre>
+<p>Here, <code>(x1, y1)</code> is the top-left corner of the room, while <code>(x2, y2)</code> is the bottom-right corner.
+Even though rooms are drawn out as wall and floor tiles, the game needs to keep track of room positions like this in order to place other things in the level such as monsters and items later on, hence this list.</p>
+<p>A single <code>Map</code> struct is allocated and added as unique data at game launch in the <code>main</code> function in the <code>src/main.rs</code> file, like so:</p>
+<pre><code class="language-rust ignore">world.add_unique(Map::new(80, 50));
+</code></pre>
+<p>Every time a new level is needed, this <code>Map</code> struct is cleared and reused.
+There's no special reason for this except that it just happens to be the easiest way to do this for how unique game data is handled.
+Since this map is initialized here to be 80 tiles wide and 50 tiles high, all maps in the game share these dimensions.</p>
+<h2 id="when-levels-are-generated"><a class="header" href="#when-levels-are-generated">When Levels are Generated</a></h2>
+<p>Levels are generated by calling the <code>map::generate_rooms_and_corridors</code> function, which happens in two places:</p>
+<ol>
+<li>When starting a new game in the <code>new_game_setup</code> function in the <code>src/modes/title.rs</code> file.</li>
+<li>When the player descends a dungeon level in the <code>player_do_descend</code> function in the <code>src/player.rs</code> file.</li>
+</ol>
+<h2 id="rooms-and-corridors"><a class="header" href="#rooms-and-corridors">Rooms and Corridors</a></h2>
+<p>Map generation takes place in the <code>map::generate_rooms_and_corridors</code> function in the <code>src/map.rs</code> file.
+As the name suggests, its job is to draw rooms and corridors in terms of map tiles, and produce a list of rooms for later use.</p>
+<p>The very first thing this function does is fill the map with wall tiles.</p>
+<p>Rooms and corridors are placed randomly about the map, so a random number generator is created for this purpose.
+This is seeded with the game seed and the dungeon depth for the map as described in the <a href="randomness.html">Randomness chapter</a>, so each map is effectively unique across game seeds and dungeon depths.</p>
+<h3 id="placing-rooms"><a class="header" href="#placing-rooms">Placing Rooms</a></h3>
+<p>Rooms are placed onto the map as follows:</p>
+<ol>
+<li>Make a rectangle with a random width and height.</li>
+<li>Pick a random position on the map.</li>
+<li>If the rectangle doesn't intersect any existing room, draw floor tiles and add it to the room list.</li>
+</ol>
+<p>This process is repeated thirty times, so the code looks like this:</p>
+<pre><code class="language-rust ignore">for _ in 0..30 {
+    let w: i32 = rng.gen_range(6i32..15i32);
+    let h: i32 = rng.gen_range(6i32..11i32);
+    let x: i32 = rng.gen_range(1i32..map.width - w - 1);
+    let y: i32 = rng.gen_range(1i32..map.height - h - 1);
+    let new_room = Rect::new(x, y, w, h);
+
+    if !map.rooms.iter().any(|r| new_room.intersects(r, 1)) {
+        map.set_rect(&amp;new_room, Tile::Floor);
+        map.rooms.push(new_room);
+    }
+}
+</code></pre>
+<p>This typically results in about a dozen rooms per level.</p>
+<p>Rooms look better when they're surrounded by wall tiles, so the <code>x</code> and <code>y</code> values are chosen to avoid placing the room flush with the edges of the map.</p>
+<p>The <code>new_room.intersects(r, 1)</code> part checks if <code>new_room</code> intersects with a room <code>r</code> that cycles through all of the existing rooms.
+The <code>Rect::intersects</code> function higher up in the <code>src/map.rs</code> file takes a <code>margin</code> argument that's set to <code>1</code> tile here, so the <code>new_room</code> is 'inflated' by one tile in all directions when checking to avoid placing it flush against another room.</p>
+<h3 id="connecting-rooms-with-corridors"><a class="header" href="#connecting-rooms-with-corridors">Connecting Rooms with Corridors</a></h3>
+<p>Once the rooms have been placed they need to be connected in a way that guarantees that all of the rooms can be reached.
+Rooms are connected with corridors as follows:</p>
+<ol>
+<li>Add the first room to a <code>connected</code> list and the rest to a <code>disconnected</code> list.</li>
+<li>While the <code>disconnected</code> list still has rooms:
+<ul>
+<li>Pick the <code>disconnected</code> room that is closest to a room in the <code>connected</code> list.</li>
+<li>Join those rooms with a corridor drawn out of floor tiles.</li>
+<li>Move the room from the <code>disconnected</code> list to the <code>connected</code> list.</li>
+</ul>
+</li>
+</ol>
+<p>Once every room is in the <code>connected</code> list, they can all be reached via corridors.
+The code itself looks like this:</p>
+<pre><code class="language-rust ignore">let mut connected: Vec&lt;usize&gt; = Vec::new();
+let mut disconnected: Vec&lt;usize&gt; = Vec::new();
+
+// Consider the first room as the start of connectedness.
+connected.push(0);
+
+// All other rooms start disconnected.
+for i in 1..map.rooms.len() {
+    disconnected.push(i);
+}
+
+// Connect all the disconnected rooms to the connected rooms based on closeness.
+while !disconnected.is_empty() {
+    // Find the closest match between connected and disconnected.
+    let (closest_connected, closest_disconnected) = connected
+        .iter()
+        .enumerate()
+        .flat_map(|c| std::iter::repeat(c).zip(disconnected.iter().enumerate()))
+        .min_by_key(|&amp;((_, &amp;croom), (_, &amp;droom))| {
+            let ccenter = map.rooms[croom].center();
+            let dcenter = map.rooms[droom].center();
+            (ccenter.0 - dcenter.0).abs() + (ccenter.1 - dcenter.1).abs()
+        })
+        .map(|((ci, _), (di, _))| (ci, di))
+        .unwrap();
+
+    // Connect the closest connected and disconnected rooms together.
+    connect_rooms(
+        &amp;mut map,
+        connected[closest_connected],
+        disconnected[closest_disconnected],
+        rng.gen::&lt;bool&gt;(),
+    );
+
+    // Transfer newly-connected room index from disconnected to connected.
+    connected.push(disconnected.remove(closest_disconnected));
+}
+</code></pre>
+<p>The <code>connected</code> and <code>disconnected</code> lists above store indices into the map's rooms list.</p>
+<p>The code for finding the closest disconnected room to a connected room can be a bit tricky to read.
+The <code>connected</code>/<code>iter</code>/<code>enumerate</code>/<code>flat_map</code> lines create an iterator that pairs up each connected room index with a disconnected room index.
+For example, if <code>connected</code> contains <code>[0, 1]</code> and <code>disconnected</code> contains <code>[2, 3, 4]</code>, this iterator produces these pairs in order:</p>
+<ul>
+<li><code>(0, 2)</code></li>
+<li><code>(0, 3)</code></li>
+<li><code>(0, 4)</code></li>
+<li><code>(1, 2)</code></li>
+<li><code>(1, 3)</code></li>
+<li><code>(1, 4)</code></li>
+</ul>
+<p>The <code>min_by_key</code> code block calculates the approximate corridor length between the center tiles of the connected and disconnected rooms and returns the pair that would need the shortest corridor to connect.
+In the example above, if the <code>(1, 3)</code> pair had the shortest estimated corridor length, connected room <code>1</code> and disconnected room <code>3</code> would be joined with a corridor, and <code>3</code> would be moved from the <code>disconnected</code> list to the <code>connected</code> list.</p>
+<p>The task of drawing a corridor out of floor tiles is done by <code>connect_rooms</code>:</p>
+<pre><code class="language-rust ignore">let connect_rooms = |map: &amp;mut UniqueViewMut&lt;Map&gt;, r1: usize, r2: usize, h_then_v: bool| {
+    let (r1x, r1y) = map.rooms[r1].center();
+    let (r2x, r2y) = map.rooms[r2].center();
+    if h_then_v {
+        map.set_hline(r2x, r1x, r2y, Tile::Floor);
+        map.set_vline(r2y, r1y, r1x, Tile::Floor);
+    } else {
+        map.set_vline(r2y, r1y, r2x, Tile::Floor);
+        map.set_hline(r2x, r1x, r1y, Tile::Floor);
+    }
+};
+</code></pre>
+<p>The <code>h_then_v</code> argument is a flag to draw horizontal floor tiles, then vertical floor tiles; this is decided with a random coin flip by the map generation random number generator.
+Corridors can freely overlap rooms and each other.</p>
+<p>Savvy readers may notice that joining rooms with corridors this way is like using <em>Prim's algorithm</em> for finding the minimum spanning tree of a graph, i.e. the least cost edges to join every node.
+A tree of a graph contains no loops, so what we have so far is a map with a lot of dead end rooms, which in gameplay terms means a lot of backtracking that we don't want.
+To reduce the number of dead ends and backtracking needed, several extra pairs of rooms are picked at random and joined with corridors as well.</p>
+<h3 id="finishing-touches"><a class="header" href="#finishing-touches">Finishing Touches</a></h3>
+<p>If the player hasn't descended deep enough into the dungeon, a downstairs tile is placed in the center of the last room in the room list.
+If they have, the coordinates of that same tile is passed back to the calling code so that the victory item can be placed there instead.</p>
+<p>With the map tiles drawn out and the room list prepared, the map is ready to be populated with things like monsters and items.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="randomness.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="map-population.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="randomness.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="map-population.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>
