@@ -8,7 +8,7 @@ Play the game [in your web browser](https://tung.github.io/ruggrogue/play/), or 
 RuggRogue is a simple, complete roguelike inspired by the first part of the [Rust Roguelike Tutorial](https://bfnightly.bracketproductions.com/).
 Despite this, it uses [SDL2](https://libsdl.org) directly (and [Emscripten](https://emscripten.org) for the web port), without any game engine or roguelike helper libraries.
 The source code can be found [at GitHub](https://github.com/tung/ruggrogue).
-Roguelike developers may also want to see the [RuggRogue Source Code Guide](https://tung.github.io/source-code-guide/); a 20-odd chapter technical web book about the development, ideas and code architecture of the game.
+Roguelike developers may also want to see the [RuggRogue Source Code Guide](https://tung.github.io/ruggrogue/source-code-guide/); a 20-odd chapter technical web book about the development, ideas and code architecture of the game.
 
 ## Features
 
