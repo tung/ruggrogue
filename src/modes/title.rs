@@ -21,6 +21,7 @@ use ruggrogue::{
 
 use super::{
     dungeon::DungeonMode,
+    message_box::{MessageBoxMode, MessageBoxModeResult},
     options_menu::{OptionsMenuMode, OptionsMenuModeResult},
     yes_no_dialog::{YesNoDialogMode, YesNoDialogModeResult},
     ModeControl, ModeResult, ModeUpdate,
@@ -326,6 +327,13 @@ impl TitleMode {
     ) -> (ModeControl, ModeUpdate) {
         if let Some(result) = pop_result {
             return match result {
+                ModeResult::MessageBoxModeResult(result) => match result {
+                    MessageBoxModeResult::AppQuit => (
+                        ModeControl::Pop(TitleModeResult::AppQuit.into()),
+                        ModeUpdate::Immediate,
+                    ),
+                    MessageBoxModeResult::Done => (ModeControl::Stay, ModeUpdate::WaitForEvent),
+                },
                 ModeResult::OptionsMenuModeResult(result) => match result {
                     OptionsMenuModeResult::AppQuit => (
                         ModeControl::Pop(TitleModeResult::AppQuit.into()),
@@ -430,15 +438,46 @@ impl TitleMode {
                             }
                             TitleAction::LoadGame => {
                                 if saveload::save_file_exists() {
-                                    saveload::load_game(world).unwrap();
-                                    world.run(print_game_seed);
+                                    match saveload::load_game(world) {
+                                        Ok(_) => {
+                                            world.run(print_game_seed);
 
-                                    // Don't show pick up key hint to returning players.
-                                    world.borrow::<UniqueViewMut<PickUpHint>>().0 = false;
+                                            // Don't show pick up key hint to returning players.
+                                            world.borrow::<UniqueViewMut<PickUpHint>>().0 = false;
 
+                                            inputs.clear_input();
+                                            return (
+                                                ModeControl::Switch(DungeonMode::new().into()),
+                                                ModeUpdate::Immediate,
+                                            );
+                                        }
+                                        Err(e) => {
+                                            let mut msg = vec![
+                                                "Failed to load game:".to_string(),
+                                                "".to_string(),
+                                            ];
+
+                                            msg.extend(
+                                                ruggrogue::word_wrap(&format!("{}", e), 78)
+                                                    .map(String::from),
+                                            );
+
+                                            inputs.clear_input();
+                                            return (
+                                                ModeControl::Push(MessageBoxMode::new(msg).into()),
+                                                ModeUpdate::Immediate,
+                                            );
+                                        }
+                                    }
+                                } else {
                                     inputs.clear_input();
                                     return (
-                                        ModeControl::Switch(DungeonMode::new().into()),
+                                        ModeControl::Push(
+                                            MessageBoxMode::new(vec![
+                                                "No save file found.".to_string()
+                                            ])
+                                            .into(),
+                                        ),
                                         ModeUpdate::Immediate,
                                     );
                                 }
@@ -503,11 +542,7 @@ impl TitleMode {
                 (0, i as i32),
                 action.label(),
                 true,
-                if matches!(action, TitleAction::LoadGame) && !saveload::save_file_exists() {
-                    Color::GRAY
-                } else {
-                    fg
-                },
+                fg,
                 if i == self.selection { selected_bg } else { bg },
             );
         }

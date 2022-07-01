@@ -31,6 +31,7 @@ pub mod game_over;
 pub mod inventory;
 pub mod inventory_action;
 pub mod inventory_shortcut;
+pub mod message_box;
 pub mod options_menu;
 pub mod pick_up_menu;
 pub mod target;
@@ -51,6 +52,7 @@ use game_over::{GameOverMode, GameOverModeResult};
 use inventory::{InventoryMode, InventoryModeResult};
 use inventory_action::{InventoryActionMode, InventoryActionModeResult};
 use inventory_shortcut::{InventoryShortcutMode, InventoryShortcutModeResult};
+use message_box::{MessageBoxMode, MessageBoxModeResult};
 use options_menu::{OptionsMenuMode, OptionsMenuModeResult};
 use pick_up_menu::{PickUpMenuMode, PickUpMenuModeResult};
 use target::{TargetMode, TargetModeResult};
@@ -82,6 +84,7 @@ pub enum Mode {
     InventoryMode(InventoryMode),
     InventoryActionMode(InventoryActionMode),
     InventoryShortcutMode(InventoryShortcutMode),
+    MessageBoxMode(MessageBoxMode),
     OptionsMenuMode(OptionsMenuMode),
     PickUpMenuMode(PickUpMenuMode),
     TargetMode(TargetMode),
@@ -98,6 +101,7 @@ impl_from!(Mode, GameOverMode);
 impl_from!(Mode, InventoryMode);
 impl_from!(Mode, InventoryActionMode);
 impl_from!(Mode, InventoryShortcutMode);
+impl_from!(Mode, MessageBoxMode);
 impl_from!(Mode, OptionsMenuMode);
 impl_from!(Mode, PickUpMenuMode);
 impl_from!(Mode, TargetMode);
@@ -119,6 +123,7 @@ pub enum ModeResult {
     InventoryModeResult(InventoryModeResult),
     InventoryActionModeResult(InventoryActionModeResult),
     InventoryShortcutModeResult(InventoryShortcutModeResult),
+    MessageBoxModeResult(MessageBoxModeResult),
     OptionsMenuModeResult(OptionsMenuModeResult),
     PickUpMenuModeResult(PickUpMenuModeResult),
     TargetModeResult(TargetModeResult),
@@ -135,6 +140,7 @@ impl_from!(ModeResult, GameOverModeResult);
 impl_from!(ModeResult, InventoryModeResult);
 impl_from!(ModeResult, InventoryActionModeResult);
 impl_from!(ModeResult, InventoryShortcutModeResult);
+impl_from!(ModeResult, MessageBoxModeResult);
 impl_from!(ModeResult, OptionsMenuModeResult);
 impl_from!(ModeResult, PickUpMenuModeResult);
 impl_from!(ModeResult, TargetModeResult);
@@ -189,6 +195,7 @@ impl Mode {
             Mode::InventoryMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryActionMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::InventoryShortcutMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
+            Mode::MessageBoxMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::OptionsMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::PickUpMenuMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
             Mode::TargetMode(x) => x.prepare_grids(world, grids, tilesets, window_size),
@@ -214,6 +221,7 @@ impl Mode {
             Mode::InventoryMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryActionMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::InventoryShortcutMode(x) => x.update(world, inputs, grids, pop_result),
+            Mode::MessageBoxMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::OptionsMenuMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::PickUpMenuMode(x) => x.update(world, inputs, grids, pop_result),
             Mode::TargetMode(x) => x.update(world, inputs, grids, pop_result),
@@ -233,6 +241,7 @@ impl Mode {
             Mode::InventoryMode(x) => x.draw(world, grids, active),
             Mode::InventoryActionMode(x) => x.draw(world, grids, active),
             Mode::InventoryShortcutMode(x) => x.draw(world, grids, active),
+            Mode::MessageBoxMode(x) => x.draw(world, grids, active),
             Mode::OptionsMenuMode(x) => x.draw(world, grids, active),
             Mode::PickUpMenuMode(x) => x.draw(world, grids, active),
             Mode::TargetMode(x) => x.draw(world, grids, active),
@@ -253,6 +262,7 @@ impl Mode {
             Mode::InventoryMode(_) => true,
             Mode::InventoryActionMode(_) => true,
             Mode::InventoryShortcutMode(_) => true,
+            Mode::MessageBoxMode(_) => true,
             Mode::OptionsMenuMode(_) => true,
             Mode::PickUpMenuMode(_) => true,
             Mode::TargetMode(_) => false,
