@@ -383,6 +383,7 @@ The files in <code>src/modes/</code> consist of:</p>
 <li><code>src/modes/inventory.rs</code> - The inventory menu.</li>
 <li><code>src/modes/inventory_action.rs</code> - Menu of actions that can be performed when selecting an inventory item.</li>
 <li><code>src/modes/inventory_shortcut.rs</code> - Quick hotkey-reachable menu to perform an action on an item without having to go through the inventory.</li>
+<li><code>src/modes/message_box.rs</code> - A simple message box.</li>
 <li><code>src/modes/options_menu.rs</code> - The options menu where settings can be changed.</li>
 <li><code>src/modes/pick_up_menu.rs</code> - Menu of items that the player can pick up at their current map position.</li>
 <li><code>src/modes/target.rs</code> - A screen that allows the player to choose a target position when they use an item that needs a target.</li>
@@ -2800,8 +2801,7 @@ This is done with some JavaScript inside the <code>index.html</code> file:</p>
 In theory, that's all that's needed to get saving and loading to work in the web version of RuggRogue.</p>
 <p>Unfortunately, this process is imperfect.
 The final <code>FS.syncfs</code> call above is asynchronous, and the callback provided is supposed to be called when it's done, but I couldn't work out how to make Emscripten wait for it to be called before jumping into the title screen of the game.
-If you take a peek at the menu logic in the <code>src/modes/title.rs</code> file, you can see that RuggRogue works around this by always including the load option and checking every update and draw whether to enable it.
-If you play the web version of the game, save the game and return later, you'll need to press a key on the title screen to get the load option to properly light up.</p>
+If you take a peek at the menu logic in the <code>src/modes/title.rs</code> file, you can see that RuggRogue works around this by always including the &quot;Load Game&quot; option in the web build.</p>
 <p>The other caveat of this IndexedDB approach is that persistent IndexedDB instances aren't available in private browsing tabs.
 In that case, the game will silently fall back to the in-memory file system, so save files will be forgotten when the game page is closed.</p>
 <p>To be honest, I don't know if doing all of this the way I'm supposed to.
