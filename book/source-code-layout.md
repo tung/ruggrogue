@@ -68,6 +68,7 @@ The files in `src/modes/` consist of:
  - `src/modes/inventory.rs` - The inventory menu.
  - `src/modes/inventory_action.rs` - Menu of actions that can be performed when selecting an inventory item.
  - `src/modes/inventory_shortcut.rs` - Quick hotkey-reachable menu to perform an action on an item without having to go through the inventory.
+ - `src/modes/message_box.rs` - A simple message box.
  - `src/modes/options_menu.rs` - The options menu where settings can be changed.
  - `src/modes/pick_up_menu.rs` - Menu of items that the player can pick up at their current map position.
  - `src/modes/target.rs` - A screen that allows the player to choose a target position when they use an item that needs a target.
