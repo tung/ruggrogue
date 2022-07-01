@@ -33,7 +33,7 @@ const SOURCE_GRID: usize = 2;
 const MENU_GRID: usize = 3;
 
 const SOURCE_STR: &str = "tung.github.io/ruggrogue/";
-const VERSION_STR: &str = "v1.0.0";
+const VERSION_STR: &str = "v1.0.1";
 const LOGO_STR: &str = "░░░░░░  ░░  ░░   ░░░░    ░░░░
  ▒▒  ▒▒ ▒▒  ▒▒  ▒▒  ▒▒  ▒▒  ▒▒
  ▓▓  ▓▓ ▓▓  ▓▓ ▓▓      ▓▓
