@@ -581,8 +581,7 @@ In theory, that's all that's needed to get saving and loading to work in the web
 
 Unfortunately, this process is imperfect.
 The final `FS.syncfs` call above is asynchronous, and the callback provided is supposed to be called when it's done, but I couldn't work out how to make Emscripten wait for it to be called before jumping into the title screen of the game.
-If you take a peek at the menu logic in the `src/modes/title.rs` file, you can see that RuggRogue works around this by always including the load option and checking every update and draw whether to enable it.
-If you play the web version of the game, save the game and return later, you'll need to press a key on the title screen to get the load option to properly light up.
+If you take a peek at the menu logic in the `src/modes/title.rs` file, you can see that RuggRogue works around this by always including the "Load Game" option in the web build.
 
 The other caveat of this IndexedDB approach is that persistent IndexedDB instances aren't available in private browsing tabs.
 In that case, the game will silently fall back to the in-memory file system, so save files will be forgotten when the game page is closed.
