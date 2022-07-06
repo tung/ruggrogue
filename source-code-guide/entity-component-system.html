@@ -155,8 +155,8 @@ This game-specific data is all managed by a crate named <a href="https://crates.
 The main benefit of this is that it avoids the &quot;talking sword&quot; problem that you'd run into with an object-oriented approach: if you have NPCs that you can talk to, and a sword you can pick up and swing, how do you represent a talking sword?
 In the object-oriented style of modelling game data, problems like this end up poking holes in the encapsulation the classes are supposed to have, and functionality drifts up the inheritance tree into a gigantic all-encompassing mega-class.
 Game data modelled with entities and components instead avoids both of those issues; see Catherine West's RustConf 2018 closing keynote (<a href="https://www.youtube.com/watch?v=aKLntZcp27M">video</a> and <a href="https://kyren.github.io/2018/09/14/rustconf-talk.html">notes</a>) for more information.</p>
-<p>In a game built fully in the ECS-style, <em>systems</em> are just functions that manipulate groups of entities according to what components they have.
-However, RuggRogue mostly does <em>not</em> use Shipyard's systems, for reasons that will be discussed later.</p>
+<p>In a game built fully in the ECS-style, <em>systems</em> are just functions that manipulate groups of entities according to what components they have.</p>
+<!-- However, RuggRogue mostly does *not* use Shipyard's systems, for reasons that will be discussed later. -->
 <h2 id="shipyard-04"><a class="header" href="#shipyard-04">Shipyard 0.4</a></h2>
 <p>RuggRogue uses Shipyard <strong>0.4</strong>, but at the time of writing it is <em>not</em> the most recent version of Shipyard, which is <strong>0.5</strong>.
 So what gives?
@@ -367,106 +367,133 @@ let (player_id, weapon_id, armor_id) = {
 }
 </code></pre>
 <p>This pretty much covers all of the ways that RuggRogue uses Shipyard to handle its own game data.</p>
-<h2 id="why-not-use-systems"><a class="header" href="#why-not-use-systems">Why not use Systems?</a></h2>
-<p>As mentioned earlier, RuggRogue uses Shipyard for entities and components, but it mostly does <em>not</em> use its systems.
+<!--
+## Why not use Systems?
+
+As mentioned earlier, RuggRogue uses Shipyard for entities and components, but it mostly does *not* use its systems.
 From my prior experience of reading the source code of open source roguelikes, and sometimes tinkering with it too, the order and conditions under which logic is supposed to run needs to be precise.
-With systems, a lot of synchronizing data is needed to define this precision; for example see how the Rust Roguelike Tutorial uses a <a href="https://bfnightly.bracketproductions.com/chapter_7.html#player-attacking-and-killing-things">&quot;WantsToAttack&quot; component</a> as an ad-hoc queue to synchronize systems.
+With systems, a lot of synchronizing data is needed to define this precision; for example see how the Rust Roguelike Tutorial uses a ["WantsToAttack" component](https://bfnightly.bracketproductions.com/chapter_7.html#player-attacking-and-killing-things) as an ad-hoc queue to synchronize systems.
 (I'd use an actual queue in that case, but that's still extra synchronizing data that's needed.)
 Just sticking with functions, branches and loops avoids all of that, and it's what I'm more comfortable with, so it's the approach I chose for RuggRogue.
-It seems like I arrived at a similar conclusion as Bob Nystrom in his talk about ECS and roguelikes (<a href="https://www.youtube.com/watch?v=JxI3Eu5DPwE">video</a>).</p>
-<p>However, if you read the source code of RuggRogue for a while, you'll see a fair number of uses of a <code>World::run</code> function with a closure:</p>
-<pre><code class="language-rust ignore">world.run(|names: View&lt;Name&gt;, positions: View&lt;Position&gt;| {
+It seems like I arrived at a similar conclusion as Bob Nystrom in his talk about ECS and roguelikes ([video](https://www.youtube.com/watch?v=JxI3Eu5DPwE)).
+
+However, if you read the source code of RuggRogue for a while, you'll see a fair number of uses of a `World::run` function with a closure:
+
+```rust,ignore
+world.run(|names: View<Name>, positions: View<Position>| {
     // Name and Position component storages borrowed in here
 });
-</code></pre>
-<p>That's equivalent to this:</p>
-<pre><code class="language-rust ignore">{
-    let names = world.borrow::&lt;View&lt;Name&gt;&gt;();
-    let positions = world.borrow::&lt;View&lt;Position&gt;&gt;();
+```
+
+That's equivalent to this:
+
+```rust,ignore
+{
+    let names = world.borrow::<View<Name>>();
+    let positions = world.borrow::<View<Position>>();
 
     // Name and Position component storages borrowed in here
 }
-</code></pre>
-<p><code>World::run</code> is also used with functions:</p>
-<pre><code class="language-rust ignore">fn do_something(names: View&lt;Name&gt;, positions: View&lt;Position&gt;) {
+```
+
+`World::run` is also used with functions:
+
+```rust,ignore
+fn do_something(names: View<Name>, positions: View<Position>) {
     // Name and Position component storages borrowed in here
 }
 
 // somewhere else...
 world.run(do_something);
-</code></pre>
-<p>So what's <code>World::run</code> running here?
-The functions and closures being put through <code>World::run</code> are <em>systems</em>, in Shipyard's terms.
+```
+
+So what's `World::run` running here?
+The functions and closures being put through `World::run` are *systems*, in Shipyard's terms.
 So I lied a bit: RuggRogue does use systems.
-What it doesn't use are Shipyard's notion of <em>workloads</em>, which are bundles of systems that are designed to be run together.
-By avoiding workloads, RuggRogue is able to precisely dictate how and when logic runs without having to manage explicit synchronizing data.</p>
-<p>In most of the code samples above, <code>World::borrow</code> is preferred over <code>World::run</code>.
-In the RuggRogue source code in general, older code tended to use a lot of <code>World::run</code>, while newer code mostly prefers <code>World::borrow</code>.
-But in the code we just saw, the code for the <code>World::run</code> versions is shorter and more convenient.
-So why does RuggRogue prefer <code>World::borrow</code> over <code>World::run</code>?</p>
-<p>Due to Rust's borrowing rules, a system cannot easily be called from within another system.
-For instance, the following code will not compile:</p>
-<pre><code class="language-rust ignore">fn my_subsystem(cs: View&lt;C&gt;) {
+What it doesn't use are Shipyard's notion of *workloads*, which are bundles of systems that are designed to be run together.
+By avoiding workloads, RuggRogue is able to precisely dictate how and when logic runs without having to manage explicit synchronizing data.
+
+In most of the code samples above, `World::borrow` is preferred over `World::run`.
+In the RuggRogue source code in general, older code tended to use a lot of `World::run`, while newer code mostly prefers `World::borrow`.
+But in the code we just saw, the code for the `World::run` versions is shorter and more convenient.
+So why does RuggRogue prefer `World::borrow` over `World::run`?
+
+Due to Rust's borrowing rules, a system cannot easily be called from within another system.
+For instance, the following code will not compile:
+
+```rust,ignore
+fn my_subsystem(cs: View<C>) {
     // do stuff from cs...
 }
 
 {
-    world.run(|bs: View&lt;b&gt;| {
+    world.run(|bs: View<b>| {
         // do stuff with bs...
-        world.run(my_subsystem); // &lt;-- Can't borrow 'world' twice!!!
+        world.run(my_subsystem); // <- Can't borrow 'world' twice!!!
     });
 }
-</code></pre>
-<p>This could be reworked to compile by borrowing the <code>C</code> components <em>alongside</em> the <code>B</code> components, like so:</p>
-<pre><code class="language-rust ignore">fn my_subsystem(cs: &amp;View&lt;C&gt;) {
+```
+
+This could be reworked to compile by borrowing the `C` components *alongside* the `B` components, like so:
+
+```rust,ignore
+fn my_subsystem(cs: &View<C>) {
     // do stuff with cs...
 }
 
 {
-    world.run(|bs: View&lt;B&gt;, cs: View&lt;C&gt;| {
+    world.run(|bs: View<B>, cs: View<C>| {
         // do stuff with bs...
-        my_subsystem(&amp;cs);
+        my_subsystem(&cs);
     });
 }
-</code></pre>
-<p>But it gets clumsier when introducing another system deeper in that wants, say, <code>D</code> components:</p>
-<pre><code class="language-rust ignore">fn my_sub_subsystem(ds: &amp;View&lt;D&gt;) {
+```
+
+But it gets clumsier when introducing another system deeper in that wants, say, `D` components:
+
+```rust,ignore
+fn my_sub_subsystem(ds: &View<D>) {
     // do stuff with ds...
 }
 
-fn my_subsystem(cs: &amp;View&lt;C&gt;, ds: &amp;View&lt;D&gt;) { // &lt;-- Getting longer...
+fn my_subsystem(cs: &View<C>, ds: &View<D>) { // <- Getting longer...
     // do stuff with cs...
     my_sub_subsystem(ds);
 }
 
 {
-    world.run(|bs: View&lt;B&gt;, cs: View&lt;C&gt;, ds: View&lt;D&gt;| { // &lt;-- Getting longer...
+    world.run(|bs: View<B>, cs: View<C>, ds: View<D>| { // <- Getting longer...
         // do stuff with bs...
-        my_subsystem(&amp;cs, &amp;ds); // &lt;-- Getting longer...
+        my_subsystem(&cs, &ds); // <- Getting longer...
     });
 }
-</code></pre>
-<p>Using <code>world::borrow</code> instead of <code>world::run</code> allows for fine-grained on-demand component access instead.
-Here's the equivalent code the above, but using <code>world::borrow</code> instead of <code>world::run</code>:</p>
-<pre><code class="language-rust ignore">fn my_sub_system(world: &amp;World) {
-    let ds = world.borrow::&lt;View&lt;D&gt;&gt;();
+```
+
+Using `world::borrow` instead of `world::run` allows for fine-grained on-demand component access instead.
+Here's the equivalent code the above, but using `world::borrow` instead of `world::run`:
+
+```rust,ignore
+fn my_sub_system(world: &World) {
+    let ds = world.borrow::<View<D>>();
     // do stuff with ds...
 }
 
-fn my_subsystem(world:&amp;World) {
-    let cs = world.borrow::&lt;View&lt;C&gt;&gt;();
+fn my_subsystem(world:&World) {
+    let cs = world.borrow::<View<C>>();
     // do stuff with cs...
     my_sub_subsystem(world);
 }
 
 {
-    let bs = world.borrow::&lt;View&lt;B&gt;&gt;();
+    let bs = world.borrow::<View<B>>();
     // do stuff with bs...
     my_subsystem(world);
 }
-</code></pre>
-<p>RuggRogue works with many different component types and functions that call each other, so <code>world:borrow</code> ends up being much easier to use most of the time.
-<code>world::run</code> tends to be used with small, self-contained functions that don't call many other functions.</p>
+```
+
+RuggRogue works with many different component types and functions that call each other, so `world:borrow` ends up being much easier to use most of the time.
+`world::run` tends to be used with small, self-contained functions that don't call many other functions.
+-->
 <h2 id="conclusion"><a class="header" href="#conclusion">Conclusion</a></h2>
 <p>You should now have a general idea of how RuggRogue stores and accesses its data using Shipyard.
 Insofar as Rust ECS crates go, I'm so-so on Shipyard, since it came with a lot of functionality that I never used.
