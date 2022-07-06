@@ -14,7 +14,7 @@ In the object-oriented style of modelling game data, problems like this end up p
 Game data modelled with entities and components instead avoids both of those issues; see Catherine West's RustConf 2018 closing keynote ([video](https://www.youtube.com/watch?v=aKLntZcp27M) and [notes](https://kyren.github.io/2018/09/14/rustconf-talk.html)) for more information.
 
 In a game built fully in the ECS-style, *systems* are just functions that manipulate groups of entities according to what components they have.
-However, RuggRogue mostly does *not* use Shipyard's systems, for reasons that will be discussed later.
+<!-- However, RuggRogue mostly does *not* use Shipyard's systems, for reasons that will be discussed later. -->
 
 ## Shipyard 0.4
 
@@ -282,6 +282,7 @@ let (player_id, weapon_id, armor_id) = {
 
 This pretty much covers all of the ways that RuggRogue uses Shipyard to handle its own game data.
 
+<!--
 ## Why not use Systems?
 
 As mentioned earlier, RuggRogue uses Shipyard for entities and components, but it mostly does *not* use its systems.
@@ -343,7 +344,7 @@ fn my_subsystem(cs: View<C>) {
 {
     world.run(|bs: View<b>| {
         // do stuff with bs...
-        world.run(my_subsystem); // <-- Can't borrow 'world' twice!!!
+        world.run(my_subsystem); // <- Can't borrow 'world' twice!!!
     });
 }
 ```
@@ -370,15 +371,15 @@ fn my_sub_subsystem(ds: &View<D>) {
     // do stuff with ds...
 }
 
-fn my_subsystem(cs: &View<C>, ds: &View<D>) { // <-- Getting longer...
+fn my_subsystem(cs: &View<C>, ds: &View<D>) { // <- Getting longer...
     // do stuff with cs...
     my_sub_subsystem(ds);
 }
 
 {
-    world.run(|bs: View<B>, cs: View<C>, ds: View<D>| { // <-- Getting longer...
+    world.run(|bs: View<B>, cs: View<C>, ds: View<D>| { // <- Getting longer...
         // do stuff with bs...
-        my_subsystem(&cs, &ds); // <-- Getting longer...
+        my_subsystem(&cs, &ds); // <- Getting longer...
     });
 }
 ```
@@ -407,6 +408,7 @@ fn my_subsystem(world:&World) {
 
 RuggRogue works with many different component types and functions that call each other, so `world:borrow` ends up being much easier to use most of the time.
 `world::run` tends to be used with small, self-contained functions that don't call many other functions.
+-->
 
 ## Conclusion
 
