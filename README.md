@@ -1,5 +1,7 @@
 # RuggRogue
 
+itch.io: <https://tungtn.itch.io/ruggrogue>
+
 Website: <https://tung.github.io/ruggrogue/>
 
 Fight monsters and find loot as you battle your way to the bottom of the dungeon!
